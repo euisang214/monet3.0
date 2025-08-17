@@ -1,5 +1,5 @@
-import { ProfessionalShell } from "../../components/layouts";
-import { Card } from "../../components/ui";
+import { ProfessionalShell } from "../../../components/layouts";
+import { Card } from "../../../components/ui";
 
 export default function Earnings(){
   return (

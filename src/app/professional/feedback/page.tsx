@@ -1,6 +1,6 @@
 'use client';
-import { ProfessionalShell } from "../../components/layouts";
-import { Card, Button, Input } from "../../components/ui";
+import { ProfessionalShell } from "../../../components/layouts";
+import { Card, Button, Input } from "../../../components/ui";
 import React from 'react';
 
 export default function SubmitFeedback(){

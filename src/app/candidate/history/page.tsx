@@ -1,5 +1,5 @@
-import { CandidateShell } from "../../components/layouts";
-import { Card } from "../../components/ui";
+import { CandidateShell } from "../../../components/layouts";
+import { Card } from "../../../components/ui";
 
 export default function History(){
   const rows = [

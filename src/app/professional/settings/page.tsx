@@ -1,5 +1,5 @@
-import { ProfessionalShell } from "../../components/layouts";
-import { Card, Button, Input } from "../../components/ui";
+import { ProfessionalShell } from "../../../components/layouts";
+import { Card, Button, Input } from "../../../components/ui";
 
 export default function ProSettings(){
   return (
