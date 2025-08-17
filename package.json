@@ -9,8 +9,8 @@
     "seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
     "dev:queue": "tsx scripts/dev-queue.ts",
-    "test": "vitest run --reporter=basic",
-    "test:e2e": "vitest run --reporter=basic tests/e2e/*.test.ts"
+    "test": "vitest run",
+    "test:e2e": "vitest run tests/e2e/*.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.15.1",
@@ -41,6 +41,6 @@
     "prisma": "^5.15.1",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "vitest": "^0.3.2"
+    "vitest": "^1.6.1"
   }
 }
