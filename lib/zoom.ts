@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { CALL_DURATION_MINUTES } from './flags';
 
 export async function createZoomMeeting(topic: string, startIso: string){

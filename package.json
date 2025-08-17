@@ -13,32 +13,34 @@
     "test:e2e": "vitest run --reporter=basic tests/e2e/*.test.ts"
   },
   "dependencies": {
-    "next": "14.2.5",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
     "@prisma/client": "^5.15.1",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.7.6",
-    "ioredis": "^5.4.1",
-    "date-fns": "^3.6.0",
-    "next-auth": "^5.0.0-beta.20",
-    "zod": "^3.23.8",
-    "stripe": "^14.21.0",
-    "nodemailer": "^6.9.14",
-    "googleapis": "^131.0.0",
-    "uuid": "^9.0.1",
-    "json2csv": "^6.0.0",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.424.0"
+    "date-fns": "^3.6.0",
+    "googleapis": "^131.0.0",
+    "ioredis": "^5.4.1",
+    "json2csv": "^5.0.7",
+    "lucide-react": "^0.424.0",
+    "next": "14.2.5",
+    "next-auth": "^5.0.0-beta.20",
+    "nodemailer": "^6.9.14",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "stripe": "^14.21.0",
+    "uuid": "^9.0.1",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/json2csv": "^5.0.7",
+    "@types/node": "^20.12.7",
+    "@types/react": "19.1.10",
+    "@types/uuid": "^9.0.7",
+    "@types/nodemailer": "^6.4.11",
     "prisma": "^5.15.1",
     "tsx": "^4.19.2",
-    "vitest": "^1.6.0",
-    "@types/node": "^20.12.7",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/json2csv": "^6.0.5",
-    "@types/uuid": "^9.0.7"
+    "typescript": "^5.6.3",
+    "vitest": "^1.6.0"
   }
 }
