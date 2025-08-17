@@ -39,6 +39,57 @@ export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth({
     })
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account && (account.provider === 'google' || account.provider === 'linkedin')) {
+        if (!user.email) return false;
+        const provider = account.provider;
+        let dbUser = await prisma.user.findUnique({ where: { email: user.email } });
+        if (!dbUser) {
+          dbUser = await prisma.user.create({
+            data: {
+              email: user.email,
+              role: 'CANDIDATE',
+              googleCalendarConnected: provider === 'google',
+              linkedinConnected: provider === 'linkedin'
+            }
+          });
+        } else {
+          dbUser = await prisma.user.update({
+            where: { id: dbUser.id },
+            data: {
+              googleCalendarConnected: provider === 'google' ? true : dbUser.googleCalendarConnected,
+              linkedinConnected: provider === 'linkedin' ? true : dbUser.linkedinConnected
+            }
+          });
+        }
+        await prisma.oAuthAccount.upsert({
+          where: {
+            provider_providerAccountId: {
+              provider,
+              providerAccountId: account.providerAccountId
+            }
+          },
+          update: {
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
+            expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+            scope: account.scope
+          },
+          create: {
+            userId: dbUser.id,
+            provider,
+            providerAccountId: account.providerAccountId,
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
+            expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+            scope: account.scope
+          }
+        });
+        (user as any).id = dbUser.id;
+        (user as any).role = dbUser.role;
+      }
+      return true;
+    },
     async jwt({token, user}){
       if(user){
         token.role = (user as any).role || 'CANDIDATE';

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "../../../auth";
 import { PublicShell } from "../../components/layouts";
-import { Card, Input, Button } from "../../components/ui";
+import { Card } from "../../components/ui";
+import LoginForm from "./LoginForm";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -13,11 +14,7 @@ export default async function LoginPage() {
     <PublicShell>
       <Card style={{ maxWidth: 400, margin: '40px auto', padding: 24 }}>
         <h1>Log In</h1>
-        <form className="col" style={{ gap: 12 }}>
-          <Input type="email" placeholder="Email" required />
-          <Input type="password" placeholder="Password" required />
-          <Button type="submit">Log In</Button>
-        </form>
+        <LoginForm />
         <p style={{ marginTop: 8 }}>
           Don't have an account? <Link href="/signup">Sign up</Link>
         </p>
