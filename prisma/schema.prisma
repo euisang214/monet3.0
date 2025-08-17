@@ -1,0 +1,226 @@
+// Prisma schema for Monet MVP (PostgreSQL)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CANDIDATE
+  PROFESSIONAL
+}
+
+enum BookingStatus {
+  draft
+  requested
+  accepted
+  cancelled
+  completed
+  completed_pending_feedback
+  refunded
+}
+
+enum PaymentStatus {
+  held
+  released
+  refunded
+}
+
+enum PayoutStatus {
+  pending
+  paid
+  blocked
+}
+
+enum QCStatus {
+  passed
+  revise
+  failed
+  missing
+}
+
+model User {
+  id                     String   @id @default(cuid())
+  email                  String   @unique
+  hashedPassword         String?
+  role                   Role
+  googleCalendarConnected Boolean  @default(false)
+  linkedinConnected      Boolean  @default(false)
+  corporateEmailVerified Boolean  @default(false)
+  flags                  Json     @default("{}")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  professionalProfile    ProfessionalProfile?
+  candidateProfile       CandidateProfile?
+  accounts               OAuthAccount[]
+  bookingsAsCandidate    Booking[] @relation("CandidateBookings")
+  bookingsAsProfessional Booking[] @relation("ProfessionalBookings")
+  notifications          Notification[]
+  auditLogs              AuditLog[] @relation("AuditActor")
+}
+
+model OAuthAccount {
+  id               String   @id @default(cuid())
+  userId           String
+  provider         String   // 'google' | 'linkedin'
+  providerAccountId String
+  accessToken      String?
+  refreshToken     String?
+  expiresAt        DateTime?
+  scope            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model ProfessionalProfile {
+  userId            String  @id
+  employer          String
+  title             String
+  seniority         String
+  bio               String
+  priceUSD          Int
+  availabilityPrefs Json    @default("{}")
+  verifiedAt        DateTime?
+  corporateEmail    String?
+
+  user              User    @relation(fields:[userId], references:[id], onDelete: Cascade)
+}
+
+model CandidateProfile {
+  userId     String @id
+  experience Json  @default("[]")
+  education  Json  @default("[]")
+  resumeUrl  String?
+
+  user       User  @relation(fields:[userId], references:[id], onDelete: Cascade)
+}
+
+model Booking {
+  id              String   @id @default(cuid())
+  candidateId     String
+  professionalId  String
+  status          BookingStatus
+  startAt         DateTime
+  endAt           DateTime
+  zoomMeetingId   String?
+  zoomJoinUrl     String?
+  calendarEventIds Json     @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  candidate       User     @relation("CandidateBookings", fields:[candidateId], references:[id])
+  professional    User     @relation("ProfessionalBookings", fields:[professionalId], references:[id])
+  payment         Payment?
+  feedback        Feedback?
+  payout          Payout?
+
+  @@index([status, startAt])
+}
+
+model Payment {
+  id           String   @id @default(cuid())
+  bookingId    String   @unique
+  amountGross  Int
+  platformFee  Int
+  escrowHoldId String
+  status       PaymentStatus
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  booking      Booking  @relation(fields:[bookingId], references:[id], onDelete: Cascade)
+}
+
+model Feedback {
+  bookingId           String  @id
+  starsCategory1      Int
+  starsCategory2      Int
+  starsCategory3      Int
+  extraCategoryRatings Json   @default("{}")
+  wordCount           Int
+  actions             String[]
+  text                String
+  submittedAt         DateTime
+  qcStatus            QCStatus
+  qcReport            Json    @default("{}")
+
+  booking             Booking @relation(fields:[bookingId], references:[id], onDelete: Cascade)
+}
+
+model Payout {
+  id                 String   @id @default(cuid())
+  bookingId          String   @unique
+  proStripeAccountId String
+  amountNet          Int
+  status             PayoutStatus
+  reason             String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  booking            Booking  @relation(fields:[bookingId], references:[id], onDelete: Cascade)
+}
+
+model SuccessFeeInvoice {
+  id                  String   @id @default(cuid())
+  candidateId         String
+  professionalId      String
+  percentage          Int      @default(10)
+  declaredBonusAmount Int
+  invoiceAmount       Int
+  status              String   // 'draft'|'sent'|'paid'|'void'
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Verification {
+  id             String   @id @default(cuid())
+  userId         String
+  corporateEmail String
+  token          String
+  verifiedAt     DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model Notification {
+  id           String   @id @default(cuid())
+  userId       String
+  type         String
+  payload      Json     @default("{}")
+  scheduledFor DateTime
+  sentAt       DateTime?
+
+  user         User     @relation(fields:[userId], references:[id], onDelete: Cascade)
+
+  @@index([scheduledFor])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  entity      String
+  entityId    String
+  action      String
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  actor       User?    @relation("AuditActor", fields:[actorUserId], references:[id])
+}
+
+// Postgres view for listing cards
+view ListingCardView {
+  userId      String
+  employer    String
+  title       String
+  seniority   String
+  priceUSD    Int
+  tags        String[]
+
+  @@ignore // Prisma doesn't manage view fields in client; created in migration SQL
+}

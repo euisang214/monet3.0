@@ -1,0 +1,278 @@
+{
+  "info": {
+    "name": "Monet",
+    "_postman_id": "monet-collection",
+    "description": "Monet MVP API collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Request Booking",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/bookings/request",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookings",
+            "request"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"professionalId\": \"<proUserId>\", \"priceUSD\": 40}"
+        }
+      }
+    },
+    {
+      "name": "Accept Booking",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/bookings/:id/accept",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookings",
+            ":id",
+            "accept"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Schedule Booking",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/bookings/:id/schedule",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookings",
+            ":id",
+            "schedule"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"startAt\": \"2025-06-01T14:00:00.000Z\"}"
+        }
+      }
+    },
+    {
+      "name": "Checkout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/bookings/:id/checkout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookings",
+            ":id",
+            "checkout"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"priceUSD\": 40}"
+        }
+      }
+    },
+    {
+      "name": "Cancel",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/bookings/:id/cancel",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookings",
+            ":id",
+            "cancel"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Submit Feedback",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/feedback/:bookingId",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "feedback",
+            ":bookingId"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"starsCategory1\": 5, \"starsCategory2\": 5, \"starsCategory3\": 5, \"actions\": [\"A\", \"B\", \"C\"], \"text\": \"<200+ words here>\", \"extraCategoryRatings\": {}}"
+        }
+      }
+    },
+    {
+      "name": "QC Recheck (Admin)",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/api/qc/:bookingId/recheck",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "qc",
+            ":bookingId",
+            "recheck"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Professionals Search",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/professionals/search?firm=&priceMax=200",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "professionals",
+            "search"
+          ],
+          "query": [
+            {
+              "key": "firm",
+              "value": ""
+            },
+            {
+              "key": "priceMax",
+              "value": "200"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Professional (Redacted)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/professionals/:id",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "professionals",
+            ":id"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Verification Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/verification/request",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "verification",
+            "request"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"corporateEmail\": \"user@company.com\"}"
+        }
+      }
+    },
+    {
+      "name": "Stripe Webhook (dev)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/stripe/webhook",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "stripe",
+            "webhook"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ]
+}
