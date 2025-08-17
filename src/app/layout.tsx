@@ -26,8 +26,8 @@ export default function RootLayout({
               </nav>
             </div>
             <div className="row" style={{ gap: 8 }}>
-              <Link href="/api/auth/signin" className="btn">Log In</Link>
-              <Link href="/candidate/dashboard" className="btn btn-primary">Sign Up</Link>
+              <Link href="/signup" className="btn">Log In</Link>
+              <Link href="/signup" className="btn btn-primary">Sign Up</Link>
             </div>
           </div>
         </header>

@@ -1,6 +1,6 @@
 'use client';
-import { CandidateShell } from "../../components/layouts";
-import { Card, Button } from "../../components/ui";
+import { CandidateShell } from "../../../components/layouts";
+import { Card, Button } from "../../../components/ui";
 import React from 'react';
 
 function Grid(){

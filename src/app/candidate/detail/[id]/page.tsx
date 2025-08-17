@@ -1,5 +1,5 @@
-import { CandidateShell } from "../../../components/layouts";
-import { Button, Card, Badge } from "../../../components/ui";
+import { CandidateShell } from "../../../../components/layouts";
+import { Button, Card, Badge } from "../../../../components/ui";
 
 export default function Detail(){
   return (

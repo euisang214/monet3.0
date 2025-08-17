@@ -1,5 +1,5 @@
-import { CandidateShell } from "../../components/layouts";
-import { Card, Button } from "../../components/ui";
+import { CandidateShell } from "../../../components/layouts";
+import { Card, Button } from "../../../components/ui";
 
 const upcoming = [
   {name:'Ethan Harper', title:'Senior Consultant at Global Consulting Firm'},

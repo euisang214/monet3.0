@@ -1,5 +1,5 @@
-import { CandidateShell } from "../../components/layouts";
-import { Card, Button, Input } from "../../components/ui";
+import { CandidateShell } from "../../../components/layouts";
+import { Card, Button, Input } from "../../../components/ui";
 
 export default function CandidateSettings(){
   return (

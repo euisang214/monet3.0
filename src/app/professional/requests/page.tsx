@@ -1,6 +1,6 @@
 'use client';
-import { ProfessionalShell } from "../../components/layouts";
-import { Card, Button } from "../../components/ui";
+import { ProfessionalShell } from "../../../components/layouts";
+import { Card, Button } from "../../../components/ui";
 import React from 'react';
 
 function SchedulingOverlay(){
