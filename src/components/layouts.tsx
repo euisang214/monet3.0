@@ -1,5 +1,5 @@
+"use client";
 import React from 'react';
-import '../styles/global.css';
 
 export function PublicShell({children}:{children:React.ReactNode}){
   return <div className="container">{children}</div>;
