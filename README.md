@@ -120,6 +120,14 @@ See `.env.example` for all required variables and flags. **Exactly these feature
 - `FEATURE_SUCCESS_FEE` (default: true)
 - `FEATURE_QC_LLM` (default: true)
 
+Additionally, OAuth requires these environment variables:
+
+- `AUTH_SECRET` and `NEXTAUTH_URL`
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
+- `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET`
+
+For Google sign‑in, ensure the Google Cloud Console lists `http://localhost:3000/api/auth/callback/google` (or your deploy URL) under **Authorized redirect URIs**.
+
 ---
 
 ## Migrations & Seeding
