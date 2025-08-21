@@ -1,17 +1,19 @@
 import "../../styles/global.css";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { auth, signOut } from "../../auth";
 
 export const metadata: Metadata = {
   title: "Monet",
   description: "Connect candidates with professionals for structured 30-minute calls.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
   return (
     <html lang="en">
       <body>
@@ -26,8 +28,25 @@ export default function RootLayout({
               </nav>
             </div>
             <div className="row" style={{ gap: 8 }}>
-              <Link href="/signup" className="btn">Log In</Link>
-              <Link href="/signup" className="btn btn-primary">Sign Up</Link>
+              {session?.user ? (
+                <form
+                  action={async () => {
+                    "use server";
+                    await signOut();
+                  }}
+                >
+                  <button className="btn btn-danger">Sign Out</button>
+                </form>
+              ) : (
+                <>
+                  <Link href="/login" className="btn">
+                    Log In
+                  </Link>
+                  <Link href="/signup" className="btn btn-primary">
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </header>
