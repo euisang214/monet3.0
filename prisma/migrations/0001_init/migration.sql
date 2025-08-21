@@ -159,7 +159,7 @@ CREATE TABLE "AuditLog" (
 
 -- ListingCardView (view)
 CREATE VIEW "ListingCardView" AS
-SELECT u.id as "userId", p.employer, p.title, p.seniority, p.priceUSD, ARRAY[]::text[] as tags
+SELECT u.id as "userId", p.employer, p.title, p.seniority, p."priceUSD", ARRAY[]::text[] as tags
 FROM "User" u
 JOIN "ProfessionalProfile" p ON p."userId" = u.id
 WHERE u.role = 'PROFESSIONAL';
