@@ -8,18 +8,26 @@ export function PublicShell({children}:{children:React.ReactNode}){
 
 export function CandidateShell({children}:{children:React.ReactNode}){
   return (
-    <div className="container" style={{display:'grid', gridTemplateColumns:'240px 1fr', gap:24}}>
-      <aside className="sidebar">
-        <Nav items={[
-          {href:'/candidate/dashboard', label:'Home'},
-          {href:'/candidate/browse', label:'Experts'},
-          {href:'/candidate/history', label:'History'},
-          {href:'/candidate/availability', label:'My Availability'},
-          {href:'/candidate/settings', label:'Settings'},
-        ]}/>
-      </aside>
-      <main>{children}</main>
-    </div>
+    <>
+      <header style={{borderBottom:'1px solid var(--border)', background:'#fff'}}>
+        <div className="container row" style={{justifyContent:'space-between'}}>
+          <div className="row" style={{gap:24, alignItems:'center'}}>
+            <Link href="/candidate/dashboard" style={{fontWeight:700}}>Connect</Link>
+            <nav className="nav">
+              <Link href="/candidate/dashboard">Home</Link>
+              <Link href="/candidate/browse">Experts</Link>
+              <Link href="#">Calendar</Link>
+              <Link href="/candidate/history">History</Link>
+              <Link href="/candidate/availability">My Availability</Link>
+            </nav>
+          </div>
+          <div className="row" style={{gap:8}}>
+            <Link href="/candidate/settings">Settings</Link>
+          </div>
+        </div>
+      </header>
+      <div className="container" style={{marginTop:24}}>{children}</div>
+    </>
   )
 }
 
