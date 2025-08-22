@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import Link from 'next/link';
 
 export function PublicShell({children}:{children:React.ReactNode}){
   return <div className="container">{children}</div>;
@@ -62,7 +63,11 @@ export function AdminShell({children}:{children:React.ReactNode}){
 function Nav({items}:{items:{href:string, label:string}[]}){
   return (
     <nav className="col">
-      {items.map(i=> <a key={i.href} href={i.href} className="nav-link">{i.label}</a>)}
+      {items.map(i => (
+        <Link key={i.href} href={i.href} className="nav-link">
+          {i.label}
+        </Link>
+      ))}
       <style jsx>{`
         .nav-link{ padding:10px 12px; border-radius:10px; display:block; color:var(--text-muted)}
         .nav-link:hover{ background:var(--muted); color:var(--text)}
