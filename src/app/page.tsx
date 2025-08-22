@@ -1,7 +1,13 @@
 import { PublicShell } from "../components/layouts";
-import { Button, Card } from "../components/ui";
+import { Card } from "../components/ui";
+import { auth } from "../../auth";
+import { redirect } from "next/navigation";
 
-export default function Landing(){
+export default async function Landing(){
+  const session = await auth();
+  if(session?.user){
+    redirect(session.user.role === 'PROFESSIONAL' ? '/professional/dashboard' : '/candidate/dashboard');
+  }
   return (
     <PublicShell>
       <section className="hero">
