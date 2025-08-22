@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, type SignInResponse } from 'next-auth/react';
 import { Input, Button } from '../../components/ui';
 
 export default function LoginForm() {
@@ -12,10 +12,11 @@ export default function LoginForm() {
     const form = e.currentTarget;
     const email = (form.elements.namedItem('email') as HTMLInputElement).value;
     const password = (form.elements.namedItem('password') as HTMLInputElement).value;
-    const res = await signIn('credentials', {
+    const res: SignInResponse | undefined = await signIn('credentials', {
       email,
       password,
       callbackUrl: '/candidate/dashboard',
+      redirect: false,
     });
     if (res?.error) {
       setError('Invalid credentials');

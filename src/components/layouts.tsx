@@ -1,6 +1,8 @@
+"use client";
+
 import React from 'react';
 import Link from 'next/link';
-import { signOut } from '../../auth';
+import { signOutAction } from '../actions';
 
 type ShellProps = { children: React.ReactNode; session?: any };
 
@@ -21,12 +23,7 @@ export function PublicShell({ children, session }: ShellProps) {
           </div>
           <div className="row" style={{ gap: 8 }}>
             {session?.user ? (
-              <form
-                action={async () => {
-                  'use server';
-                  await signOut();
-                }}
-              >
+              <form action={signOutAction}>
                 <button className="btn btn-danger">Sign Out</button>
               </form>
             ) : (
@@ -69,12 +66,7 @@ export function CandidateShell({ children }: ShellProps) {
 
           <div className="row" style={{ gap: 8 }}>
             <Link href="/candidate/settings">Settings</Link>
-            <form
-              action={async () => {
-                'use server';
-                await signOut();
-              }}
-            >
+            <form action={signOutAction}>
               <button className="btn btn-danger">Sign Out</button>
             </form>
           </div>
@@ -95,12 +87,7 @@ export function ProfessionalShell({ children }: ShellProps) {
           <Link href="/professional/dashboard" style={{ fontWeight: 700 }}>
             ExpertConnect
           </Link>
-          <form
-            action={async () => {
-              'use server';
-              await signOut();
-            }}
-          >
+          <form action={signOutAction}>
             <button className="btn btn-danger">Sign Out</button>
           </form>
         </div>
