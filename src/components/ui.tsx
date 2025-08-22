@@ -27,14 +27,22 @@ export function Badge({children}:{children:React.ReactNode}){
   return <span className="badge">{children}</span>
 }
 
-export function DataTable<T>({columns, rows}:{columns:{key:keyof T, label:string}[], rows:T[]}){
+export function DataTable<T extends Record<string, React.ReactNode>>({columns, rows}:{columns:{key:keyof T, label:string}[], rows:T[]}){
   return (
     <table className="table">
-      <thead><tr>{columns.map(c=><th key={String(c.key)}>{c.label}</th>)}</tr></thead>
+      <thead>
+        <tr>
+          {columns.map(c => (
+            <th key={String(c.key)}>{c.label}</th>
+          ))}
+        </tr>
+      </thead>
       <tbody>
-        {rows.map((r, i)=>(
+        {rows.map((r, i) => (
           <tr key={i}>
-            {columns.map(c=>(<td key={String(c.key)}>{String(r[c.key])}</td>))}
+            {columns.map(c => (
+              <td key={String(c.key)}>{r[c.key]}</td>
+            ))}
           </tr>
         ))}
       </tbody>
