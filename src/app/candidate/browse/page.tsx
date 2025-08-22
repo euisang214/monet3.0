@@ -1,9 +1,7 @@
-import { CandidateShell } from "../../../components/layouts";
 import { Card } from "../../../components/ui";
 
 export default function Browse(){
   return (
-    <CandidateShell>
       <section className="col" style={{gap:16}}>
         <h2>Search Results</h2>
         <div className="row" style={{gap:8}}>
@@ -25,6 +23,5 @@ export default function Browse(){
           </table>
         </Card>
       </section>
-    </CandidateShell>
   )
 }
