@@ -1,67 +1,93 @@
-import { PublicShell } from "../components/layouts";
 import { Card } from "../components/ui";
 import { auth } from "../../auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
-export default async function Landing(){
+export default async function Landing() {
   const session = await auth();
-  if(session?.user){
-    redirect(session.user.role === 'PROFESSIONAL' ? '/professional/dashboard' : '/candidate/dashboard');
+  if (session?.user) {
+    redirect(
+      session.user.role === "PROFESSIONAL"
+        ? "/professional/dashboard"
+        : "/candidate/dashboard"
+    );
   }
   return (
-    <PublicShell>
+    <>
       <section className="hero">
+        <img src="/window.svg" alt="Meeting" width={300} />
         <div>
-          <h1 style={{fontSize:40, margin:0}}>Connect with Industry Experts</h1>
-          <p style={{opacity:.9, maxWidth:520}}>
-            Gain valuable insights and feedback from seasoned professionals in finance and consulting.
-            Prepare for your next career move with confidence.
+          <h1 style={{ fontSize: 40, margin: 0 }}>Connect with Industry Experts</h1>
+          <p style={{ opacity: 0.9, maxWidth: 520 }}>
+            Gain valuable insights and feedback from seasoned professionals in finance and
+            consulting. Prepare for your next career move with confidence.
           </p>
-          <div className="row" style={{gap:12, marginTop:16}}>
-            <a className="btn btn-primary" href="/candidate/dashboard">Sign Up as a Candidate</a>
-            <a className="btn" href="/professional/dashboard">Become a Professional</a>
+          <div className="row" style={{ gap: 12, marginTop: 16 }}>
+            <Link href="/signup" className="btn btn-primary">
+              Sign Up as a Candidate
+            </Link>
+            <Link href="/signup" className="btn">
+              Become an Expert
+            </Link>
           </div>
         </div>
-        <img src="/brand/monet-wordmark.svg" width={180} alt="Monet"/>
       </section>
 
-      <section id="about" className="grid grid-2" style={{marginTop:32}}>
-        <Card className="col" style={{padding:16}}>
-          <h2>For Candidates</h2>
-          <p>Get personalized advice and practice your pitches with industry experts.</p>
-          <ul>
-            <li><strong>Get Expert Advice</strong> — Insights on trends, culture, and interview strategies.</li>
-            <li><strong>Practice Your Pitches</strong> — Constructive feedback to refine your presentation.</li>
-          </ul>
-        </Card>
-        <Card className="col" style={{padding:16}}>
-          <h2>For Professionals</h2>
-          <p>Share your knowledge and earn extra income.</p>
-          <ul>
-            <li><strong>Share Your Knowledge</strong> — Mentor the next generation of talent.</li>
-            <li><strong>Earn Extra Income</strong> — Set your rate and schedule.</li>
-          </ul>
-        </Card>
+      <section style={{ marginTop: 48 }}>
+        <h2>For Candidates</h2>
+        <div className="grid grid-2" style={{ marginTop: 16 }}>
+          <Card className="col" style={{ padding: 24 }}>
+            <img src="/globe.svg" alt="Advice" width={32} />
+            <strong>Get Expert Advice</strong>
+            <p>
+              Connect with professionals who have walked the path you are on, and gain
+              insights on trends, culture, and interview strategies.
+            </p>
+          </Card>
+          <Card className="col" style={{ padding: 24 }}>
+            <img src="/file.svg" alt="Practice" width={32} />
+            <strong>Practice Your Pitches</strong>
+            <p>
+              Receive constructive feedback and build confidence in your presentation and
+              communication skills.
+            </p>
+          </Card>
+        </div>
       </section>
 
-      <section id="how" style={{marginTop:24}}>
-        <Card className="col" style={{padding:16}}>
-          <h2>How It Works</h2>
-          <ol>
-            <li>Browse anonymized professionals by firm, title, seniority, and availability.</li>
-            <li>Request a 30-minute call. Professionals accept/decline.</li>
-            <li>Pay at checkout; Zoom link and calendar invites are created automatically.</li>
-            <li>Provide feedback; QC gates payouts to professionals.</li>
-          </ol>
-        </Card>
+      <section style={{ marginTop: 48 }}>
+        <h2>For Professionals</h2>
+        <div className="grid grid-2" style={{ marginTop: 16 }}>
+          <Card className="col" style={{ padding: 24 }}>
+            <img src="/window.svg" alt="Share" width={32} />
+            <strong>Share Your Knowledge</strong>
+            <p>
+              Make a difference in someone's career journey by mentoring and guiding aspiring
+              candidates.
+            </p>
+          </Card>
+          <Card className="col" style={{ padding: 24 }}>
+            <img src="/globe.svg" alt="Earn" width={32} />
+            <strong>Earn Extra Income</strong>
+            <p>
+              Set your own schedule and rates while getting paid for sharing your expertise.
+            </p>
+          </Card>
+        </div>
       </section>
 
-      <section id="contact" style={{marginTop:24}}>
-        <Card className="col" style={{padding:16}}>
-          <h2>Contact</h2>
-          <p>Email: support@monet.local</p>
-        </Card>
-      </section>
-    </PublicShell>
+      <footer
+        className="col"
+        style={{ marginTop: 48, alignItems: "center", color: "var(--text-muted)" }}
+      >
+        <div className="row" style={{ gap: 16 }}>
+          <Link href="#">Terms of Service</Link>
+          <Link href="#">Privacy Policy</Link>
+        </div>
+        <div style={{ fontSize: 14 }}>
+          &copy; 2024 ExpertConnect. All rights reserved.
+        </div>
+      </footer>
+    </>
   );
 }

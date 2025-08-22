@@ -1,9 +1,7 @@
-import { CandidateShell } from "../../../components/layouts";
 import { Card, Button, Input } from "../../../components/ui";
 
 export default function CandidateSettings(){
   return (
-    <CandidateShell>
       <div className="grid grid-2">
         <Card className="col" style={{padding:16}}>
           <h3>Account</h3>
@@ -35,6 +33,5 @@ export default function CandidateSettings(){
           </div>
         </Card>
       </div>
-    </CandidateShell>
   )
 }

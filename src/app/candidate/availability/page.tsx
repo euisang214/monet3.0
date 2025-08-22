@@ -1,6 +1,5 @@
 'use client';
-import { CandidateShell } from "../../../components/layouts";
-import { Card, Button } from "../../../components/ui";
+import { Button } from "../../../components/ui";
 import React from 'react';
 
 function Grid(){
@@ -29,9 +28,5 @@ function Grid(){
 }
 
 export default function Availability(){
-  return (
-    <CandidateShell>
-      <Grid/>
-    </CandidateShell>
-  )
+  return <Grid/>;
 }

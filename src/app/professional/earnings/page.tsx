@@ -1,9 +1,8 @@
-import { ProfessionalShell } from "../../../components/layouts";
+import { Card } from "../../../components/ui";
 import { Card } from "../../../components/ui";
 
 export default function Earnings(){
   return (
-    <ProfessionalShell>
       <Card style={{padding:16}}>
         <h2>Earnings</h2>
         <div className="grid grid-3" style={{marginBottom:16}}>
@@ -20,6 +19,5 @@ export default function Earnings(){
           </tbody>
         </table>
       </Card>
-    </ProfessionalShell>
   )
 }

@@ -1,9 +1,7 @@
-import { ProfessionalShell } from "../../../components/layouts";
 import { Card, Button, Input } from "../../../components/ui";
 
 export default function ProSettings(){
   return (
-    <ProfessionalShell>
       <Card style={{padding:16}}>
         <h2>Settings</h2>
         <div className="grid grid-2">
@@ -29,6 +27,5 @@ export default function ProSettings(){
           </div>
         </div>
       </Card>
-    </ProfessionalShell>
   )
 }

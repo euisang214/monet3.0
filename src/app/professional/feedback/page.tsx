@@ -1,11 +1,9 @@
 'use client';
-import { ProfessionalShell } from "../../../components/layouts";
 import { Card, Button, Input } from "../../../components/ui";
 import React from 'react';
 
 export default function SubmitFeedback(){
   return (
-    <ProfessionalShell>
       <Card style={{padding:16}}>
         <h2>Submit Feedback</h2>
         <div className="col" style={{gap:12, maxWidth:720}}>
@@ -22,7 +20,6 @@ export default function SubmitFeedback(){
           <div className="row" style={{justifyContent:'flex-end'}}><Button>Submit Feedback</Button></div>
         </div>
       </Card>
-    </ProfessionalShell>
   )
 }
 

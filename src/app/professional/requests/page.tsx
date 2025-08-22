@@ -1,5 +1,4 @@
 'use client';
-import { ProfessionalShell } from "../../../components/layouts";
 import { Card, Button } from "../../../components/ui";
 import React from 'react';
 
@@ -26,7 +25,6 @@ function SchedulingOverlay(){
 
 export default function Requests(){
   return (
-    <ProfessionalShell>
       <div className="grid grid-2">
         <Card style={{padding:16}}>
           <h3>Requests</h3>
@@ -45,6 +43,5 @@ export default function Requests(){
           </div>
         </Card>
       </div>
-    </ProfessionalShell>
   )
 }

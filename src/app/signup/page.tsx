@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "../../../auth";
-import { PublicShell } from "../../components/layouts";
 import { Card } from "../../components/ui";
 import SignUpForm from "./SignUpForm";
 
@@ -11,7 +10,6 @@ export default async function SignUpPage() {
     redirect(session.user.role === 'PROFESSIONAL' ? '/professional/dashboard' : '/candidate/dashboard');
   }
   return (
-    <PublicShell>
       <Card style={{ maxWidth: 400, margin: '40px auto', padding: 24 }}>
         <h1>Sign Up</h1>
         <p style={{ margin: '8px 0' }}>
@@ -26,6 +24,5 @@ export default async function SignUpPage() {
           Already have an account? <Link href="/login">Log in</Link>
         </p>
       </Card>
-    </PublicShell>
   );
 }

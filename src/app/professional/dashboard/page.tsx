@@ -1,9 +1,7 @@
-import { ProfessionalShell } from "../../../components/layouts";
 import { Card, Button } from "../../../components/ui";
 
 export default function ProDashboard(){
   return (
-    <ProfessionalShell>
       <div className="grid grid-2">
         <Card style={{padding:16}}>
           <h3>Upcoming Calls</h3>
@@ -37,6 +35,5 @@ export default function ProDashboard(){
           </div>
         </Card>
       </div>
-    </ProfessionalShell>
   )
 }

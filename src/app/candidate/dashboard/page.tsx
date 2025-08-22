@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { CandidateShell } from "../../../components/layouts";
 import { Card, Button, Badge, DataTable } from "../../../components/ui";
 
 const upcoming = [
@@ -52,7 +51,6 @@ const results = [
 
 export default function CandidateDashboard() {
   return (
-    <CandidateShell>
       <div className="row" style={{ alignItems: "flex-start", gap: 24 }}>
         <aside style={{ width: 260 }}>
           <Card className="col" style={{ padding: 16 }}>
@@ -103,6 +101,5 @@ export default function CandidateDashboard() {
           </Card>
         </section>
       </div>
-    </CandidateShell>
   );
 }

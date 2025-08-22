@@ -1,9 +1,7 @@
-import { CandidateShell } from "../../../../components/layouts";
 import { Button, Card, Badge } from "../../../../components/ui";
 
 export default function Detail(){
   return (
-    <CandidateShell>
       <section className="col" style={{gap:16}}>
         <div className="row" style={{justifyContent:'space-between'}}>
           <div className="col">
@@ -34,6 +32,5 @@ export default function Detail(){
           </ul>
         </Card>
       </section>
-    </CandidateShell>
   )
 }

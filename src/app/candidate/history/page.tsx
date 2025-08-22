@@ -1,4 +1,3 @@
-import { CandidateShell } from "../../../components/layouts";
 import { Card } from "../../../components/ui";
 
 export default function History(){
@@ -8,7 +7,6 @@ export default function History(){
     {title:'Independent Strategy Advisor', date:'6/10/25 9:00 AM ET'},
   ];
   return (
-    <CandidateShell>
       <Card style={{padding:0}}>
         <table className="table">
           <thead><tr><th>Title</th><th>Call Date</th><th>Actions</th></tr></thead>
@@ -17,6 +15,5 @@ export default function History(){
           </tbody>
         </table>
       </Card>
-    </CandidateShell>
   )
 }
