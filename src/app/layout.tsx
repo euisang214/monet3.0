@@ -1,5 +1,6 @@
 import "../../styles/global.css";
 import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { auth } from "../../auth";
 import {
@@ -8,6 +9,7 @@ import {
   ProfessionalShell,
   AdminShell,
 } from "../components/layouts";
+
 
 export const metadata: Metadata = {
   title: "Monet",

@@ -66,6 +66,7 @@ export function CandidateShell({ children }: ShellProps) {
               <Link href="/candidate/availability">My Availability</Link>
             </nav>
           </div>
+
           <div className="row" style={{ gap: 8 }}>
             <Link href="/candidate/settings">Settings</Link>
             <form
