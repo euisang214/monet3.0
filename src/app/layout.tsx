@@ -21,11 +21,13 @@ export default async function RootLayout({
           <div className="container row" style={{ justifyContent: "space-between" }}>
             <div className="row" style={{ gap: 12 }}>
               <img src="/brand/monet-wordmark.svg" alt="Monet" height={32} />
-              <nav className="nav">
-                <Link href="/#about">About Us</Link>
-                <Link href="/#how">How It Works</Link>
-                <Link href="/#contact">Contact</Link>
-              </nav>
+              {!session?.user && (
+                <nav className="nav">
+                  <Link href="/#about">About Us</Link>
+                  <Link href="/#how">How It Works</Link>
+                  <Link href="/#contact">Contact</Link>
+                </nav>
+              )}
             </div>
             <div className="row" style={{ gap: 8 }}>
               {session?.user ? (
