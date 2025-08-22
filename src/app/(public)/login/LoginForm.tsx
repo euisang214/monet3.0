@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { signIn, type SignInResponse } from 'next-auth/react';
-import { Input, Button } from '../../components/ui';
+import { Input, Button } from '../../../components/ui';
 
 export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);

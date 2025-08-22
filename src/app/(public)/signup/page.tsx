@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "../../../auth";
-import { Card } from "../../components/ui";
+import { auth } from "../../../../auth";
+import { Card } from "../../../components/ui";
 import SignUpForm from "./SignUpForm";
 
 export default async function SignUpPage() {
