@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { Card, Button, Badge, DataTable } from "../../../components/ui";
+import { Card, Button, DataTable } from "../../../components/ui";
+import FilterDropdown from "../../../components/FilterDropdown";
+import {
+  getFilterOptions,
+  buildFilterWhere,
+  FilterConfig,
+} from "../../../api/filterOptions";
+import { prisma } from "../../../../lib/db";
 
 const upcoming = [
   { name: "Ethan Harper", title: "Senior Consultant at Global Consulting Firm" },
@@ -9,47 +16,61 @@ const upcoming = [
   { name: "Liam Foster", title: "Consulting Partner at Top Tier Firm" },
 ];
 
-const filters = ["Industry", "Firm", "Experience Level", "Availability"];
+export default async function CandidateDashboard({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[]>;
+}) {
+  const filterConfig: FilterConfig = {
+    Industry: {
+      model: "professionalProfile",
+      field: "title",
+      relation: "professionalProfile",
+    },
+    Firm: {
+      model: "professionalProfile",
+      field: "employer",
+      relation: "professionalProfile",
+    },
+    "Experience Level": {
+      model: "professionalProfile",
+      field: "seniority",
+      relation: "professionalProfile",
+    },
+    Availability: {
+      model: "booking",
+      field: "startAt",
+      relation: "bookingsAsProfessional",
+      many: true,
+      transform: (dates: Date[]) =>
+        Array.from(
+          new Set(
+            dates.map((d) => {
+              const day = d.getUTCDay();
+              return day === 0 || day === 6 ? "Weekends" : "Weekdays";
+            })
+          )
+        ),
+    },
+  };
 
-const results = [
-  {
-    id: 1,
-    name: "Ethan Harper",
-    title: "Senior Consultant at Global Consulting Firm",
-    experience: "5+ years",
-    availability: "Weekdays",
-  },
-  {
-    id: 2,
-    name: "Olivia Bennett",
-    title: "Finance Manager at Tech Innovators Inc.",
-    experience: "8+ years",
-    availability: "Weekends",
-  },
-  {
-    id: 3,
-    name: "Noah Carter",
-    title: "Independent Strategy Advisor",
-    experience: "10+ years",
-    availability: "Evenings",
-  },
-  {
-    id: 4,
-    name: "Ava Morgan",
-    title: "Principal at Investment Group",
-    experience: "7+ years",
-    availability: "Flexible",
-  },
-  {
-    id: 5,
-    name: "Liam Foster",
-    title: "Consulting Partner at Top Tier Firm",
-    experience: "12+ years",
-    availability: "Weekdays",
-  },
-];
+  const filterOptions = await getFilterOptions(filterConfig);
 
-export default function CandidateDashboard() {
+  const activeFilters: Record<string, string[]> = {};
+  for (const key of Object.keys(filterConfig)) {
+    const value = searchParams?.[key];
+    activeFilters[key] = Array.isArray(value)
+      ? value
+      : value
+      ? [value]
+      : [];
+  }
+
+  const where = buildFilterWhere(filterConfig, activeFilters);
+  const results = await prisma.user.findMany({
+    where,
+    include: { professionalProfile: true },
+  });
   return (
       <div className="row" style={{ alignItems: "flex-start", gap: 24 }}>
         <aside style={{ width: 260 }}>
@@ -78,8 +99,8 @@ export default function CandidateDashboard() {
             Showing results for your search criteria
           </p>
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-            {filters.map((f) => (
-              <Badge key={f}>{f}</Badge>
+            {Object.entries(filterOptions).map(([label, options]) => (
+              <FilterDropdown key={label} label={label} options={options} />
             ))}
           </div>
           <Card style={{ padding: 0 }}>
@@ -91,10 +112,14 @@ export default function CandidateDashboard() {
                 { key: "availability", label: "Availability" },
                 { key: "action", label: "" },
               ]}
-              rows={results.map((r) => ({
-                ...r,
+              rows={results.map((u) => ({
+                id: u.id,
+                name: u.email,
+                title: u.professionalProfile?.title ?? "",
+                experience: u.professionalProfile?.seniority ?? "",
+                availability: "",
                 action: (
-                  <Link href={`/candidate/detail/${r.id}`}>View Profile</Link>
+                  <Link href={`/candidate/detail/${u.id}`}>View Profile</Link>
                 ),
               }))}
             />
