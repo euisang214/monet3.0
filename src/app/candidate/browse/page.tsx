@@ -1,27 +1,85 @@
-import { Card } from "../../../components/ui";
+import DashboardClient from "../../../components/DashboardClient";
+import {
+  getFilterOptions,
+  FilterConfig,
+} from "../../../app/api/filterOptions";
+import { listProfessionals } from "../../../app/api/professionals/list";
 
-export default function Browse(){
+export default async function Browse() {
+  const filterConfig: FilterConfig = {
+    Industry: {
+      model: "professionalProfile",
+      field: "title",
+      relation: "professionalProfile",
+    },
+    Firm: {
+      model: "professionalProfile",
+      field: "employer",
+      relation: "professionalProfile",
+    },
+    "Experience Level": {
+      model: "professionalProfile",
+      field: "seniority",
+      relation: "professionalProfile",
+    },
+    Availability: {
+      model: "booking",
+      field: "startAt",
+      relation: "bookingsAsProfessional",
+      many: true,
+      transform: (dates: Date[]) =>
+        Array.from(
+          new Set(
+            dates.map((d) => {
+              const day = d.getUTCDay();
+              return day === 0 || day === 6 ? "Weekends" : "Weekdays";
+            })
+          )
+        ),
+    },
+  };
+
+  const filterOptions = await getFilterOptions(filterConfig);
+  const results = await listProfessionals();
+  const availabilityTransform = filterConfig["Availability"].transform!;
+
+  const rows = results.map((u) => ({
+    name: { label: u.email, href: `/candidate/detail/${u.id}` },
+    title: u.professionalProfile?.title ?? "",
+    firm: u.professionalProfile?.employer ?? "",
+    experience: u.professionalProfile?.seniority ?? "",
+    availability: availabilityTransform(
+      u.bookingsAsProfessional.map((b) => b.startAt as Date)
+    ),
+    action: { label: "View Profile", href: `/candidate/detail/${u.id}` },
+  }));
+
+  const columns = [
+    { key: "name", label: "Name" },
+    { key: "title", label: "Title" },
+    { key: "experience", label: "Experience" },
+    { key: "availability", label: "Availability" },
+    { key: "action", label: "" },
+  ];
+
+  const clientFilterConfig: FilterConfig = {
+    Industry: { field: "title" },
+    Firm: { field: "firm" },
+    "Experience Level": { field: "experience" },
+    Availability: { field: "availability", many: true },
+  };
+
   return (
-      <section className="col" style={{gap:16}}>
-        <h2>Search Results</h2>
-        <div className="row" style={{gap:8}}>
-          <div className="badge">Industry</div>
-          <div className="badge">Firm</div>
-          <div className="badge">Experience Level</div>
-          <div className="badge">Availability</div>
-        </div>
-        <Card style={{padding:0}}>
-          <table className="table">
-            <thead><tr><th>Title</th><th>Experience</th><th>Availability</th><th>Actions</th></tr></thead>
-            <tbody>
-              <tr><td>Senior Consultant at Global Consulting Firm</td><td>5+ years</td><td>Weekdays</td><td><a href="/candidate/detail/1">View Profile</a></td></tr>
-              <tr><td>Finance Manager at Tech Innovators Inc.</td><td>8+ years</td><td>Weekends</td><td><a href="/candidate/detail/1">View Profile</a></td></tr>
-              <tr><td>Independent Strategy Advisor</td><td>10+ years</td><td>Evenings</td><td><a href="/candidate/detail/1">View Profile</a></td></tr>
-              <tr><td>Principal at Investment Group</td><td>7+ years</td><td>Flexible</td><td><a href="/candidate/detail/1">View Profile</a></td></tr>
-              <tr><td>Consulting Partner at Top Tier Firm</td><td>12+ years</td><td>Weekdays</td><td><a href="/candidate/detail/1">View Profile</a></td></tr>
-            </tbody>
-          </table>
-        </Card>
-      </section>
-  )
+    <section className="col" style={{ gap: 16 }}>
+      <h2>Search Results</h2>
+      <DashboardClient
+        data={rows}
+        columns={columns}
+        filterOptions={filterOptions}
+        filterConfig={clientFilterConfig}
+        buttonColumns={["action"]}
+      />
+    </section>
+  );
 }
+
