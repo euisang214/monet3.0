@@ -85,7 +85,7 @@ export default async function Landing() {
           <Link href="#">Privacy Policy</Link>
         </div>
         <div style={{ fontSize: 14 }}>
-          &copy; 2024 ExpertConnect. All rights reserved.
+          &copy; 2024 Monet. All rights reserved.
         </div>
       </footer>
     </>

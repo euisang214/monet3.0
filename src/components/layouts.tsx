@@ -13,7 +13,7 @@ export function PublicShell({ children, session }: ShellProps) {
         <div className="container row" style={{ justifyContent: 'space-between' }}>
           <div className="row" style={{ gap: 12 }}>
             <Link href="/" style={{ fontWeight: 700 }}>
-              ExpertConnect
+              Monet
             </Link>
             <nav className="nav">
               <Link href="/#about">About Us</Link>
@@ -53,7 +53,7 @@ export function CandidateShell({ children }: ShellProps) {
         <div className="container row" style={{ justifyContent: 'space-between' }}>
           <div className="row" style={{ gap: 24, alignItems: 'center' }}>
             <Link href="/candidate/dashboard" style={{ fontWeight: 700 }}>
-              ExpertConnect
+              Monet
             </Link>
             <nav className="nav">
               <Link href="/candidate/dashboard">Home</Link>
@@ -85,7 +85,7 @@ export function ProfessionalShell({ children }: ShellProps) {
       <header style={{ borderBottom: '1px solid var(--border)', background: '#fff' }}>
         <div className="container row" style={{ justifyContent: 'space-between' }}>
           <Link href="/professional/dashboard" style={{ fontWeight: 700 }}>
-            ExpertConnect
+            Monet
           </Link>
           <form action={signOutAction}>
             <button className="btn btn-danger">Sign Out</button>
