@@ -5,7 +5,7 @@ import {
   getFilterOptions,
   buildFilterWhere,
   FilterConfig,
-} from "../../../api/filterOptions";
+} from "../../../app/api/filterOptions";
 import { prisma } from "../../../../lib/db";
 
 const upcoming = [
