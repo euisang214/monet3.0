@@ -2,7 +2,7 @@ import { prisma } from "../../../lib/db";
 import { PrismaClient } from "@prisma/client";
 
 export interface FilterOption {
-  model: keyof PrismaClient;
+  model?: keyof PrismaClient;
   field: string;
   /**
    * Relation name from the base model to this model when building `where` clauses
@@ -61,6 +61,7 @@ export async function getFilterOptions(config: FilterConfig) {
   const entries = Object.entries(config);
   const results = await Promise.all(
     entries.map(async ([label, { model, field, transform }]) => {
+      if (!model) return [label, []];
       const data = await (prisma as any)[model].findMany({
         distinct: [field],
         select: { [field]: true },
@@ -73,4 +74,39 @@ export async function getFilterOptions(config: FilterConfig) {
     })
   );
   return Object.fromEntries(results);
+}
+
+export function applyFilters<T>(
+  data: T[],
+  config: FilterConfig,
+  active: ActiveFilters
+) {
+  return data.filter((item) => {
+    for (const [label, values] of Object.entries(active)) {
+      if (!values || values.length === 0) continue;
+      const cfg = config[label];
+      if (!cfg) continue;
+      let itemVals: any[] = [];
+      if (!cfg.relation) {
+        const val = (item as any)[cfg.field];
+        itemVals = cfg.many ? (Array.isArray(val) ? val : []) : [val];
+      } else {
+        const rel = (item as any)[cfg.relation];
+        if (cfg.many) {
+          itemVals = Array.isArray(rel)
+            ? rel.map((r: any) => r[cfg.field])
+            : [];
+        } else {
+          itemVals = [rel?.[cfg.field]];
+        }
+      }
+      if (cfg.transform) {
+        itemVals = cfg.transform(itemVals);
+      }
+      if (!itemVals.some((v: any) => values.includes(v))) {
+        return false;
+      }
+    }
+    return true;
+  });
 }
