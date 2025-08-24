@@ -1,118 +1,263 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, Role, BookingStatus, PaymentStatus, QCStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const firms = ['Centerview','Goldman Sachs','JP Morgan','PJT Partners','Morgan Stanley','Qatalyst','Evercore','Lazard','Barclays','Houlihan Lokey','Rothschild & Co','Bain & Company'];
+// helper to pick a random item
+const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
-function pick<T>(arr:T[]) { return arr[Math.floor(Math.random()*arr.length)] }
+// sample data
+const firms = [
+  'Centerview',
+  'Goldman Sachs',
+  'JP Morgan',
+  'PJT Partners',
+  'Morgan Stanley',
+  'Qatalyst',
+  'Evercore',
+  'Lazard',
+  'Barclays',
+  'Houlihan Lokey',
+  'Rothschild & Co',
+  'Bain & Company',
+];
 
-async function main(){
-  // Admin
-  const admin = await prisma.user.upsert({
+const titles = ['Analyst', 'Associate', 'Vice President'];
+
+async function createCandidates() {
+  const out = [];
+
+  // tester account
+  const euisang = await prisma.user.upsert({
+    where: { email: 'euisang214@gmail.com' },
+    update: {},
+    create: {
+      email: 'euisang214@gmail.com',
+      role: Role.CANDIDATE,
+      hashedPassword: await bcrypt.hash('candidate123!', 10),
+      candidateProfile: { create: { experience: [], education: [] } },
+    },
+  });
+  out.push(euisang);
+
+  // additional mock candidates
+  for (let i = 1; i <= 9; i++) {
+    const user = await prisma.user.create({
+      data: {
+        email: `candidate${i}@example.com`,
+        role: Role.CANDIDATE,
+        hashedPassword: await bcrypt.hash('candidate123!', 10),
+        candidateProfile: { create: { experience: [], education: [] } },
+      },
+    });
+    out.push(user);
+  }
+
+  return out;
+}
+
+async function createProfessionals() {
+  const out = [];
+
+  // tester account
+  const victoria = await prisma.user.upsert({
+    where: { email: 'victoriagehh@gmail.com' },
+    update: {},
+    create: {
+      email: 'victoriagehh@gmail.com',
+      role: Role.PROFESSIONAL,
+      hashedPassword: await bcrypt.hash('professional123!', 10),
+      professionalProfile: {
+        create: {
+          employer: 'Goldman Sachs',
+          title: 'Associate',
+          seniority: 'Mid',
+          bio: 'Finance professional ready to mentor candidates.',
+          priceUSD: 120,
+          availabilityPrefs: {},
+        },
+      },
+    },
+  });
+  out.push(victoria);
+
+  // additional mock professionals
+  for (let i = 1; i <= 9; i++) {
+    const user = await prisma.user.create({
+      data: {
+        email: `pro${i}@example.com`,
+        role: Role.PROFESSIONAL,
+        hashedPassword: await bcrypt.hash('professional123!', 10),
+        professionalProfile: {
+          create: {
+            employer: pick(firms),
+            title: pick(titles),
+            seniority: pick(['Junior', 'Mid', 'Senior']),
+            bio: 'Experienced finance professional with transaction and coverage background.',
+            priceUSD: 80 + i,
+            availabilityPrefs: {},
+          },
+        },
+      },
+    });
+    out.push(user);
+  }
+
+  return out;
+}
+
+async function createBookings(candidates: any[], professionals: any[]) {
+  const bookings = [] as any[];
+
+  // upcoming call between testers
+  const startUpcoming = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+  const upcoming = await prisma.booking.create({
+    data: {
+      candidateId: candidates[0].id,
+      professionalId: professionals[0].id,
+      status: BookingStatus.accepted,
+      startAt: startUpcoming,
+      endAt: new Date(startUpcoming.getTime() + 30 * 60 * 1000),
+      zoomMeetingId: 'zoom-upcoming-test',
+      zoomJoinUrl: 'https://zoom.example.com/upcoming',
+    },
+  });
+  bookings.push(upcoming);
+
+  // prior completed call between testers
+  const pastStart = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+  const past = await prisma.booking.create({
+    data: {
+      candidateId: candidates[0].id,
+      professionalId: professionals[0].id,
+      status: BookingStatus.completed,
+      startAt: pastStart,
+      endAt: new Date(pastStart.getTime() + 30 * 60 * 1000),
+    },
+  });
+  bookings.push(past);
+
+  await prisma.payment.create({
+    data: {
+      bookingId: past.id,
+      amountGross: 10000,
+      platformFee: 2000,
+      escrowHoldId: 'pi_test_past',
+      status: PaymentStatus.released,
+    },
+  });
+
+  await prisma.feedback.create({
+    data: {
+      bookingId: past.id,
+      starsCategory1: 5,
+      starsCategory2: 5,
+      starsCategory3: 5,
+      extraCategoryRatings: {},
+      wordCount: 50,
+      actions: ['Mock interview', 'Resume review'],
+      text: 'Great session with helpful insights for recruiting.',
+      submittedAt: new Date(),
+      qcStatus: QCStatus.passed,
+      qcReport: {},
+    },
+  });
+
+  // additional mock bookings
+  for (let i = 0; i < 18; i++) {
+    const cand = pick(candidates);
+    const pro = pick(professionals);
+    const start = new Date(Date.now() - (i + 1) * 24 * 60 * 60 * 1000);
+    const completed = i % 2 === 0;
+    const booking = await prisma.booking.create({
+      data: {
+        candidateId: cand.id,
+        professionalId: pro.id,
+        status: completed ? BookingStatus.completed : BookingStatus.requested,
+        startAt: start,
+        endAt: new Date(start.getTime() + 30 * 60 * 1000),
+      },
+    });
+    bookings.push(booking);
+
+    if (completed) {
+      await prisma.payment.create({
+        data: {
+          bookingId: booking.id,
+          amountGross: 9000 + i * 100,
+          platformFee: 1500,
+          escrowHoldId: `pi_mock_${i}`,
+          status: PaymentStatus.held,
+        },
+      });
+
+      await prisma.feedback.create({
+        data: {
+          bookingId: booking.id,
+          starsCategory1: 4,
+          starsCategory2: 5,
+          starsCategory3: 4,
+          extraCategoryRatings: {},
+          wordCount: 40,
+          actions: ['Follow up', 'Practice more'],
+          text: 'Solid advice and actionable next steps.',
+          submittedAt: new Date(),
+          qcStatus: QCStatus.passed,
+          qcReport: {},
+        },
+      });
+    }
+  }
+
+  return bookings;
+}
+
+async function seedChatHistory(candidateId: string, professionalId: string) {
+  const convoId = `${candidateId}_${professionalId}`;
+  await prisma.auditLog.createMany({
+    data: [
+      {
+        actorUserId: candidateId,
+        entity: 'chat',
+        entityId: convoId,
+        action: 'message',
+        metadata: { text: 'Hi Victoria, excited to learn from you!' },
+      },
+      {
+        actorUserId: professionalId,
+        entity: 'chat',
+        entityId: convoId,
+        action: 'message',
+        metadata: { text: 'Hi Euisang, looking forward to our session.' },
+      },
+    ],
+  });
+}
+
+async function main() {
+  // admin account for testing
+  await prisma.user.upsert({
     where: { email: 'admin@monet.local' },
     update: {},
-    create: { email:'admin@monet.local', role:'CANDIDATE', hashedPassword: await bcrypt.hash('admin123!', 10) }
+    create: {
+      email: 'admin@monet.local',
+      role: Role.CANDIDATE,
+      hashedPassword: await bcrypt.hash('admin123!', 10),
+    },
   });
 
-  // Candidates
-  const candidates = [];
-  for(let i=1;i<=25;i++){
-    const email = `cand${i}@monet.local`;
-    const user = await prisma.user.create({
-      data: {
-        email, role:'CANDIDATE', hashedPassword: await bcrypt.hash('cand123!', 10),
-        candidateProfile: { create: { experience: [], education: [] }}
-      }
-    });
-    candidates.push(user);
-  }
+  const candidates = await createCandidates();
+  const professionals = await createProfessionals();
 
-  // Professionals
-  const professionals = [];
-  for(let i=1;i<=12;i++){
-    const email = `pro${i}@monet.local`;
-    const firm = pick(firms);
-    const price = 30 + i;
-    const user = await prisma.user.create({
-      data: {
-        email, role:'PROFESSIONAL', hashedPassword: await bcrypt.hash('pro123!', 10),
-        professionalProfile: { create: {
-          employer: firm,
-          title: i%3===0 ? 'Associate' : i%3===1 ? 'Senior Associate' : 'VP',
-          seniority: i%3===0 ? 'Junior' : i%3===1 ? 'Mid' : 'Senior',
-          bio: 'Experienced finance professional with transaction and coverage background.',
-          priceUSD: price,
-          availabilityPrefs: {}
-        }}
-      }
-    });
-    professionals.push(user);
-  }
+  await createBookings(candidates, professionals);
 
-  // Bookings & Feedback
-  const pro1 = professionals[0];
-  const pro2 = professionals[1];
-  const cand1 = candidates[0];
-  const cand2 = candidates[1];
-
-  const now = new Date();
-  const inTwoDays = new Date(now.getTime() + 2*24*60*60*1000);
-
-  const b1 = await prisma.booking.create({
-    data: {
-      candidateId: cand1.id, professionalId: pro1.id, status:'accepted',
-      startAt: inTwoDays, endAt: new Date(inTwoDays.getTime() + 30*60*1000)
-    }
-  });
-  const b2 = await prisma.booking.create({
-    data: {
-      candidateId: cand2.id, professionalId: pro1.id, status:'completed',
-      startAt: new Date(now.getTime()-5*24*60*60*1000), endAt: new Date(now.getTime()-5*24*60*60*1000 + 30*60*1000)
-    }
-  });
-  const b3 = await prisma.booking.create({
-    data: {
-      candidateId: cand2.id, professionalId: pro2.id, status:'requested',
-      startAt: new Date(now.getTime()+3*24*60*60*1000), endAt: new Date(now.getTime()+3*24*60*60*1000 + 30*60*1000)
-    }
-  });
-
-  // Payments & payouts
-  await prisma.payment.create({
-    data: { bookingId: b2.id, amountGross: 5000, platformFee: 1000, escrowHoldId: 'pi_test', status: 'held' }
-  });
-  await prisma.payout.create({
-    data: { bookingId: b2.id, proStripeAccountId:'acct_test', amountNet: 4000, status:'blocked' }
-  });
-
-  // Feedback (incl. one 'revise')
-  const longText = Array.from({length:220}, (_,i)=>`word${i}`).join(' ');
-  await prisma.feedback.create({
-    data: {
-      bookingId: b2.id,
-      starsCategory1: 5, starsCategory2: 4, starsCategory3: 5,
-      extraCategoryRatings: {}, wordCount: 220, actions: ['Refine DCF','Prepare comps','Rehearse pitch'],
-      text: longText, submittedAt: new Date(), qcStatus:'passed', qcReport:{},
-    }
-  });
-
-  const shortText = Array.from({length:120}, (_,i)=>`w${i}`).join(' ');
-  await prisma.feedback.create({
-    data: {
-      bookingId: b1.id,
-      starsCategory1: 4, starsCategory2: 4, starsCategory3: 4,
-      extraCategoryRatings: {}, wordCount: 120, actions: ['A','B','C'],
-      text: shortText, submittedAt: new Date(), qcStatus:'revise', qcReport:{},
-    }
-  });
-
-  // Seed a payout linked to feedback to meet gating flow
-  await prisma.payout.create({
-    data: { bookingId: b1.id, proStripeAccountId:'acct_test', amountNet: 3000, status: 'blocked', reason: 'Awaiting QC pass' }
-  });
+  // chat history between tester accounts
+  await seedChatHistory(candidates[0].id, professionals[0].id);
 
   console.log('Seed complete');
 }
 
-main().finally(async ()=>{ await prisma.$disconnect(); });
+main().finally(async () => {
+  await prisma.$disconnect();
+});
+
