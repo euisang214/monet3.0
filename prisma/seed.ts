@@ -100,59 +100,133 @@ async function createProfessionals() {
 async function createBookings(candidates: any[], professionals: any[]) {
   const bookings = [] as any[];
 
-  // upcoming call between testers
-  const startUpcoming = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-  const upcoming = await prisma.booking.create({
-    data: {
-      candidateId: candidates[0].id,
-      professionalId: professionals[0].id,
-      status: BookingStatus.accepted,
-      startAt: startUpcoming,
-      endAt: new Date(startUpcoming.getTime() + 30 * 60 * 1000),
-      zoomMeetingId: 'zoom-upcoming-test',
-      zoomJoinUrl: 'https://zoom.example.com/upcoming',
+  // upcoming calls for tester candidates
+  const upcomingSpecs = [
+    {
+      candidateIdx: 0,
+      professionalIdx: 0,
+      daysFromNow: 2,
+      meetingId: 'zoom-upcoming-test',
+      joinUrl: 'https://zoom.example.com/upcoming',
     },
-  });
-  bookings.push(upcoming);
-
-  // prior completed call between testers
-  const pastStart = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
-  const past = await prisma.booking.create({
-    data: {
-      candidateId: candidates[0].id,
-      professionalId: professionals[0].id,
-      status: BookingStatus.completed,
-      startAt: pastStart,
-      endAt: new Date(pastStart.getTime() + 30 * 60 * 1000),
+    {
+      candidateIdx: 0,
+      professionalIdx: 1,
+      daysFromNow: 5,
+      meetingId: 'zoom-upcoming-test-2',
+      joinUrl: 'https://zoom.example.com/upcoming-2',
     },
-  });
-  bookings.push(past);
+    {
+      candidateIdx: 1,
+      professionalIdx: 2,
+      daysFromNow: 3,
+      meetingId: 'zoom-upcoming-victoria',
+      joinUrl: 'https://zoom.example.com/upcoming-victoria',
+    },
+    {
+      candidateIdx: 1,
+      professionalIdx: 3,
+      daysFromNow: 7,
+      meetingId: 'zoom-upcoming-victoria-2',
+      joinUrl: 'https://zoom.example.com/upcoming-victoria-2',
+    },
+  ];
 
-  await prisma.payment.create({
-    data: {
-      bookingId: past.id,
+  for (const spec of upcomingSpecs) {
+    const start = new Date(Date.now() + spec.daysFromNow * 24 * 60 * 60 * 1000);
+    const booking = await prisma.booking.create({
+      data: {
+        candidateId: candidates[spec.candidateIdx].id,
+        professionalId: professionals[spec.professionalIdx].id,
+        status: BookingStatus.accepted,
+        startAt: start,
+        endAt: new Date(start.getTime() + 30 * 60 * 1000),
+        zoomMeetingId: spec.meetingId,
+        zoomJoinUrl: spec.joinUrl,
+      },
+    });
+    bookings.push(booking);
+  }
+
+  // past completed calls for testers with feedback
+  const pastSpecs = [
+    {
+      candidateIdx: 0,
+      professionalIdx: 0,
+      daysAgo: 5,
       amountGross: 10000,
       platformFee: 2000,
       escrowHoldId: 'pi_test_past',
-      status: PaymentStatus.released,
+      feedback: 'Great session with helpful insights for recruiting.',
     },
-  });
+    {
+      candidateIdx: 0,
+      professionalIdx: 2,
+      daysAgo: 15,
+      amountGross: 12000,
+      platformFee: 2500,
+      escrowHoldId: 'pi_test_past_2',
+      feedback: 'Another insightful session.',
+    },
+    {
+      candidateIdx: 1,
+      professionalIdx: 3,
+      daysAgo: 7,
+      amountGross: 9000,
+      platformFee: 1800,
+      escrowHoldId: 'pi_test_past_3',
+      feedback: 'Very helpful advice.',
+    },
+    {
+      candidateIdx: 1,
+      professionalIdx: 4,
+      daysAgo: 20,
+      amountGross: 11000,
+      platformFee: 2200,
+      escrowHoldId: 'pi_test_past_4',
+      feedback: 'Fantastic discussion.',
+    },
+  ];
 
-  await prisma.feedback.create({
-    data: {
-      bookingId: past.id,
-      starsCategory1: 5,
-      starsCategory2: 5,
-      starsCategory3: 5,
-      extraCategoryRatings: {},
-      wordCount: 50,
-      actions: ['Mock interview', 'Resume review'],
-      text: 'Great session with helpful insights for recruiting.',
-      submittedAt: new Date(),
-      qcStatus: QCStatus.passed,
-      qcReport: {},
-    },
-  });
+  for (const spec of pastSpecs) {
+    const start = new Date(Date.now() - spec.daysAgo * 24 * 60 * 60 * 1000);
+    const booking = await prisma.booking.create({
+      data: {
+        candidateId: candidates[spec.candidateIdx].id,
+        professionalId: professionals[spec.professionalIdx].id,
+        status: BookingStatus.completed,
+        startAt: start,
+        endAt: new Date(start.getTime() + 30 * 60 * 1000),
+      },
+    });
+    bookings.push(booking);
+
+    await prisma.payment.create({
+      data: {
+        bookingId: booking.id,
+        amountGross: spec.amountGross,
+        platformFee: spec.platformFee,
+        escrowHoldId: spec.escrowHoldId,
+        status: PaymentStatus.released,
+      },
+    });
+
+    await prisma.feedback.create({
+      data: {
+        bookingId: booking.id,
+        starsCategory1: 5,
+        starsCategory2: 5,
+        starsCategory3: 5,
+        extraCategoryRatings: {},
+        wordCount: 50,
+        actions: ['Mock interview', 'Resume review'],
+        text: spec.feedback,
+        submittedAt: new Date(),
+        qcStatus: QCStatus.passed,
+        qcReport: {},
+      },
+    });
+  }
 
   // additional mock bookings
   for (let i = 0; i < 18; i++) {
