@@ -232,7 +232,7 @@ async function main() {
     update: {},
     create: {
       email: 'admin@monet.local',
-      role: Role.CANDIDATE,
+      role: Role.ADMIN,
       hashedPassword: await bcrypt.hash('admin123!', 10),
     },
   });
