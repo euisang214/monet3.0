@@ -3,7 +3,8 @@ import {
   getFilterOptions,
   FilterConfig,
 } from "../../../app/api/filterOptions";
-import { listProfessionals } from "../../../app/api/professionals/list";
+import { listUsers } from "../../../app/api/users/list";
+import { Role } from "@prisma/client";
 
 export default async function Browse() {
   const filterConfig: FilterConfig = {
@@ -40,7 +41,8 @@ export default async function Browse() {
   };
 
   const filterOptions = await getFilterOptions(filterConfig);
-  const results = await listProfessionals();
+  // By default, only show professionals. Pass [Role.CANDIDATE] or both to customize.
+  const results = await listUsers([Role.PROFESSIONAL]);
   const availabilityTransform = filterConfig["Availability"].transform!;
 
   const rows = results.map((u) => ({
