@@ -40,6 +40,19 @@ async function createCandidates() {
   });
   out.push(euisang);
 
+  // tester account
+  const victoria = await prisma.user.upsert({
+    where: { email: 'victoriagehh@gmail.com' },
+    update: {},
+    create: {
+      email: 'victoriagehh@gmail.com',
+      role: Role.CANDIDATE,
+      hashedPassword: await bcrypt.hash('professional123!', 10),
+      candidateProfile: { create: { experience: [], education: [] } },
+    },
+  });
+  out.push(victoria);
+
   // additional mock candidates
   for (let i = 1; i <= 9; i++) {
     const user = await prisma.user.create({
@@ -59,34 +72,12 @@ async function createCandidates() {
 async function createProfessionals() {
   const out = [];
 
-  // tester account
-  const victoria = await prisma.user.upsert({
-    where: { email: 'victoriagehh@gmail.com' },
-    update: {},
-    create: {
-      email: 'victoriagehh@gmail.com',
-      role: Role.PROFESSIONAL,
-      hashedPassword: await bcrypt.hash('professional123!', 10),
-      professionalProfile: {
-        create: {
-          employer: 'Goldman Sachs',
-          title: 'Associate',
-          seniority: 'Mid',
-          bio: 'Finance professional ready to mentor candidates.',
-          priceUSD: 120,
-          availabilityPrefs: {},
-        },
-      },
-    },
-  });
-  out.push(victoria);
-
-  // additional mock professionals
+  // mock professionals
   for (let i = 1; i <= 9; i++) {
     const user = await prisma.user.create({
       data: {
         email: `pro${i}@example.com`,
-        role: Role.PROFESSIONAL,
+        role: Role.CANDIDATE,
         hashedPassword: await bcrypt.hash('professional123!', 10),
         professionalProfile: {
           create: {

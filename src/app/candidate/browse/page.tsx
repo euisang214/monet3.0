@@ -7,7 +7,7 @@ import { listProfessionals } from "../../../app/api/professionals/list";
 
 export default async function Browse() {
   const filterConfig: FilterConfig = {
-    Industry: {
+    Title: {
       model: "professionalProfile",
       field: "title",
       relation: "professionalProfile",
@@ -63,7 +63,7 @@ export default async function Browse() {
   ];
 
   const clientFilterConfig: FilterConfig = {
-    Industry: { field: "title" },
+    Title: { field: "title" },
     Firm: { field: "firm" },
     "Experience Level": { field: "experience" },
     Availability: { field: "availability", many: true },
