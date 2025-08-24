@@ -1,6 +1,7 @@
 import { auth } from "../../../../auth";
 import { getFilterOptions, FilterConfig } from "../../../app/api/filterOptions";
-import { listProfessionals } from "../../../app/api/professionals/list";
+import { listUsers } from "../../../app/api/users/list";
+import { Role } from "@prisma/client";
 import { getUpcomingCalls } from "../../../app/api/bookings/upcoming";
 import DashboardClient from "../../../components/DashboardClient";
 import UpcomingCalls from "../../../components/UpcomingCalls";
@@ -40,7 +41,8 @@ export default async function CandidateDashboard() {
   };
 
   const filterOptions = await getFilterOptions(filterConfig);
-  const results = await listProfessionals();
+  // Default to professionals only; adjust roles as needed.
+  const results = await listUsers([Role.PROFESSIONAL]);
 
   const session = await auth();
   const upcomingCalls = session?.user.id
