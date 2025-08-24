@@ -152,6 +152,7 @@ function Nav({ items }: { items: { href: string; label: string }[] }) {
           border-radius: 10px;
           display: block;
           color: var(--text-muted);
+          cursor: pointer;
         }
         .nav-link:hover {
           background: var(--muted);
