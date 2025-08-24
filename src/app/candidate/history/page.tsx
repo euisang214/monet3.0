@@ -1,19 +1,32 @@
-import { Card } from "../../../components/ui";
+import { auth } from "../../../../auth";
+import DashboardClient from "../../../components/DashboardClient";
+import { getPastCalls } from "../../../app/api/bookings/history";
 
-export default function History(){
-  const rows = [
-    {title:'Senior Consultant at Global Consulting Firm', date:'6/10/25 9:00 AM ET'},
-    {title:'Finance Manager at Tech Innovators Inc.', date:'6/10/25 9:00 AM ET'},
-    {title:'Independent Strategy Advisor', date:'6/10/25 9:00 AM ET'},
+export default async function History() {
+  const session = await auth();
+  const calls = session?.user.id ? await getPastCalls(session.user.id) : [];
+
+  const rows = calls.map((c) => ({
+    title: c.professional.professionalProfile
+      ? `${c.professional.professionalProfile.title} at ${c.professional.professionalProfile.employer}`
+      : c.professional.email,
+    date: new Date(c.startAt).toLocaleString(),
+    action: { label: "View Feedback", href: "#" },
+  }));
+
+  const columns = [
+    { key: "title", label: "Title" },
+    { key: "date", label: "Call Date" },
+    { key: "action", label: "Actions" },
   ];
+
   return (
-      <Card style={{padding:0}}>
-        <table className="table">
-          <thead><tr><th>Title</th><th>Call Date</th><th>Actions</th></tr></thead>
-          <tbody>
-            {rows.map((r, i)=>(<tr key={i}><td>{r.title}</td><td>{r.date}</td><td><a href="#">View Feedback</a></td></tr>))}
-          </tbody>
-        </table>
-      </Card>
-  )
+    <DashboardClient
+      data={rows}
+      columns={columns}
+      showFilters={false}
+      buttonColumns={["action"]}
+    />
+  );
 }
+
