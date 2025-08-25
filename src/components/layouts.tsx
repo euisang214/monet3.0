@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { signOutAction } from '../actions';
 
 type ShellProps = { children: React.ReactNode; session?: any };
@@ -139,6 +140,12 @@ export function AdminShell({ children }: ShellProps) {
 }
 
 function Nav({ items }: { items: { href: string; label: string }[] }) {
+  const router = useRouter();
+
+  React.useEffect(() => {
+    items.forEach((item) => router.prefetch(item.href));
+  }, [items, router]);
+
   return (
     <nav className="col">
       {items.map((i) => (
