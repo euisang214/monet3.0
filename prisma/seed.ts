@@ -77,7 +77,7 @@ async function createProfessionals() {
     const user = await prisma.user.create({
       data: {
         email: `pro${i}@example.com`,
-        role: Role.CANDIDATE,
+        role: Role.PROFESSIONAL,
         hashedPassword: await bcrypt.hash('professional123!', 10),
         professionalProfile: {
           create: {
