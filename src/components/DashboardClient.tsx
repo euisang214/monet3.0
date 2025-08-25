@@ -2,8 +2,12 @@
 
 import Link from 'next/link';
 import { useMemo, useState, ReactNode } from 'react';
-import { Card, Button, DataTable } from './ui';
-import FilterDropdown from './FilterDropdown';
+import dynamic from 'next/dynamic';
+import { Card, Button } from './ui';
+const FilterDropdown = dynamic(() => import('./FilterDropdown'), { ssr: false });
+const DataTable = dynamic(() => import('./ui').then((m) => m.DataTable), {
+  ssr: false,
+});
 import {
   applyFilters,
   ActiveFilters,

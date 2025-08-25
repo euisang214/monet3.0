@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { memo } from 'react';
 import clsx from 'clsx';
 
 export function Button(props: React.ButtonHTMLAttributes<HTMLButtonElement> & {variant?: 'primary'|'danger'|'muted'}){
@@ -27,12 +27,18 @@ export function Badge({children}:{children:React.ReactNode}){
   return <span className="badge">{children}</span>
 }
 
-export function DataTable<T extends Record<string, React.ReactNode>>({columns, rows}:{columns:{key:keyof T, label:string}[], rows:T[]}){
+function DataTableComponent<T extends Record<string, React.ReactNode>>({
+  columns,
+  rows,
+}: {
+  columns: { key: keyof T; label: string }[];
+  rows: T[];
+}) {
   return (
     <table className="table">
       <thead>
         <tr>
-          {columns.map(c => (
+          {columns.map((c) => (
             <th key={String(c.key)}>{c.label}</th>
           ))}
         </tr>
@@ -40,7 +46,7 @@ export function DataTable<T extends Record<string, React.ReactNode>>({columns, r
       <tbody>
         {rows.map((r, i) => (
           <tr key={i}>
-            {columns.map(c => (
+            {columns.map((c) => (
               <td key={String(c.key)}>{r[c.key]}</td>
             ))}
           </tr>
@@ -49,3 +55,5 @@ export function DataTable<T extends Record<string, React.ReactNode>>({columns, r
     </table>
   );
 }
+
+export const DataTable = memo(DataTableComponent) as typeof DataTableComponent;

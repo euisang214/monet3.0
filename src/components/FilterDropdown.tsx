@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 
 interface FilterDropdownProps {
   label: string;
@@ -19,7 +19,7 @@ interface FilterDropdownProps {
  * - Multi-select with checkboxes and "Select all"
  * - Selected options appear at the top of the list and inside the toggle
  */
-export default function FilterDropdown({
+function FilterDropdownComponent({
   label,
   options,
   onChange,
@@ -153,4 +153,6 @@ export default function FilterDropdown({
     </div>
   );
 }
+
+export default memo(FilterDropdownComponent);
 
