@@ -1,5 +1,8 @@
 import { auth } from "../../../../auth";
-import { getFilterOptions, FilterConfig } from "../../../app/api/filterOptions";
+import {
+  getFilterOptions,
+  FilterConfig,
+} from "../../../app/api/filterOptions";
 import { listUsers } from "../../../app/api/users/list";
 import { Role } from "@prisma/client";
 import { getUpcomingCalls } from "../../../app/api/bookings/upcoming";
@@ -7,6 +10,8 @@ import DashboardClient from "../../../components/DashboardClient";
 import UpcomingCalls from "../../../components/UpcomingCalls";
 
 export default async function CandidateDashboard() {
+  const session = await auth();
+
   const filterConfig: FilterConfig = {
     Title: {
       model: "professionalProfile",
@@ -40,16 +45,16 @@ export default async function CandidateDashboard() {
     },
   };
 
-  const [filterOptions, results, session] = await Promise.all([
+  const upcomingCallsPromise = session?.user.id
+    ? getUpcomingCalls(session.user.id)
+    : Promise.resolve([]);
+
+  const [filterOptions, results, upcomingCalls] = await Promise.all([
     getFilterOptions(filterConfig),
     // Default to professionals only; adjust roles as needed.
     listUsers([Role.PROFESSIONAL]),
-    auth(),
+    upcomingCallsPromise,
   ]);
-
-  const upcomingCalls = session?.user.id
-    ? await getUpcomingCalls(session.user.id)
-    : [];
 
   const availabilityTransform = filterConfig["Availability"].transform!;
 
