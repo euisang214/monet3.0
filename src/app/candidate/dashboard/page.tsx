@@ -40,11 +40,13 @@ export default async function CandidateDashboard() {
     },
   };
 
-  const filterOptions = await getFilterOptions(filterConfig);
-  // Default to professionals only; adjust roles as needed.
-  const results = await listUsers([Role.PROFESSIONAL]);
+  const [filterOptions, results, session] = await Promise.all([
+    getFilterOptions(filterConfig),
+    // Default to professionals only; adjust roles as needed.
+    listUsers([Role.PROFESSIONAL]),
+    auth(),
+  ]);
 
-  const session = await auth();
   const upcomingCalls = session?.user.id
     ? await getUpcomingCalls(session.user.id)
     : [];
