@@ -21,6 +21,7 @@ export async function GET(req: NextRequest, { params }:{params:{id:string}}){
     seniority: pro.seniority,
     priceUSD: pro.priceUSD,
     tags: [],
+    verified: !!pro.verifiedAt,
   };
   if(reveal){
     payload.identity = { name: 'Revealed User', email: 'pro@example.com' };
