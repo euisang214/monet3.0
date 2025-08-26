@@ -17,7 +17,10 @@ interface ProfessionalResponse {
 }
 
 export default async function Detail({ params }: { params: { id: string } }) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/professionals/${params.id}` , { cache: "no-store" });
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const res = await fetch(`${baseUrl}/api/professionals/${params.id}`, {
+    cache: "no-store",
+  });
   if (!res.ok) {
     throw new Error("Failed to load professional profile");
   }
