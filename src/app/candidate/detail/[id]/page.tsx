@@ -26,7 +26,7 @@ export default async function Detail({ params }: { params: { id: string } }) {
   }
   const pro: ProfessionalResponse = await res.json();
 
-  const name = pro.identity.redacted ? "Professional" : pro.identity.name;
+  const name = pro.identity.redacted ? undefined : pro.identity.name;
   const contactInfo = pro.identity.redacted
     ? "Identity redacted until booking is confirmed."
     : pro.identity.email;
@@ -52,7 +52,7 @@ export default async function Detail({ params }: { params: { id: string } }) {
             />
           </div>
           <div className="col" style={{ gap: 4 }}>
-            <h2>{name}</h2>
+            {name && <h2>{name}</h2>}
             <div className="row" style={{ alignItems: "center", gap: 8 }}>
               <span>{pro.title}</span>
               {pro.verified && <Badge>Verified Expert</Badge>}
@@ -68,9 +68,20 @@ export default async function Detail({ params }: { params: { id: string } }) {
         <a className="badge">Reviews</a>
       </div>
 
-      <Card className="col" style={{ padding: 16, gap: 16 }}>
-        <h3>Summary</h3>
-        <p>{pro.bio ?? "Summary available after booking is confirmed."}</p>
+      <Card className="col" style={{ padding: 16, gap: 24 }}>
+        {pro.bio && (
+          <>
+            <h3>Summary</h3>
+            <p>{pro.bio}</p>
+          </>
+        )}
+
+        {pro.employer && (
+          <>
+            <h3>Firm</h3>
+            <p>{pro.employer}</p>
+          </>
+        )}
 
         {pro.experience && pro.experience.length > 0 && (
           <>
