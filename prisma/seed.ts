@@ -32,11 +32,16 @@ async function createCandidates() {
     where: { email: 'euisang214@gmail.com' },
     update: {},
     create: {
+      id: 'candidate-euisang',
       email: 'euisang214@gmail.com',
       role: Role.CANDIDATE,
       hashedPassword: await bcrypt.hash('candidate123!', 10),
-      candidateProfile: { create: { experience: [], education: [] } },
     },
+  });
+  await prisma.candidateProfile.upsert({
+    where: { userId: euisang.id },
+    update: {},
+    create: { userId: euisang.id, experience: [], education: [] },
   });
   out.push(euisang);
 
@@ -45,11 +50,16 @@ async function createCandidates() {
     where: { email: 'victoriagehh@gmail.com' },
     update: {},
     create: {
+      id: 'candidate-victoria',
       email: 'victoriagehh@gmail.com',
       role: Role.CANDIDATE,
       hashedPassword: await bcrypt.hash('professional123!', 10),
-      candidateProfile: { create: { experience: [], education: [] } },
     },
+  });
+  await prisma.candidateProfile.upsert({
+    where: { userId: victoria.id },
+    update: {},
+    create: { userId: victoria.id, experience: [], education: [] },
   });
   out.push(victoria);
 
@@ -57,11 +67,14 @@ async function createCandidates() {
   for (let i = 1; i <= 9; i++) {
     const user = await prisma.user.create({
       data: {
+        id: `candidate-${i}`,
         email: `candidate${i}@example.com`,
         role: Role.CANDIDATE,
         hashedPassword: await bcrypt.hash('candidate123!', 10),
-        candidateProfile: { create: { experience: [], education: [] } },
       },
+    });
+    await prisma.candidateProfile.create({
+      data: { userId: user.id, experience: [], education: [] },
     });
     out.push(user);
   }
@@ -76,19 +89,21 @@ async function createProfessionals() {
   for (let i = 1; i <= 9; i++) {
     const user = await prisma.user.create({
       data: {
+        id: `professional-${i}`,
         email: `pro${i}@example.com`,
         role: Role.PROFESSIONAL,
         hashedPassword: await bcrypt.hash('professional123!', 10),
-        professionalProfile: {
-          create: {
-            employer: pick(firms),
-            title: pick(titles),
-            seniority: pick(['Junior', 'Mid', 'Senior']),
-            bio: 'Experienced finance professional with transaction and coverage background.',
-            priceUSD: 80 + i,
-            availabilityPrefs: {},
-          },
-        },
+      },
+    });
+    await prisma.professionalProfile.create({
+      data: {
+        userId: user.id,
+        employer: pick(firms),
+        title: pick(titles),
+        seniority: pick(['Junior', 'Mid', 'Senior']),
+        bio: 'Experienced finance professional with transaction and coverage background.',
+        priceUSD: 80 + i,
+        availabilityPrefs: {},
       },
     });
     out.push(user);
