@@ -92,6 +92,10 @@ model ProfessionalProfile {
   availabilityPrefs Json    @default("{}")
   verifiedAt        DateTime?
   corporateEmail    String?
+  experience        String[]
+  education         String[]
+  interests         String[]
+  activities        String[]
 
   user              User    @relation(fields:[userId], references:[id], onDelete: Cascade)
 }
@@ -101,7 +105,9 @@ model CandidateProfile {
   experience Json  @default("[]")
   education  Json  @default("[]")
   resumeUrl  String?
-
+  interests         String[]
+  activities        String[]
+  
   user       User  @relation(fields:[userId], references:[id], onDelete: Cascade)
 }
 
