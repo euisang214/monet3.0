@@ -40,9 +40,11 @@ export default async function Browse() {
     },
   };
 
-  const filterOptions = await getFilterOptions(filterConfig);
-  // By default, only show professionals. Pass [Role.CANDIDATE] or both to customize.
-  const results = await listUsers([Role.PROFESSIONAL]);
+  const [filterOptions, results] = await Promise.all([
+    getFilterOptions(filterConfig),
+    // By default, only show professionals. Pass [Role.CANDIDATE] or both to customize.
+    listUsers([Role.PROFESSIONAL]),
+  ]);
   const availabilityTransform = filterConfig["Availability"].transform!;
 
   const rows = results.map((u) => ({
