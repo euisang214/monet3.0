@@ -120,6 +120,10 @@ See `.env.example` for all required variables and flags. **Exactly these feature
 - `FEATURE_SUCCESS_FEE` (default: true)
 - `FEATURE_QC_LLM` (default: true)
 
+Resumes are served from AWS S3. Provide `AWS_S3_BUCKET` and AWS credentials
+(`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and optionally `AWS_REGION`) in
+your environment so the settings page can sign and preview uploaded resumes.
+
 ---
 
 ## Migrations & Seeding
