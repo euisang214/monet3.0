@@ -45,51 +45,53 @@ enum QCStatus {
 }
 
 model User {
-  id                     String   @id @default(cuid())
-  email                  String   @unique
-  hashedPassword         String?
-  role                   Role
+  id                      String   @id @default(cuid())
+  email                   String   @unique
+  hashedPassword          String?
+  role                    Role
   googleCalendarConnected Boolean  @default(false)
-  linkedinConnected      Boolean  @default(false)
-  corporateEmailVerified Boolean  @default(false)
-  flags                  Json     @default("{}")
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  linkedinConnected       Boolean  @default(false)
+  corporateEmailVerified  Boolean  @default(false)
+  flags                   Json     @default("{}")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   professionalProfile    ProfessionalProfile?
   candidateProfile       CandidateProfile?
   accounts               OAuthAccount[]
-  bookingsAsCandidate    Booking[] @relation("CandidateBookings")
-  bookingsAsProfessional Booking[] @relation("ProfessionalBookings")
+  bookingsAsCandidate    Booking[]            @relation("CandidateBookings")
+  bookingsAsProfessional Booking[]            @relation("ProfessionalBookings")
   notifications          Notification[]
-  auditLogs              AuditLog[] @relation("AuditActor")
+  auditLogs              AuditLog[]           @relation("AuditActor")
+
+  @@index([role])
 }
 
 model OAuthAccount {
-  id               String   @id @default(cuid())
-  userId           String
-  provider         String   // 'google' | 'linkedin'
+  id                String    @id @default(cuid())
+  userId            String
+  provider          String // 'google' | 'linkedin'
   providerAccountId String
-  accessToken      String?
-  refreshToken     String?
-  expiresAt        DateTime?
-  scope            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  scope             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
 
 model ProfessionalProfile {
-  userId            String @id
+  userId            String       @id
   employer          String
   title             String
   seniority         String
   bio               String
   priceUSD          Int
-  availabilityPrefs Json   @default("{}")
+  availabilityPrefs Json         @default("{}")
   verifiedAt        DateTime?
   corporateEmail    String?
   experience        Experience[] @relation("ProfessionalExperience")
@@ -97,106 +99,112 @@ model ProfessionalProfile {
   interests         String[]
   activities        String[]
 
-  user              User    @relation(fields:[userId], references:[id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([employer])
+  @@index([seniority])
+  @@index([priceUSD])
 }
 
 model CandidateProfile {
-  userId     String @id
+  userId     String       @id
   resumeUrl  String?
-  interests         String[]
-  activities        String[]
+  interests  String[]
+  activities String[]
   experience Experience[] @relation("CandidateExperience")
   education  Education[]  @relation("CandidateEducation")
 
-  user       User  @relation(fields:[userId], references:[id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Experience {
-  id            String   @id @default(cuid())
-  firm          String
-  title         String
-  startDate     DateTime
-  endDate       DateTime
-  professional  ProfessionalProfile? @relation("ProfessionalExperience", fields:[professionalId], references:[userId], onDelete: Cascade)
+  id             String               @id @default(cuid())
+  firm           String
+  title          String
+  startDate      DateTime
+  endDate        DateTime
+  professional   ProfessionalProfile? @relation("ProfessionalExperience", fields: [professionalId], references: [userId], onDelete: Cascade)
   professionalId String?
-  candidate     CandidateProfile?    @relation("CandidateExperience", fields:[candidateId], references:[userId], onDelete: Cascade)
-  candidateId   String?
+  candidate      CandidateProfile?    @relation("CandidateExperience", fields: [candidateId], references: [userId], onDelete: Cascade)
+  candidateId    String?
 }
 
 model Education {
-  id            String   @id @default(cuid())
-  school        String
-  title         String
-  startDate     DateTime
-  endDate       DateTime
-  professional  ProfessionalProfile? @relation("ProfessionalEducation", fields:[professionalId], references:[userId], onDelete: Cascade)
+  id             String               @id @default(cuid())
+  school         String
+  title          String
+  startDate      DateTime
+  endDate        DateTime
+  professional   ProfessionalProfile? @relation("ProfessionalEducation", fields: [professionalId], references: [userId], onDelete: Cascade)
   professionalId String?
-  candidate     CandidateProfile?    @relation("CandidateEducation", fields:[candidateId], references:[userId], onDelete: Cascade)
-  candidateId   String?
+  candidate      CandidateProfile?    @relation("CandidateEducation", fields: [candidateId], references: [userId], onDelete: Cascade)
+  candidateId    String?
 }
 
 model Booking {
-  id              String   @id @default(cuid())
-  candidateId     String
-  professionalId  String
-  status          BookingStatus
-  startAt         DateTime
-  endAt           DateTime
-  zoomMeetingId   String?
-  zoomJoinUrl     String?
-  calendarEventIds Json     @default("[]")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String        @id @default(cuid())
+  candidateId      String
+  professionalId   String
+  status           BookingStatus
+  startAt          DateTime
+  endAt            DateTime
+  zoomMeetingId    String?
+  zoomJoinUrl      String?
+  calendarEventIds Json          @default("[]")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  candidate       User     @relation("CandidateBookings", fields:[candidateId], references:[id])
-  professional    User     @relation("ProfessionalBookings", fields:[professionalId], references:[id])
-  payment         Payment?
-  feedback        Feedback?
-  payout          Payout?
+  candidate    User      @relation("CandidateBookings", fields: [candidateId], references: [id])
+  professional User      @relation("ProfessionalBookings", fields: [professionalId], references: [id])
+  payment      Payment?
+  feedback     Feedback?
+  payout       Payout?
 
   @@index([status, startAt])
+  @@index([candidateId, startAt])
+  @@index([professionalId, startAt])
 }
 
 model Payment {
-  id           String   @id @default(cuid())
-  bookingId    String   @unique
+  id           String        @id @default(cuid())
+  bookingId    String        @unique
   amountGross  Int
   platformFee  Int
   escrowHoldId String
   status       PaymentStatus
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  booking      Booking  @relation(fields:[bookingId], references:[id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 model Feedback {
-  bookingId           String  @id
-  starsCategory1      Int
-  starsCategory2      Int
-  starsCategory3      Int
-  extraCategoryRatings Json   @default("{}")
-  wordCount           Int
-  actions             String[]
-  text                String
-  submittedAt         DateTime
-  qcStatus            QCStatus
-  qcReport            Json    @default("{}")
+  bookingId            String   @id
+  starsCategory1       Int
+  starsCategory2       Int
+  starsCategory3       Int
+  extraCategoryRatings Json     @default("{}")
+  wordCount            Int
+  actions              String[]
+  text                 String
+  submittedAt          DateTime
+  qcStatus             QCStatus
+  qcReport             Json     @default("{}")
 
-  booking             Booking @relation(fields:[bookingId], references:[id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 model Payout {
-  id                 String   @id @default(cuid())
-  bookingId          String   @unique
+  id                 String       @id @default(cuid())
+  bookingId          String       @unique
   proStripeAccountId String
   amountNet          Int
   status             PayoutStatus
   reason             String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
-  booking            Booking  @relation(fields:[bookingId], references:[id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 model SuccessFeeInvoice {
@@ -206,29 +214,29 @@ model SuccessFeeInvoice {
   percentage          Int      @default(10)
   declaredBonusAmount Int
   invoiceAmount       Int
-  status              String   // 'draft'|'sent'|'paid'|'void'
+  status              String // 'draft'|'sent'|'paid'|'void'
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
 
 model Verification {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   userId         String
   corporateEmail String
   token          String
   verifiedAt     DateTime?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
 }
 
 model Notification {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
   type         String
-  payload      Json     @default("{}")
+  payload      Json      @default("{}")
   scheduledFor DateTime
   sentAt       DateTime?
 
-  user         User     @relation(fields:[userId], references:[id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([scheduledFor])
 }
@@ -242,17 +250,17 @@ model AuditLog {
   metadata    Json     @default("{}")
   createdAt   DateTime @default(now())
 
-  actor       User?    @relation("AuditActor", fields:[actorUserId], references:[id])
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id])
 }
 
 // Postgres view for listing cards
 view ListingCardView {
-  userId      String
-  employer    String
-  title       String
-  seniority   String
-  priceUSD    Int
-  tags        String[]
+  userId    String
+  employer  String
+  title     String
+  seniority String
+  priceUSD  Int
+  tags      String[]
 
   @@ignore // Prisma doesn't manage view fields in client; created in migration SQL
 }
