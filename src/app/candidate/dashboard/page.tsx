@@ -57,7 +57,7 @@ export default async function CandidateDashboard() {
   const [filterOptions, results, upcomingCalls] = await Promise.all([
     getCachedFilterOptions(),
     // Default to professionals only; adjust roles as needed.
-    listUsers([Role.PROFESSIONAL]),
+    listUsers([Role.PROFESSIONAL], 1, 50).then((result) => result.users),
     upcomingCallsPromise,
   ]);
 
