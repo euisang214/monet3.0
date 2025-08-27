@@ -83,17 +83,17 @@ model OAuthAccount {
 }
 
 model ProfessionalProfile {
-  userId            String  @id
+  userId            String @id
   employer          String
   title             String
   seniority         String
   bio               String
   priceUSD          Int
-  availabilityPrefs Json    @default("{}")
+  availabilityPrefs Json   @default("{}")
   verifiedAt        DateTime?
   corporateEmail    String?
-  experience        String[]
-  education         String[]
+  experience        Experience[] @relation("ProfessionalExperience")
+  education         Education[]  @relation("ProfessionalEducation")
   interests         String[]
   activities        String[]
 
@@ -102,13 +102,37 @@ model ProfessionalProfile {
 
 model CandidateProfile {
   userId     String @id
-  experience Json  @default("[]")
-  education  Json  @default("[]")
   resumeUrl  String?
   interests         String[]
   activities        String[]
-  
+  experience Experience[] @relation("CandidateExperience")
+  education  Education[]  @relation("CandidateEducation")
+
   user       User  @relation(fields:[userId], references:[id], onDelete: Cascade)
+}
+
+model Experience {
+  id            String   @id @default(cuid())
+  firm          String
+  title         String
+  startDate     DateTime
+  endDate       DateTime
+  professional  ProfessionalProfile? @relation("ProfessionalExperience", fields:[professionalId], references:[userId], onDelete: Cascade)
+  professionalId String?
+  candidate     CandidateProfile?    @relation("CandidateExperience", fields:[candidateId], references:[userId], onDelete: Cascade)
+  candidateId   String?
+}
+
+model Education {
+  id            String   @id @default(cuid())
+  school        String
+  title         String
+  startDate     DateTime
+  endDate       DateTime
+  professional  ProfessionalProfile? @relation("ProfessionalEducation", fields:[professionalId], references:[userId], onDelete: Cascade)
+  professionalId String?
+  candidate     CandidateProfile?    @relation("CandidateEducation", fields:[candidateId], references:[userId], onDelete: Cascade)
+  candidateId   String?
 }
 
 model Booking {
