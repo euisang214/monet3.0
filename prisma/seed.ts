@@ -1,5 +1,6 @@
 import { PrismaClient, Role, BookingStatus, PaymentStatus, QCStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { SCHOOLS, JOB_TITLES, DEGREE_TITLES } from '../lib/profileOptions';
 
 const prisma = new PrismaClient();
 
@@ -22,7 +23,57 @@ const firms = [
   'Bain & Company',
 ];
 
-const titles = ['Analyst', 'Associate', 'Vice President'];
+type TenorPeriod = { start: string; finish: string };
+type ExperienceEntry = { firm: string; title: string; startDate: string; endDate: string };
+type EducationEntry = { school: string; title: string; startDate: string; endDate: string };
+
+const jobTitles = JOB_TITLES;
+const degreeTitles = DEGREE_TITLES;
+const schools = SCHOOLS;
+
+const experiencePeriods: TenorPeriod[] = [
+  { start: '2018-01-01', finish: '2019-01-01' },
+  { start: '2019-01-01', finish: '2020-01-01' },
+  { start: '2020-01-01', finish: '2021-01-01' },
+  { start: '2021-01-01', finish: '2022-01-01' },
+  { start: '2022-01-01', finish: '2023-01-01' },
+];
+const educationPeriods: TenorPeriod[] = [
+  { start: '2014-09-01', finish: '2018-06-01' },
+  { start: '2015-09-01', finish: '2019-06-01' },
+  { start: '2016-09-01', finish: '2020-06-01' },
+  { start: '2017-09-01', finish: '2021-06-01' },
+  { start: '2018-09-01', finish: '2022-06-01' },
+];
+
+const randomPeriod = (periods: TenorPeriod[]): TenorPeriod => pick(periods);
+
+const randomExperience = (): ExperienceEntry => {
+  const period = randomPeriod(experiencePeriods);
+  return {
+    firm: pick(firms),
+    title: pick(jobTitles),
+    startDate: period.start,
+    endDate: period.finish,
+  };
+};
+
+const randomEducation = (): EducationEntry => {
+  const period = randomPeriod(educationPeriods);
+  return {
+    school: pick(schools),
+    title: pick(degreeTitles),
+    startDate: period.start,
+    endDate: period.finish,
+  };
+};
+
+// mock profile details
+const candidateInterests = ['Investment Banking', 'Private Equity', 'Consulting', 'Startups', 'Hedge Funds'];
+const candidateActivities = ['Finance club', 'Case competitions', 'Volunteering', 'Blogging', 'Sports'];
+
+const professionalInterests = ['Mergers and Acquisitions', 'Private Equity', 'Venture Capital', 'FinTech', 'Consulting'];
+const professionalActivities = ['Mentoring', 'Volunteering', 'Cycling', 'Traveling', 'Blogging'];
 
 async function createCandidates() {
   const out = [];
@@ -41,7 +92,13 @@ async function createCandidates() {
   await prisma.candidateProfile.upsert({
     where: { userId: euisang.id },
     update: {},
-    create: { userId: euisang.id, experience: [], education: [] },
+    create: {
+      userId: euisang.id,
+      interests: [pick(candidateInterests), pick(candidateInterests)],
+      activities: [pick(candidateActivities)],
+      experience: { create: [randomExperience()] },
+      education: { create: [randomEducation()] },
+    },
   });
   out.push(euisang);
 
@@ -59,7 +116,13 @@ async function createCandidates() {
   await prisma.candidateProfile.upsert({
     where: { userId: victoria.id },
     update: {},
-    create: { userId: victoria.id, experience: [], education: [] },
+    create: {
+      userId: victoria.id,
+      interests: [pick(candidateInterests), pick(candidateInterests)],
+      activities: [pick(candidateActivities)],
+      experience: { create: [randomExperience()] },
+      education: { create: [randomEducation()] },
+    },
   });
   out.push(victoria);
 
@@ -74,7 +137,13 @@ async function createCandidates() {
       },
     });
     await prisma.candidateProfile.create({
-      data: { userId: user.id, experience: [], education: [] },
+      data: {
+        userId: user.id,
+        interests: [pick(candidateInterests), pick(candidateInterests)],
+        activities: [pick(candidateActivities)],
+        experience: { create: [randomExperience()] },
+        education: { create: [randomEducation()] },
+      },
     });
     out.push(user);
   }
@@ -99,11 +168,15 @@ async function createProfessionals() {
       data: {
         userId: user.id,
         employer: pick(firms),
-        title: pick(titles),
+        title: pick(jobTitles),
         seniority: pick(['Junior', 'Mid', 'Senior']),
         bio: 'Experienced finance professional with transaction and coverage background.',
         priceUSD: 80 + i,
         availabilityPrefs: {},
+        interests: [pick(professionalInterests), pick(professionalInterests)],
+        activities: [pick(professionalActivities)],
+        experience: { create: [randomExperience(), randomExperience()] },
+        education: { create: [randomEducation()] },
       },
     });
     out.push(user);
