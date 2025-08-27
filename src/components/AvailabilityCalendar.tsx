@@ -2,7 +2,7 @@
 import dynamic from 'next/dynamic';
 import React, { useEffect, useState } from 'react';
 import { Button } from './ui';
-import '@toast-ui/calendar/dist/toastui-calendar.min.css';
+import '@toast-ui/calendar/toastui-calendar.min.css';
 
 const Calendar = dynamic(() => import('@toast-ui/react-calendar'), { ssr: false });
 
