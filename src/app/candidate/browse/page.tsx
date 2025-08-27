@@ -43,7 +43,7 @@ export default async function Browse() {
   const [filterOptions, results] = await Promise.all([
     getFilterOptions(filterConfig),
     // By default, only show professionals. Pass [Role.CANDIDATE] or both to customize.
-    listUsers([Role.PROFESSIONAL]),
+    listUsers([Role.PROFESSIONAL], 1, 50).then((result) => result.users),
   ]);
   const availabilityTransform = filterConfig["Availability"].transform!;
 
