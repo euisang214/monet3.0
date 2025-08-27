@@ -7,6 +7,30 @@ export async function isCalendarConnected(userId: string){
   return !!acc;
 }
 
+export async function getBusyTimes(userId: string){
+  const acc = await prisma.oAuthAccount.findFirst({ where: { userId, provider: 'google' } });
+  if(!acc?.accessToken) return [];
+  const oauth2 = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+  oauth2.setCredentials({ access_token: acc.accessToken, refresh_token: acc.refreshToken || undefined });
+  const cal = google.calendar({ version: 'v3', auth: oauth2 });
+  const now = new Date();
+  const nextWeek = new Date(now.getTime() + 7*24*60*60*1000);
+  try{
+    const res = await cal.freebusy.query({
+      requestBody: {
+        timeMin: now.toISOString(),
+        timeMax: nextWeek.toISOString(),
+        items: [{ id: 'primary' }]
+      }
+    });
+    const busy = res.data.calendars?.primary?.busy || [];
+    return busy.map(b => ({ start: b.start as string, end: b.end as string }));
+  }catch(err){
+    console.error('Failed to fetch busy times', err);
+    return [];
+  }
+}
+
 export async function mergedAvailability(proId: string, candId: string){
   // Placeholder: in real implementation we'd merge free/busy results.
   // Return a few 30-min slots in the next days.
