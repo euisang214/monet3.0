@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { auth } from "../../../../auth";
 import {
   getFilterOptions,
@@ -9,48 +10,52 @@ import { getUpcomingCalls } from "../../../app/api/bookings/upcoming";
 import DashboardClient from "../../../components/DashboardClient";
 import UpcomingCalls from "../../../components/UpcomingCalls";
 
+const filterConfig: FilterConfig = {
+  Title: {
+    model: "professionalProfile",
+    field: "title",
+    relation: "professionalProfile",
+  },
+  Firm: {
+    model: "professionalProfile",
+    field: "employer",
+    relation: "professionalProfile",
+  },
+  "Experience Level": {
+    model: "professionalProfile",
+    field: "seniority",
+    relation: "professionalProfile",
+  },
+  Availability: {
+    model: "booking",
+    field: "startAt",
+    relation: "bookingsAsProfessional",
+    many: true,
+    transform: (dates: Date[]) =>
+      Array.from(
+        new Set(
+          dates.map((d) => {
+            const day = d.getUTCDay();
+            return day === 0 || day === 6 ? "Weekends" : "Weekdays";
+          })
+        )
+      ),
+  },
+};
+
+const getCachedFilterOptions = cache(async () =>
+  getFilterOptions(filterConfig)
+);
+
 export default async function CandidateDashboard() {
   const session = await auth();
-
-  const filterConfig: FilterConfig = {
-    Title: {
-      model: "professionalProfile",
-      field: "title",
-      relation: "professionalProfile",
-    },
-    Firm: {
-      model: "professionalProfile",
-      field: "employer",
-      relation: "professionalProfile",
-    },
-    "Experience Level": {
-      model: "professionalProfile",
-      field: "seniority",
-      relation: "professionalProfile",
-    },
-    Availability: {
-      model: "booking",
-      field: "startAt",
-      relation: "bookingsAsProfessional",
-      many: true,
-      transform: (dates: Date[]) =>
-        Array.from(
-          new Set(
-            dates.map((d) => {
-              const day = d.getUTCDay();
-              return day === 0 || day === 6 ? "Weekends" : "Weekdays";
-            })
-          )
-        ),
-    },
-  };
 
   const upcomingCallsPromise = session?.user.id
     ? getUpcomingCalls(session.user.id)
     : Promise.resolve([]);
 
   const [filterOptions, results, upcomingCalls] = await Promise.all([
-    getFilterOptions(filterConfig),
+    getCachedFilterOptions(),
     // Default to professionals only; adjust roles as needed.
     listUsers([Role.PROFESSIONAL]),
     upcomingCallsPromise,
