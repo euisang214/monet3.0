@@ -2,11 +2,17 @@ import DashboardClient from "../../../components/DashboardClient";
 import {
   getFilterOptions,
   FilterConfig,
+  ActiveFilters,
 } from "../../../app/api/filterOptions";
 import { listUsers } from "../../../app/api/users/list";
 import { Role } from "@prisma/client";
+import Pagination from "../../../components/Pagination";
 
-export default async function Browse() {
+export default async function Browse({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const filterConfig: FilterConfig = {
     Title: {
       model: "professionalProfile",
@@ -40,11 +46,24 @@ export default async function Browse() {
     },
   };
 
-  const [filterOptions, results] = await Promise.all([
+  const page = Number(searchParams.page) || 1;
+
+  const active: ActiveFilters = {};
+  for (const key of Object.keys(filterConfig)) {
+    const value = searchParams[key];
+    if (value) {
+      active[key] = Array.isArray(value)
+        ? (value as string[])
+        : (value as string).split(",");
+    }
+  }
+
+  const [filterOptions, listResult] = await Promise.all([
     getFilterOptions(filterConfig),
     // By default, only show professionals. Pass [Role.CANDIDATE] or both to customize.
-    listUsers([Role.PROFESSIONAL]),
+    listUsers([Role.PROFESSIONAL], page, 50, active, filterConfig),
   ]);
+  const { users: results, totalPages } = listResult;
   const availabilityTransform = filterConfig["Availability"].transform!;
 
   const rows = results.map((u) => ({
@@ -66,13 +85,6 @@ export default async function Browse() {
     { key: "action", label: "" },
   ];
 
-  const clientFilterConfig: FilterConfig = {
-    Title: { field: "title" },
-    Firm: { field: "firm" },
-    "Experience Level": { field: "experience" },
-    Availability: { field: "availability", many: true },
-  };
-
   return (
     <section className="col" style={{ gap: 16 }}>
       <h2>Search Results</h2>
@@ -80,9 +92,10 @@ export default async function Browse() {
         data={rows}
         columns={columns}
         filterOptions={filterOptions}
-        filterConfig={clientFilterConfig}
+        initialActive={active}
         buttonColumns={["action"]}
       />
+      <Pagination page={page} totalPages={totalPages} />
     </section>
   );
 }

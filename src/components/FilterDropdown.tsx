@@ -9,6 +9,10 @@ interface FilterDropdownProps {
    * Called whenever the selection changes.
    */
   onChange?: (values: string[]) => void;
+  /**
+   * Initial selection when the component mounts
+   */
+  initial?: string[];
 }
 
 /**
@@ -23,10 +27,11 @@ function FilterDropdownComponent({
   label,
   options,
   onChange,
+  initial = [],
 }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>(initial);
   const ref = useRef<HTMLDivElement>(null);
 
   // close when clicking outside

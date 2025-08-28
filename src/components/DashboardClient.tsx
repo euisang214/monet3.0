@@ -2,17 +2,14 @@
 
 import Link from 'next/link';
 import { useMemo, useState, ReactNode } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Card, Button } from './ui';
 const FilterDropdown = dynamic(() => import('./FilterDropdown'), { ssr: false });
 const DataTable = dynamic(() => import('./ui').then((m) => m.DataTable), {
   ssr: false,
 });
-import {
-  applyFilters,
-  ActiveFilters,
-  FilterConfig,
-} from '../app/api/filterOptions';
+import { ActiveFilters } from '../app/api/filterOptions';
 
 interface LinkValue {
   label: string;
@@ -30,7 +27,7 @@ interface Props {
   data: RowData[];
   columns: Column[];
   filterOptions?: Record<string, string[]>;
-  filterConfig?: FilterConfig;
+  initialActive?: ActiveFilters;
   showFilters?: boolean;
   buttonColumns?: string[];
 }
@@ -39,23 +36,26 @@ export default function DashboardClient({
   data,
   columns,
   filterOptions = {},
-  filterConfig,
+  initialActive = {},
   showFilters = true,
   buttonColumns = [],
 }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [active, setActive] = useState<ActiveFilters>(
     showFilters
-      ? Object.fromEntries(Object.keys(filterOptions).map((k) => [k, []]))
+      ? {
+          ...Object.fromEntries(
+            Object.keys(filterOptions).map((k) => [k, []])
+          ),
+          ...initialActive,
+        }
       : {}
   );
 
-  const filtered = useMemo(() => {
-    if (!showFilters || !filterConfig) return data;
-    return applyFilters(data, filterConfig, active);
-  }, [data, filterConfig, active, showFilters]);
-
   const tableRows = useMemo(() => {
-    return filtered.map((r) => {
+    return data.map((r) => {
       const row: Record<string, ReactNode> = {};
       columns.forEach((c) => {
         const val = (r as any)[c.key];
@@ -83,11 +83,19 @@ export default function DashboardClient({
       });
       return row;
     });
-  }, [filtered, columns, buttonColumns]);
+  }, [data, columns, buttonColumns]);
 
   const handleChange = (label: string, values: string[]) => {
     if (!showFilters) return;
     setActive((prev) => ({ ...prev, [label]: values }));
+    const params = new URLSearchParams(searchParams.toString());
+    if (values.length > 0) {
+      params.set(label, values.join(','));
+    } else {
+      params.delete(label);
+    }
+    params.delete('page');
+    router.push(`?${params.toString()}`);
   };
 
   return (
@@ -103,6 +111,7 @@ export default function DashboardClient({
                 key={label}
                 label={label}
                 options={options}
+                initial={active[label] || []}
                 onChange={(vals) => handleChange(label, vals)}
               />
             ))}

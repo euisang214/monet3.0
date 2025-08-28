@@ -3,63 +3,78 @@ import { auth } from "../../../../auth";
 import {
   getFilterOptions,
   FilterConfig,
+  ActiveFilters,
 } from "../../../app/api/filterOptions";
 import { listUsers } from "../../../app/api/users/list";
 import { Role } from "@prisma/client";
 import { getUpcomingCalls } from "../../../app/api/bookings/upcoming";
 import DashboardClient from "../../../components/DashboardClient";
 import UpcomingCalls from "../../../components/UpcomingCalls";
+import Pagination from "../../../components/Pagination";
 
-const filterConfig: FilterConfig = {
-  Title: {
-    model: "professionalProfile",
-    field: "title",
-    relation: "professionalProfile",
-  },
-  Firm: {
-    model: "professionalProfile",
-    field: "employer",
-    relation: "professionalProfile",
-  },
-  "Experience Level": {
-    model: "professionalProfile",
-    field: "seniority",
-    relation: "professionalProfile",
-  },
-  Availability: {
-    model: "booking",
-    field: "startAt",
-    relation: "bookingsAsProfessional",
-    many: true,
-    transform: (dates: Date[]) =>
-      Array.from(
-        new Set(
-          dates.map((d) => {
-            const day = d.getUTCDay();
-            return day === 0 || day === 6 ? "Weekends" : "Weekdays";
-          })
-        )
-      ),
-  },
-};
-
-const getCachedFilterOptions = cache(async () =>
-  getFilterOptions(filterConfig)
-);
-
-export default async function CandidateDashboard() {
+export default async function CandidateDashboard({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const session = await auth();
+
+  const filterConfig: FilterConfig = {
+    Title: {
+      model: "professionalProfile",
+      field: "title",
+      relation: "professionalProfile",
+    },
+    Firm: {
+      model: "professionalProfile",
+      field: "employer",
+      relation: "professionalProfile",
+    },
+    "Experience Level": {
+      model: "professionalProfile",
+      field: "seniority",
+      relation: "professionalProfile",
+    },
+    Availability: {
+      model: "booking",
+      field: "startAt",
+      relation: "bookingsAsProfessional",
+      many: true,
+      transform: (dates: Date[]) =>
+        Array.from(
+          new Set(
+            dates.map((d) => {
+              const day = d.getUTCDay();
+              return day === 0 || day === 6 ? "Weekends" : "Weekdays";
+            })
+          )
+        ),
+    },
+  };
+
+  const page = Number(searchParams.page) || 1;
+
+  const active: ActiveFilters = {};
+  for (const key of Object.keys(filterConfig)) {
+    const value = searchParams[key];
+    if (value) {
+      active[key] = Array.isArray(value)
+        ? (value as string[])
+        : (value as string).split(",");
+    }
+  }
 
   const upcomingCallsPromise = session?.user.id
     ? getUpcomingCalls(session.user.id)
     : Promise.resolve([]);
 
-  const [filterOptions, results, upcomingCalls] = await Promise.all([
-    getCachedFilterOptions(),
-    // Default to professionals only; adjust roles as needed.
-    listUsers([Role.PROFESSIONAL]),
+  const [filterOptions, listResult, upcomingCalls] = await Promise.all([
+    getFilterOptions(filterConfig),
+    listUsers([Role.PROFESSIONAL], page, 50, active, filterConfig),
     upcomingCallsPromise,
   ]);
+
+  const { users: results, totalPages } = listResult;
 
   const availabilityTransform = filterConfig["Availability"].transform!;
 
@@ -82,13 +97,6 @@ export default async function CandidateDashboard() {
     { key: "action", label: "" },
   ];
 
-  const clientFilterConfig: FilterConfig = {
-    Title: { field: "title" },
-    Firm: { field: "firm" },
-    "Experience Level": { field: "experience" },
-    Availability: { field: "availability", many: true },
-  };
-
   return (
     <div className="row" style={{ alignItems: "flex-start", gap: 24 }}>
       <aside style={{ width: 260 }}>
@@ -100,9 +108,10 @@ export default async function CandidateDashboard() {
           data={rows}
           columns={columns}
           filterOptions={filterOptions}
-          filterConfig={clientFilterConfig}
+          initialActive={active}
           buttonColumns={["action"]}
         />
+        <Pagination page={page} totalPages={totalPages} />
       </section>
     </div>
   );
