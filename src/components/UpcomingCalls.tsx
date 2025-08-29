@@ -2,6 +2,7 @@
 
 import { Card, Button } from './ui';
 import React from 'react';
+import { formatDateTime } from '../../lib/date';
 
 interface Call {
   id: string;
@@ -32,7 +33,7 @@ export default function UpcomingCalls({ calls }: { calls: Call[] }) {
                 {c.professional.professionalProfile?.title ?? ''}
               </span>
               <span style={{ color: 'var(--text-muted)' }}>
-                {new Date(c.startAt).toLocaleString()}
+                {formatDateTime(c.startAt)}
               </span>
             </div>
             <Button
