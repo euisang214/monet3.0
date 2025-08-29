@@ -3,7 +3,7 @@ import { prisma } from '../db';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-06-20' } as any);
 
-export const PLATFORM_FEE = 0.20;
+export const PLATFORM_FEE : number = process.env.PLATFORM_FEE;
 
 export async function createCheckoutIntent(bookingId: string, amountUSD: number){
   const amount = Math.round(amountUSD * 100);
