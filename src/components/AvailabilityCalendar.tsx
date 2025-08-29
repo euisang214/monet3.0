@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { Button } from './ui';
 import { addMinutes, addDays, startOfWeek, format } from 'date-fns';
 
@@ -8,9 +8,14 @@ type Slot = {
   end: string;
 };
 
-export default function AvailabilityCalendar(){
+export type AvailabilityCalendarRef = {
+  getData: () => { events: Slot[]; busy: Slot[] };
+};
+
+const AvailabilityCalendar = forwardRef<AvailabilityCalendarRef>((_, ref) => {
   const [events, setEvents] = useState<Slot[]>([]);
   const [busyEvents, setBusyEvents] = useState<Slot[]>([]);
+  const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
 
   const handleSync = async () => {
     const res = await fetch('/api/candidate/busy');
@@ -36,9 +41,8 @@ export default function AvailabilityCalendar(){
     handleSync();
   }, []);
 
-  const start = startOfWeek(new Date(), { weekStartsOn: 0 });
-  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  const times = Array.from({ length: 48 }, (_, i) => addMinutes(start, i * 30));
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const times = Array.from({ length: 48 }, (_, i) => addMinutes(weekStart, i * 30));
 
   const isBusy = (date: Date) => busyEvents.some(e => date >= new Date(e.start) && date < new Date(e.end));
   const isAvailable = (date: Date) => events.some(e => new Date(e.start).getTime() === date.getTime());
@@ -54,9 +58,20 @@ export default function AvailabilityCalendar(){
     }
   };
 
+  const prevWeek = () => setWeekStart(prev => addDays(prev, -7));
+  const nextWeek = () => setWeekStart(prev => addDays(prev, 7));
+
+  useImperativeHandle(ref, () => ({
+    getData: () => ({ events, busy: busyEvents }),
+  }), [events, busyEvents]);
+
   return (
     <div className="col" style={{ gap: 12 }}>
-      <Button onClick={handleSync}>Sync Google Calendar</Button>
+      <div className="row" style={{ gap: 8 }}>
+        <Button onClick={prevWeek}>{'<'}</Button>
+        <Button onClick={nextWeek}>{'>'}</Button>
+        <Button onClick={handleSync}>Sync Google Calendar</Button>
+      </div>
       <div
         className="calendar-grid"
         style={{
@@ -80,7 +95,7 @@ export default function AvailabilityCalendar(){
               fontWeight: 600,
             }}
           >
-            {format(d, 'EEE d')}
+            {format(d, 'EEE MMM d')}
           </div>
         ))}
 
@@ -120,4 +135,6 @@ export default function AvailabilityCalendar(){
       </div>
     </div>
   );
-}
+});
+
+export default AvailabilityCalendar;
