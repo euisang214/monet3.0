@@ -1,5 +1,3 @@
-"use client";
-
 import { auth } from "../../../auth";
 import { PublicShell } from "../../components/layouts";
 
