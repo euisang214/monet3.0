@@ -88,12 +88,18 @@ export default function DashboardClient({
   const handleChange = (label: string, values: string[]) => {
     if (!showFilters) return;
     setActive((prev) => ({ ...prev, [label]: values }));
+  };
+
+  const applyFilters = () => {
+    if (!showFilters) return;
     const params = new URLSearchParams(searchParams.toString());
-    if (values.length > 0) {
-      params.set(label, values.join(','));
-    } else {
-      params.delete(label);
-    }
+    Object.entries(active).forEach(([label, values]) => {
+      if (values.length > 0) {
+        params.set(label, values.join(','));
+      } else {
+        params.delete(label);
+      }
+    });
     params.delete('page');
     router.push(`?${params.toString()}`);
   };
@@ -115,6 +121,9 @@ export default function DashboardClient({
                 onChange={(vals) => handleChange(label, vals)}
               />
             ))}
+            <Button style={{ marginLeft: 'auto' }} onClick={applyFilters}>
+              Apply Filters
+            </Button>
           </div>
         </>
       )}
