@@ -13,7 +13,11 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
-    const body: any = { role };
+    const body: any = {
+      role,
+      firstName: formData.get('firstName'),
+      lastName: formData.get('lastName'),
+    };
     if (role === 'CANDIDATE') {
       body.resumeUrl = formData.get('resumeUrl') || undefined;
       body.interests = formData.get('interests') || '';
@@ -32,10 +36,14 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
       body: JSON.stringify(body),
     });
     setLoading(false);
+    const data = await res.json().catch(() => null);
     if (res.ok) {
-      router.push(role === 'PROFESSIONAL' ? '/professional/dashboard' : '/candidate/dashboard');
+      if (role === 'PROFESSIONAL' && data?.onboardingUrl) {
+        window.location.href = data.onboardingUrl;
+      } else {
+        router.push(role === 'PROFESSIONAL' ? '/professional/dashboard' : '/candidate/dashboard');
+      }
     } else {
-      const data = await res.json().catch(() => null);
       setError(data?.error || 'Failed to save profile');
     }
   }
@@ -46,6 +54,9 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
         <option value="CANDIDATE">Candidate</option>
         <option value="PROFESSIONAL">Professional</option>
       </Select>
+
+      <Input name="firstName" placeholder="First name" required />
+      <Input name="lastName" placeholder="Last name" required />
 
       {role === 'CANDIDATE' ? (
         <>
