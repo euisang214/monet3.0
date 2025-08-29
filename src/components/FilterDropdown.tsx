@@ -46,21 +46,17 @@ function FilterDropdownComponent({
   }, []);
 
   const toggleOption = (opt: string) => {
-    setSelected((prev) => {
-      const next = prev.includes(opt)
-        ? prev.filter((o) => o !== opt)
-        : [...prev, opt];
-      onChange?.(next);
-      return next;
-    });
+    const next = selected.includes(opt)
+      ? selected.filter((o) => o !== opt)
+      : [...selected, opt];
+    setSelected(next);
+    onChange?.(next);
   };
 
   const toggleAll = () => {
-    setSelected((prev) => {
-      const next = prev.length === options.length ? [] : options;
-      onChange?.(next);
-      return next;
-    });
+    const next = selected.length === options.length ? [] : options;
+    setSelected(next);
+    onChange?.(next);
   };
 
   const filtered = options.filter((o) =>
