@@ -1,6 +1,7 @@
 import { auth } from "../../../../auth";
 import DashboardClient from "../../../components/DashboardClient";
 import { getPastCalls } from "../../../app/api/bookings/history";
+import { formatDateTime } from "../../../../lib/date";
 
 export default async function History() {
   const session = await auth();
@@ -10,7 +11,7 @@ export default async function History() {
     title: c.professional.professionalProfile
       ? `${c.professional.professionalProfile.title} at ${c.professional.professionalProfile.employer}`
       : c.professional.email,
-    date: new Date(c.startAt).toLocaleString(),
+    date: formatDateTime(c.startAt),
     action: { label: "View Feedback", href: "#" },
   }));
 
