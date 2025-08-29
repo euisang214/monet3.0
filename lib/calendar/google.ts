@@ -14,12 +14,13 @@ export async function getBusyTimes(userId: string){
   oauth2.setCredentials({ access_token: acc.accessToken, refresh_token: acc.refreshToken || undefined });
   const cal = google.calendar({ version: 'v3', auth: oauth2 });
   const now = new Date();
-  const nextWeek = new Date(now.getTime() + 7*24*60*60*1000);
+  const nextMonth = new Date(now);
+  nextMonth.setMonth(now.getMonth() + 1);
   try{
     const res = await cal.freebusy.query({
       requestBody: {
         timeMin: now.toISOString(),
-        timeMax: nextWeek.toISOString(),
+        timeMax: nextMonth.toISOString(),
         items: [{ id: 'primary' }]
       }
     });
