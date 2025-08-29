@@ -23,7 +23,11 @@ export default function SignUpForm() {
     });
     setLoading(false);
     if (res.ok) {
-      await signIn('credentials', { email, password, callbackUrl: role === 'PROFESSIONAL' ? '/professional/dashboard' : '/candidate/dashboard' });
+      await signIn('credentials', {
+        email,
+        password,
+        callbackUrl: '/signup/details',
+      });
     } else {
       const data = await res.json().catch(() => null);
       setError(data?.error || 'Failed to sign up');
@@ -46,8 +50,28 @@ export default function SignUpForm() {
       <Input name="password" type="password" placeholder="Password" required />
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <Button type="submit" disabled={loading}>Create Account</Button>
-      <Button type="button" onClick={() => signIn('google', { callbackUrl: role === 'PROFESSIONAL' ? '/professional/dashboard' : '/candidate/dashboard' })} variant="muted" disabled={!role}>Sign up with Google</Button>
-      <Button type="button" onClick={() => signIn('linkedin', { callbackUrl: role === 'PROFESSIONAL' ? '/professional/dashboard' : '/candidate/dashboard' })} variant="muted" disabled={!role}>Sign up with LinkedIn</Button>
+      <Button
+        type="button"
+        onClick={() =>
+          signIn('google', {
+            callbackUrl: role ? `/signup/details?role=${role}` : '/signup/details',
+          })
+        }
+        variant="muted"
+      >
+        Sign up with Google
+      </Button>
+      <Button
+        type="button"
+        onClick={() =>
+          signIn('linkedin', {
+            callbackUrl: role ? `/signup/details?role=${role}` : '/signup/details',
+          })
+        }
+        variant="muted"
+      >
+        Sign up with LinkedIn
+      </Button>
     </form>
   );
 }
