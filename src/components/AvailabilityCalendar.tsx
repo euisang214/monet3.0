@@ -12,15 +12,6 @@ export default function AvailabilityCalendar(){
   const [events, setEvents] = useState<Slot[]>([]);
   const [busyEvents, setBusyEvents] = useState<Slot[]>([]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('candidateAvailability');
-    if(saved) setEvents(JSON.parse(saved));
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('candidateAvailability', JSON.stringify(events));
-  }, [events]);
-
   const handleSync = async () => {
     const res = await fetch('/api/candidate/busy');
     if(!res.ok) return;
@@ -31,6 +22,19 @@ export default function AvailabilityCalendar(){
     }));
     setBusyEvents(fetched);
   };
+
+  useEffect(() => {
+    const saved = localStorage.getItem('candidateAvailability');
+    if(saved) setEvents(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('candidateAvailability', JSON.stringify(events));
+  }, [events]);
+
+  useEffect(() => {
+    handleSync();
+  }, []);
 
   const start = startOfWeek(new Date(), { weekStartsOn: 0 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
