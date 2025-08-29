@@ -8,6 +8,12 @@ export default function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState<'CANDIDATE' | 'PROFESSIONAL' | ''>('');
 
+  async function handleOAuth(provider: 'google' | 'linkedin') {
+    const callbackUrl = role ? `/signup/details?role=${role}` : '/signup/details';
+    const res = await signIn(provider, { callbackUrl, redirect: false });
+    if (res?.url) window.location.href = res.url;
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -52,22 +58,14 @@ export default function SignUpForm() {
       <Button type="submit" disabled={loading}>Create Account</Button>
       <Button
         type="button"
-        onClick={() =>
-          signIn('google', {
-            callbackUrl: role ? `/signup/details?role=${role}` : '/signup/details',
-          })
-        }
+        onClick={() => handleOAuth('google')}
         variant="muted"
       >
         Sign up with Google
       </Button>
       <Button
         type="button"
-        onClick={() =>
-          signIn('linkedin', {
-            callbackUrl: role ? `/signup/details?role=${role}` : '/signup/details',
-          })
-        }
+        onClick={() => handleOAuth('linkedin')}
         variant="muted"
       >
         Sign up with LinkedIn
