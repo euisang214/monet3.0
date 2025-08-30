@@ -24,8 +24,8 @@ This MVP uses:
    - `POST /api/bookings/:id/schedule` sets a tentative slot (30m blocks via `CALL_DURATION_MINUTES`) and moves to `accepted`.
 
 3. **Checkout**
-   - `POST /api/bookings/:id/checkout` creates a Stripe PaymentIntent.
-   - On success, a Zoom meeting is created and calendar invites would be inserted (stubbed), and the booking remains `accepted`.
+   - `POST /api/bookings/:id/checkout` creates a Stripe PaymentIntent and returns its client secret and ID. A Zoom meeting is also created.
+   - After Stripe confirms the card on the client, call `POST /api/payments/confirm` with the PaymentIntent ID to finalize the booking.
 
 4. **Feedback & QC**
    - `POST /api/feedback/:bookingId` validates word count, exact 3 actions, stars present.

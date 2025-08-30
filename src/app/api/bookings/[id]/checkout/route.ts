@@ -27,5 +27,10 @@ export async function POST(req: NextRequest, { params }:{params:{id:string}}){
     zoomJoinUrl: meeting.join_url,
   }});
 
-  return NextResponse.json({ clientSecret: (pi as any).client_secret, booking: updated, zoom: meeting });
+  return NextResponse.json({
+    clientSecret: (pi as any).client_secret,
+    paymentIntentId: pi.id,
+    booking: updated,
+    zoom: meeting,
+  });
 }

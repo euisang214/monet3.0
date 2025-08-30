@@ -142,7 +142,7 @@ npm run test
 npm run test:e2e
 ```
 
-Unit tests cover cancellation edge cases, QC gating, and payout/refund transitions. E2E tests exercise request→accept→schedule→checkout→confirmation; pro cancel; candidate late cancel (using API handlers with mocked external services).
+Unit tests cover cancellation edge cases, QC gating, and payout/refund transitions. E2E tests exercise request→accept→schedule→checkout→confirmation via `/api/payments/confirm`; pro cancel; candidate late cancel (using API handlers with mocked external services).
 
 ---
 
