@@ -3,7 +3,13 @@ import { prisma } from "../../../../lib/db";
 export async function getProfessionalSettings(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { professionalProfile: true },
+    select: {
+      email: true,
+      firstName: true,
+      lastName: true,
+      flags: true,
+      professionalProfile: { select: { verifiedAt: true } },
+    },
   });
   if (!user) return null;
 

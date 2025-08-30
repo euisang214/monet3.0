@@ -15,7 +15,10 @@ export default async function SignUpDetailsPage({
   }
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: { candidateProfile: true, professionalProfile: true },
+    select: {
+      candidateProfile: { select: { userId: true } },
+      professionalProfile: { select: { userId: true } },
+    },
   });
   if (user?.candidateProfile || user?.professionalProfile) {
     redirect(
