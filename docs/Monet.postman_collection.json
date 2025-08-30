@@ -108,6 +108,24 @@
       }
     },
     {
+      "name": "Confirm Payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/confirm",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments", "confirm"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"paymentIntentId\": \"<pi_id>\"}"
+        }
+      }
+    },
+    {
       "name": "Cancel",
       "request": {
         "method": "POST",
