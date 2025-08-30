@@ -30,11 +30,6 @@ export default async function CandidateDashboard({
       field: "employer",
       relation: "professionalProfile",
     },
-    "Experience Level": {
-      model: "professionalProfile",
-      field: "seniority",
-      relation: "professionalProfile",
-    },
     Availability: {
       model: "booking",
       field: "startAt",
@@ -82,7 +77,6 @@ export default async function CandidateDashboard({
     name: { label: u.email, href: `/candidate/detail/${u.id}` },
     title: u.professionalProfile?.title ?? "",
     firm: u.professionalProfile?.employer ?? "",
-    experience: u.professionalProfile?.seniority ?? "",
     availability: availabilityTransform(
       u.bookingsAsProfessional.map((b) => b.startAt as Date)
     ),
@@ -92,7 +86,6 @@ export default async function CandidateDashboard({
   const columns = [
     { key: "name", label: "Name" },
     { key: "title", label: "Title" },
-    { key: "experience", label: "Experience" },
     { key: "availability", label: "Availability" },
     { key: "action", label: "" },
   ];

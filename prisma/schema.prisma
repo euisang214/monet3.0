@@ -93,7 +93,6 @@ model ProfessionalProfile {
   userId            String       @id
   employer          String
   title             String
-  seniority         String
   bio               String
   priceUSD          Int
   availabilityPrefs Json         @default("{}")
@@ -107,7 +106,6 @@ model ProfessionalProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([employer])
-  @@index([seniority])
   @@index([priceUSD])
 }
 
@@ -275,7 +273,6 @@ view ListingCardView {
   userId    String
   employer  String
   title     String
-  seniority String
   priceUSD  Int
   tags      String[]
 
