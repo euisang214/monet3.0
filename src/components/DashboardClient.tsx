@@ -122,6 +122,7 @@ export default function DashboardClient({
               />
             ))}
             <Button onClick={applyFilters}>Apply Filters</Button>
+
           </div>
         </>
       )}

@@ -67,6 +67,7 @@ model User {
   bookingsAsProfessional Booking[]            @relation("ProfessionalBookings")
   notifications          Notification[]
   auditLogs              AuditLog[]           @relation("AuditActor")
+  availabilities         Availability[]
 
   @@index([role])
 }
@@ -243,6 +244,18 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([scheduledFor])
+}
+
+model Availability {
+  id     String   @id @default(cuid())
+  userId String
+  start  DateTime
+  end    DateTime
+  busy   Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, start])
 }
 
 model AuditLog {
