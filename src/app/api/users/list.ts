@@ -23,19 +23,9 @@ export async function listUsers(
       where,
       include: {
         professionalProfile: {
-          select: {
-            userId: true,
-            employer: true,
-            title: true,
-            bio: true,
-            priceUSD: true,
-            availabilityPrefs: true,
-            verifiedAt: true,
-            corporateEmail: true,
+          include: {
             experience: true,
-            education: true,
-            interests: true,
-            activities: true,
+            education: true
           },
         },
         candidateProfile: true,
