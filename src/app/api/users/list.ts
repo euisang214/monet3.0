@@ -21,17 +21,14 @@ export async function listUsers(
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
-      // include: {
-      //   professionalProfile: {
-      //     include: {
-      //       experience: true,
-      //       education: true
-      //     },
-      //   },
-      //   candidateProfile: true,
-      //   bookingsAsProfessional: true,
-      //   bookingsAsCandidate: true,
-      // },
+      include: {
+        professionalProfile: true,
+        bookingsAsProfessional: {
+          select: {
+            startAt: true,
+          },
+        },
+      },
       skip,
       take: perPage,
     }),
