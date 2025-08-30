@@ -24,8 +24,8 @@ const firms = [
 ];
 
 type TenorPeriod = { start: string; finish: string };
-type ExperienceEntry = { firm: string; title: string; startDate: string; endDate: string };
-type EducationEntry = { school: string; title: string; startDate: string; endDate: string };
+type ExperienceEntry = { firm: string; title: string; startDate: Date; endDate: Date };
+type EducationEntry = { school: string; title: string; startDate: Date; endDate: Date };
 
 const jobTitles = JOB_TITLES;
 const degreeTitles = DEGREE_TITLES;
@@ -53,8 +53,8 @@ const randomExperience = (): ExperienceEntry => {
   return {
     firm: pick(firms),
     title: pick(jobTitles),
-    startDate: period.start,
-    endDate: period.finish,
+    startDate: new Date(period.start),
+    endDate: new Date(period.finish),
   };
 };
 
@@ -63,8 +63,8 @@ const randomEducation = (): EducationEntry => {
   return {
     school: pick(schools),
     title: pick(degreeTitles),
-    startDate: period.start,
-    endDate: period.finish,
+    startDate: new Date(period.start),
+    endDate: new Date(period.finish),
   };
 };
 
