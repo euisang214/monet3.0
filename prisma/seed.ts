@@ -169,7 +169,6 @@ async function createProfessionals() {
         userId: user.id,
         employer: pick(firms),
         title: pick(jobTitles),
-        seniority: pick(['Junior', 'Mid', 'Senior']),
         bio: 'Experienced finance professional with transaction and coverage background.',
         priceUSD: 80 + i,
         availabilityPrefs: {},

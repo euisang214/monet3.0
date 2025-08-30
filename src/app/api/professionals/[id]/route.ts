@@ -18,7 +18,6 @@ export async function GET(req: NextRequest, { params }:{params:{id:string}}){
   const payload: any = {
     employer: pro.employer,
     title: pro.title,
-    seniority: pro.seniority,
     priceUSD: pro.priceUSD,
     tags: [],
     verified: !!pro.verifiedAt,

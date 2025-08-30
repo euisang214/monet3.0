@@ -5,7 +5,6 @@ interface ProfessionalResponse {
   identity: { name?: string; email?: string; redacted?: boolean };
   employer: string;
   title: string;
-  seniority: string;
   priceUSD: number;
   tags: string[];
   verified?: boolean;
