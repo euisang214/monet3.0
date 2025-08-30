@@ -121,9 +121,8 @@ export default function DashboardClient({
                 onChange={(vals) => handleChange(label, vals)}
               />
             ))}
-            <Button style={{ marginLeft: 'auto' }} onClick={applyFilters}>
-              Apply Filters
-            </Button>
+            <Button onClick={applyFilters}>Apply Filters</Button>
+
           </div>
         </>
       )}
