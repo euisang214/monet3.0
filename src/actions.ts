@@ -3,6 +3,6 @@
 import { signOut } from '../auth';
 
 export async function signOutAction() {
-  await signOut();
+  return await signOut({ redirectTo: '/' });
 }
 
