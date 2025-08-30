@@ -22,7 +22,22 @@ export async function listUsers(
     prisma.user.findMany({
       where,
       include: {
-        professionalProfile: true,
+        professionalProfile: {
+          select: {
+            userId: true,
+            employer: true,
+            title: true,
+            bio: true,
+            priceUSD: true,
+            availabilityPrefs: true,
+            verifiedAt: true,
+            corporateEmail: true,
+            experience: true,
+            education: true,
+            interests: true,
+            activities: true,
+          },
+        },
         candidateProfile: true,
         bookingsAsProfessional: true,
         bookingsAsCandidate: true,
