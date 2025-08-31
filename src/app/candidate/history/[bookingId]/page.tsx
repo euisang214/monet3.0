@@ -1,0 +1,73 @@
+import { auth } from "../../../../../auth";
+import { prisma } from "../../../../../lib/db";
+import { formatDateTime } from "../../../../../lib/date";
+import { Card } from "../../../../components/ui";
+import { notFound, redirect } from "next/navigation";
+
+export default async function FeedbackPage({ params }: { params: { bookingId: string } }) {
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  const feedback = await prisma.feedback.findUnique({
+    where: { bookingId: params.bookingId },
+    include: { booking: { select: { candidateId: true, professionalId: true } } },
+  });
+
+  if (!feedback) {
+    notFound();
+  }
+
+  if (
+    feedback.booking.candidateId !== session.user.id &&
+    feedback.booking.professionalId !== session.user.id &&
+    session.user.role !== "ADMIN"
+  ) {
+    notFound();
+  }
+
+  const extraRatings = feedback.extraCategoryRatings as Record<string, number>;
+
+  return (
+    <section className="col" style={{ gap: 16 }}>
+      <h2>Feedback</h2>
+      <Card className="col" style={{ padding: 16, gap: 8 }}>
+        <p>
+          <strong>Submitted:</strong> {formatDateTime(feedback.submittedAt)}
+        </p>
+        <div>
+          <strong>Ratings</strong>
+          <ul>
+            <li>Category 1: {feedback.starsCategory1}</li>
+            <li>Category 2: {feedback.starsCategory2}</li>
+            <li>Category 3: {feedback.starsCategory3}</li>
+            {Object.entries(extraRatings).map(([k, v]) => (
+              <li key={k}>
+                {k}: {v as number}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <strong>Top Actions</strong>
+          <ul>
+            {feedback.actions.map((a, i) => (
+              <li key={i}>{a}</li>
+            ))}
+          </ul>
+        </div>
+        <p>
+          <strong>Feedback Text:</strong>
+        </p>
+        <p>{feedback.text}</p>
+        <p>
+          <strong>Word Count:</strong> {feedback.wordCount}
+        </p>
+        <p>
+          <strong>QC Status:</strong> {feedback.qcStatus}
+        </p>
+      </Card>
+    </section>
+  );
+}
