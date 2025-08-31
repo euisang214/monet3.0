@@ -48,6 +48,7 @@ export default async function Detail({ params }: { params: { id: string } }) {
           </div>
           <div className="col" style={{ gap: 4 }}>
             {name && <h2>{name}</h2>}
+            <span>{`$${pro.priceUSD}`}</span>
             <div className="row" style={{ alignItems: "center", gap: 8 }}>
               <span>{pro.title}</span>
               {pro.verified && <Badge>Verified Expert</Badge>}
