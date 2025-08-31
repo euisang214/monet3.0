@@ -154,7 +154,36 @@ async function createCandidates() {
 async function createProfessionals() {
   const out = [];
 
-  // mock professionals
+  // tester professional account
+  const euisangss = await prisma.user.upsert({
+    where: { email: 'euisangss@gmail.com' },
+    update: {},
+    create: {
+      id: 'professional-euisangss',
+      email: 'euisangss@gmail.com',
+      role: Role.PROFESSIONAL,
+      hashedPassword: await bcrypt.hash('professional123!', 10),
+    },
+  });
+  await prisma.professionalProfile.upsert({
+    where: { userId: euisangss.id },
+    update: {},
+    create: {
+      userId: euisangss.id,
+      employer: pick(firms),
+      title: pick(jobTitles),
+      bio: 'Experienced finance professional with transaction and coverage background.',
+      priceUSD: 100,
+      availabilityPrefs: {},
+      interests: [pick(professionalInterests), pick(professionalInterests)],
+      activities: [pick(professionalActivities)],
+      experience: { create: [randomExperience(), randomExperience()] },
+      education: { create: [randomEducation()] },
+    },
+  });
+  out.push(euisangss);
+
+  // additional mock professionals
   for (let i = 1; i <= 9; i++) {
     const user = await prisma.user.create({
       data: {
@@ -192,27 +221,41 @@ async function createBookings(candidates: any[], professionals: any[]) {
     {
       candidateIdx: 0,
       professionalIdx: 0,
+      daysFromNow: 1,
+      meetingId: 'zoom-upcoming-euisangss',
+      joinUrl: 'https://zoom.example.com/upcoming-euisangss',
+    },
+    {
+      candidateIdx: 1,
+      professionalIdx: 0,
+      daysFromNow: 4,
+      meetingId: 'zoom-upcoming-victoria-euisangss',
+      joinUrl: 'https://zoom.example.com/upcoming-victoria-euisangss',
+    },
+    {
+      candidateIdx: 0,
+      professionalIdx: 1,
       daysFromNow: 2,
       meetingId: 'zoom-upcoming-test',
       joinUrl: 'https://zoom.example.com/upcoming',
     },
     {
       candidateIdx: 0,
-      professionalIdx: 1,
+      professionalIdx: 2,
       daysFromNow: 5,
       meetingId: 'zoom-upcoming-test-2',
       joinUrl: 'https://zoom.example.com/upcoming-2',
     },
     {
       candidateIdx: 1,
-      professionalIdx: 2,
+      professionalIdx: 3,
       daysFromNow: 3,
       meetingId: 'zoom-upcoming-victoria',
       joinUrl: 'https://zoom.example.com/upcoming-victoria',
     },
     {
       candidateIdx: 1,
-      professionalIdx: 3,
+      professionalIdx: 4,
       daysFromNow: 7,
       meetingId: 'zoom-upcoming-victoria-2',
       joinUrl: 'https://zoom.example.com/upcoming-victoria-2',
@@ -240,38 +283,68 @@ async function createBookings(candidates: any[], professionals: any[]) {
     {
       candidateIdx: 0,
       professionalIdx: 0,
+      daysAgo: 10,
+      amountGross: 10500,
+      platformFee: 2100,
+      escrowHoldId: 'pi_test_past_euisangss',
+      feedback: 'Insightful session with industry deep dive.',
+      reviewRating: 5,
+      reviewText: 'Candidate was well-prepared and engaged.',
+    },
+    {
+      candidateIdx: 1,
+      professionalIdx: 0,
+      daysAgo: 12,
+      amountGross: 9500,
+      platformFee: 1900,
+      escrowHoldId: 'pi_test_past_victoria_euisangss',
+      feedback: 'Great insights for upcoming interviews.',
+      reviewRating: 5,
+      reviewText: 'Candidate asked insightful questions and is eager to learn.',
+    },
+    {
+      candidateIdx: 0,
+      professionalIdx: 1,
       daysAgo: 5,
       amountGross: 10000,
       platformFee: 2000,
       escrowHoldId: 'pi_test_past',
       feedback: 'Great session with helpful insights for recruiting.',
+      reviewRating: 5,
+      reviewText: 'Wonderful to mentor this candidate.',
     },
     {
       candidateIdx: 0,
-      professionalIdx: 2,
+      professionalIdx: 3,
       daysAgo: 15,
       amountGross: 12000,
       platformFee: 2500,
       escrowHoldId: 'pi_test_past_2',
       feedback: 'Another insightful session.',
+      reviewRating: 4,
+      reviewText: 'Candidate showed strong improvement.',
     },
     {
       candidateIdx: 1,
-      professionalIdx: 3,
+      professionalIdx: 4,
       daysAgo: 7,
       amountGross: 9000,
       platformFee: 1800,
       escrowHoldId: 'pi_test_past_3',
       feedback: 'Very helpful advice.',
+      reviewRating: 5,
+      reviewText: 'Engaged candidate with thoughtful questions.',
     },
     {
       candidateIdx: 1,
-      professionalIdx: 4,
+      professionalIdx: 5,
       daysAgo: 20,
       amountGross: 11000,
       platformFee: 2200,
       escrowHoldId: 'pi_test_past_4',
       feedback: 'Fantastic discussion.',
+      reviewRating: 5,
+      reviewText: 'Pleasure to work with this candidate.',
     },
   ];
 
@@ -311,6 +384,14 @@ async function createBookings(candidates: any[], professionals: any[]) {
         submittedAt: new Date(),
         qcStatus: QCStatus.passed,
         qcReport: {},
+      },
+    });
+
+    await prisma.professionalReview.create({
+      data: {
+        bookingId: booking.id,
+        rating: spec.reviewRating,
+        text: spec.reviewText,
       },
     });
   }
@@ -356,6 +437,14 @@ async function createBookings(candidates: any[], professionals: any[]) {
           submittedAt: new Date(),
           qcStatus: QCStatus.passed,
           qcReport: {},
+        },
+      });
+
+      await prisma.professionalReview.create({
+        data: {
+          bookingId: booking.id,
+          rating: 4,
+          text: 'Promising candidate who is eager to learn.',
         },
       });
     }
