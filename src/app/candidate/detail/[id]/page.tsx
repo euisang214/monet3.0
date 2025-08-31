@@ -8,6 +8,7 @@ interface ProfessionalResponse {
   tags: string[];
   verified?: boolean;
   bio?: string;
+  employer?: string;
   experience?: {
     firm: string;
     title: string;
@@ -35,6 +36,7 @@ export default async function Detail({ params }: { params: { id: string } }) {
   const pro: ProfessionalResponse = await res.json();
 
   const name = pro.identity.redacted ? undefined : pro.identity.name;
+  const heading = name ?? `${pro.title} at ${pro.employer}`;
 
   return (
     <section className="col" style={{ gap: 16 }}>
@@ -51,16 +53,15 @@ export default async function Detail({ params }: { params: { id: string } }) {
           >
             <Image
               src="/globe.svg"
-              alt={name || "avatar"}
+              alt={heading || "avatar"}
               width={80}
               height={80}
             />
           </div>
           <div className="col" style={{ gap: 4 }}>
-            {name && <h2>{name}</h2>}
-            <span>{`$${pro.priceUSD}`}</span>
+            {heading && <h2>{heading}</h2>}
+            <span>{`Price per Session: $${pro.priceUSD}`}</span>
             <div className="row" style={{ alignItems: "center", gap: 8 }}>
-              <span>{pro.title}</span>
               {pro.verified && <Badge>Verified Expert</Badge>}
             </div>
           </div>
@@ -143,11 +144,11 @@ export default async function Detail({ params }: { params: { id: string } }) {
         <div className="col" style={{ gap: 8 }}>
           <h3>Activities</h3>
           {pro.activities && pro.activities.length > 0 ? (
-            <ul>
-              {pro.activities.map((activity, idx) => (
-                <li key={idx}>{activity}</li>
+            <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+              {pro.activities.map((activity) => (
+                <Badge key={activity}>{activity}</Badge>
               ))}
-            </ul>
+            </div>
           ) : (
             <p style={{ color: "var(--text-muted)" }}>No information available</p>
           )}
