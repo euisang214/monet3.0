@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { auth } from "../../../../auth";
+import { auth } from "@/auth";
 import {
   getFilterOptions,
   FilterConfig,

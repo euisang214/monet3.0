@@ -1,5 +1,5 @@
 import { Card, Button } from "../../../components/ui";
-import { auth } from "../../../../auth";
+import { auth } from "@/auth";
 import { getProfessionalRequests } from "../../api/professional/requests";
 import { format } from "date-fns";
 

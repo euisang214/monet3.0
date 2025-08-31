@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/db';
 import { createCheckoutIntent, ensureCustomer } from '../../../../../../lib/payments/stripe';
 import { createZoomMeeting } from '../../../../../../lib/zoom';
-import { auth } from '../../../../../../auth';
+import { auth } from '@/auth';
 
 export async function POST(req: NextRequest, { params }:{params:{id:string}}){
   const session = await auth();

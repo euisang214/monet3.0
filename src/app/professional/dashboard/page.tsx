@@ -1,6 +1,6 @@
 import { Card } from "../../../components/ui";
 import DashboardClient from "../../../components/DashboardClient";
-import { auth } from "../../../../auth";
+import { auth } from "@/auth";
 import { getProfessionalDashboardData } from "../../api/professional/dashboard";
 import { format } from "date-fns";
 

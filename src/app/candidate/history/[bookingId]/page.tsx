@@ -1,4 +1,4 @@
-import { auth } from "../../../../../auth";
+import { auth } from "@/auth";
 import { prisma } from "../../../../../lib/db";
 import { formatDateTime } from "../../../../../lib/date";
 import { Card } from "../../../../components/ui";

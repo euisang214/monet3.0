@@ -1,5 +1,5 @@
 import { Card, Button, Input } from "../../../components/ui";
-import { auth } from "../../../../auth";
+import { auth } from "@/auth";
 import { getCandidateSettings } from "../../../app/api/candidate/settings";
 import ResumePreview from "../../../components/ResumePreview";
 
