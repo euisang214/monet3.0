@@ -3,36 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Button, Card, Badge } from '../../../../components/ui';
-
-export interface ProfessionalResponse {
-  identity: { name?: string; email?: string; redacted?: boolean };
-  title: string;
-  priceUSD: number;
-  tags: string[];
-  verified?: boolean;
-  bio?: string;
-  employer?: string;
-  experience?: {
-    firm: string;
-    title: string;
-    startDate?: string;
-    endDate?: string;
-  }[];
-  education?: {
-    school: string;
-    title: string;
-    startDate?: string;
-    endDate?: string;
-  }[];
-  interests?: string[];
-  activities?: string[];
-  reviews?: {
-    rating: number;
-    text: string;
-    candidate: string;
-    submittedAt: string;
-  }[];
-}
+import { ProfessionalResponse } from './types';
 
 export default function DetailClient({ pro }: { pro: ProfessionalResponse }) {
   const [tab, setTab] = useState<'about' | 'reviews'>('about');

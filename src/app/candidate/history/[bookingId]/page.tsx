@@ -21,8 +21,7 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
 
   if (
     feedback.booking.candidateId !== session.user.id &&
-    feedback.booking.professionalId !== session.user.id &&
-    session.user.role !== "ADMIN"
+    feedback.booking.professionalId !== session.user.id
   ) {
     notFound();
   }
