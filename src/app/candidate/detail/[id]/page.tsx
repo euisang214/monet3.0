@@ -8,8 +8,18 @@ interface ProfessionalResponse {
   tags: string[];
   verified?: boolean;
   bio?: string;
-  experience?: { role: string; company: string; period?: string }[];
-  education?: { school: string; degree: string; period?: string }[];
+  experience?: {
+    firm: string;
+    title: string;
+    startDate?: string;
+    endDate?: string;
+  }[];
+  education?: {
+    school: string;
+    title: string;
+    startDate?: string;
+    endDate?: string;
+  }[];
   interests?: string[];
   activities?: string[];
 }
@@ -77,12 +87,18 @@ export default async function Detail({ params }: { params: { id: string } }) {
           <h3>Experience</h3>
           {pro.experience && pro.experience.length > 0 ? (
             <ul>
-              {pro.experience.map((item, idx) => (
-                <li key={idx}>
-                  {item.role} at {item.company}
-                  {item.period ? ` (${item.period})` : ""}
-                </li>
-              ))}
+              {pro.experience.map((item, idx) => {
+                const period =
+                  item.startDate && item.endDate
+                    ? `${new Date(item.startDate).getFullYear()}-${new Date(item.endDate).getFullYear()}`
+                    : "";
+                return (
+                  <li key={idx}>
+                    {item.title} at {item.firm}
+                    {period ? ` (${period})` : ""}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p style={{ color: "var(--text-muted)" }}>No information available</p>
@@ -93,12 +109,18 @@ export default async function Detail({ params }: { params: { id: string } }) {
           <h3>Education</h3>
           {pro.education && pro.education.length > 0 ? (
             <ul>
-              {pro.education.map((item, idx) => (
-                <li key={idx}>
-                  {item.degree}, {item.school}
-                  {item.period ? ` (${item.period})` : ""}
-                </li>
-              ))}
+              {pro.education.map((item, idx) => {
+                const period =
+                  item.startDate && item.endDate
+                    ? `${new Date(item.startDate).getFullYear()}-${new Date(item.endDate).getFullYear()}`
+                    : "";
+                return (
+                  <li key={idx}>
+                    {item.title}, {item.school}
+                    {period ? ` (${period})` : ""}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p style={{ color: "var(--text-muted)" }}>No information available</p>
