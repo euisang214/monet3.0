@@ -2,6 +2,7 @@
 import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { Button } from './ui';
 import { addMinutes, addDays, startOfWeek, format } from 'date-fns';
+import { signIn } from 'next-auth/react';
 
 type Slot = {
   start: string;
@@ -19,6 +20,11 @@ const AvailabilityCalendar = forwardRef<AvailabilityCalendarRef>((_, ref) => {
 
   const handleSync = async () => {
     const res = await fetch('/api/candidate/busy');
+    if(res.status === 401){
+      alert('Please connect your Google Calendar to sync availability.');
+      await signIn('google', { callbackUrl: window.location.href });
+      return;
+    }
     if(!res.ok) return;
     const data = await res.json();
     const fetched: Slot[] = (data.busy || []).map((b: any) => ({
