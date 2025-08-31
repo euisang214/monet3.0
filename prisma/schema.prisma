@@ -157,11 +157,12 @@ model Booking {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  candidate    User      @relation("CandidateBookings", fields: [candidateId], references: [id])
-  professional User      @relation("ProfessionalBookings", fields: [professionalId], references: [id])
-  payment      Payment?
-  feedback     Feedback?
-  payout       Payout?
+  candidate          User                @relation("CandidateBookings", fields: [candidateId], references: [id])
+  professional       User                @relation("ProfessionalBookings", fields: [professionalId], references: [id])
+  payment            Payment?
+  feedback           Feedback?
+  professionalReview ProfessionalReview?
+  payout             Payout?
 
   @@index([status, startAt])
   @@index([candidateId, startAt])
@@ -193,6 +194,15 @@ model Feedback {
   submittedAt          DateTime
   qcStatus             QCStatus
   qcReport             Json     @default("{}")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model ProfessionalReview {
+  bookingId   String   @id
+  rating      Int
+  text        String
+  submittedAt DateTime @default(now())
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
@@ -270,11 +280,11 @@ model AuditLog {
 
 // Postgres view for listing cards
 view ListingCardView {
-  userId    String
-  employer  String
-  title     String
-  priceUSD  Int
-  tags      String[]
+  userId   String
+  employer String
+  title    String
+  priceUSD Int
+  tags     String[]
 
   @@ignore // Prisma doesn't manage view fields in client; created in migration SQL
 }
