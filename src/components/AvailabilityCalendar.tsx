@@ -66,6 +66,7 @@ const AvailabilityCalendar = () => {
   const toggleSlot = (date: Date) => {
     const startIso = date.toISOString();
     const endIso = new Date(date.getTime() + 30 * 60 * 1000).toISOString();
+
     const available = isAvailable(date);
 
     if(isBusy(date)){
