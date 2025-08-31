@@ -3,7 +3,6 @@ import Image from "next/image";
 
 interface ProfessionalResponse {
   identity: { name?: string; email?: string; redacted?: boolean };
-  employer: string;
   title: string;
   priceUSD: number;
   tags: string[];
@@ -26,9 +25,6 @@ export default async function Detail({ params }: { params: { id: string } }) {
   const pro: ProfessionalResponse = await res.json();
 
   const name = pro.identity.redacted ? undefined : pro.identity.name;
-  const contactInfo = pro.identity.redacted
-    ? "Identity redacted until booking is confirmed."
-    : pro.identity.email;
 
   return (
     <section className="col" style={{ gap: 16 }}>
@@ -56,7 +52,6 @@ export default async function Detail({ params }: { params: { id: string } }) {
               <span>{pro.title}</span>
               {pro.verified && <Badge>Verified Expert</Badge>}
             </div>
-            <span style={{ color: "var(--text-muted)" }}>{contactInfo}</span>
           </div>
         </div>
         <Button>Schedule a Call</Button>
@@ -68,23 +63,18 @@ export default async function Detail({ params }: { params: { id: string } }) {
       </div>
 
       <Card className="col" style={{ padding: 16, gap: 24 }}>
-        {pro.bio && (
-          <>
-            <h3>Summary</h3>
+        <div className="col" style={{ gap: 8 }}>
+          <h3>Summary</h3>
+          {pro.bio ? (
             <p>{pro.bio}</p>
-          </>
-        )}
+          ) : (
+            <p style={{ color: "var(--text-muted)" }}>No information available</p>
+          )}
+        </div>
 
-        {pro.employer && (
-          <>
-            <h3>Firm</h3>
-            <p>{pro.employer}</p>
-          </>
-        )}
-
-        {pro.experience && pro.experience.length > 0 && (
-          <>
-            <h3>Experience</h3>
+        <div className="col" style={{ gap: 8 }}>
+          <h3>Experience</h3>
+          {pro.experience && pro.experience.length > 0 ? (
             <ul>
               {pro.experience.map((item, idx) => (
                 <li key={idx}>
@@ -93,12 +83,14 @@ export default async function Detail({ params }: { params: { id: string } }) {
                 </li>
               ))}
             </ul>
-          </>
-        )}
+          ) : (
+            <p style={{ color: "var(--text-muted)" }}>No information available</p>
+          )}
+        </div>
 
-        {pro.education && pro.education.length > 0 && (
-          <>
-            <h3>Education</h3>
+        <div className="col" style={{ gap: 8 }}>
+          <h3>Education</h3>
+          {pro.education && pro.education.length > 0 ? (
             <ul>
               {pro.education.map((item, idx) => (
                 <li key={idx}>
@@ -107,30 +99,36 @@ export default async function Detail({ params }: { params: { id: string } }) {
                 </li>
               ))}
             </ul>
-          </>
-        )}
+          ) : (
+            <p style={{ color: "var(--text-muted)" }}>No information available</p>
+          )}
+        </div>
 
-        {pro.interests && pro.interests.length > 0 && (
-          <>
-            <h3>Interests</h3>
+        <div className="col" style={{ gap: 8 }}>
+          <h3>Interests</h3>
+          {pro.interests && pro.interests.length > 0 ? (
             <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
               {pro.interests.map((interest) => (
                 <Badge key={interest}>{interest}</Badge>
               ))}
             </div>
-          </>
-        )}
+          ) : (
+            <p style={{ color: "var(--text-muted)" }}>No information available</p>
+          )}
+        </div>
 
-        {pro.activities && pro.activities.length > 0 && (
-          <>
-            <h3>Activities</h3>
+        <div className="col" style={{ gap: 8 }}>
+          <h3>Activities</h3>
+          {pro.activities && pro.activities.length > 0 ? (
             <ul>
               {pro.activities.map((activity, idx) => (
                 <li key={idx}>{activity}</li>
               ))}
             </ul>
-          </>
-        )}
+          ) : (
+            <p style={{ color: "var(--text-muted)" }}>No information available</p>
+          )}
+        </div>
       </Card>
     </section>
   );
