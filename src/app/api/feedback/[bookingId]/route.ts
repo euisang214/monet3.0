@@ -18,8 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: { bookingId: 
 
   if (
     fb.booking.candidateId !== session.user.id &&
-    fb.booking.professionalId !== session.user.id &&
-    session.user.role !== 'ADMIN'
+    fb.booking.professionalId !== session.user.id
   ) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }

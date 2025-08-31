@@ -1,4 +1,5 @@
-import DetailClient, { ProfessionalResponse } from './DetailClient';
+import DetailClient from './DetailClient';
+import { ProfessionalResponse } from './types';
 
 export default async function Detail({ params }: { params: { id: string } }) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';

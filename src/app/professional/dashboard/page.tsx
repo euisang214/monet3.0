@@ -16,7 +16,7 @@ export default async function ProDashboard() {
     candidate: b.candidate.email,
     date: format(b.startAt, "yyyy-MM-dd"),
     time: format(b.startAt, "hh:mm a"),
-    action: b.zoomJoinUrl ? { label: "Join", href: b.zoomJoinUrl } : undefined,
+    action: b.zoomJoinUrl ? { label: "Join", href: b.zoomJoinUrl } : "",
   }));
 
   const columns = [
