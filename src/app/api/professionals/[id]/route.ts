@@ -48,6 +48,18 @@ export async function GET(
     activities: pro.activities,
   };
 
+  const reviews = await prisma.professionalReview.findMany({
+    where: { booking: { professionalId: params.id } },
+    include: { booking: { include: { candidate: true } } },
+    orderBy: { submittedAt: 'desc' },
+  });
+  payload.reviews = reviews.map((r) => ({
+    rating: r.rating,
+    text: r.text,
+    candidate: r.booking.candidate.email,
+    submittedAt: r.submittedAt,
+  }));
+
   if (reveal) {
     payload.identity = { name: 'Revealed User', email: 'pro@example.com' };
   } else {

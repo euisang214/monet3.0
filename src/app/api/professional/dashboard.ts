@@ -2,7 +2,7 @@ import { prisma } from "../../../../lib/db";
 import { PaymentStatus } from "@prisma/client";
 
 export async function getProfessionalDashboardData(userId: string) {
-  const [upcoming, acceptedCount, requestedCount, payments, latestFeedback] =
+  const [upcoming, acceptedCount, requestedCount, payments, latestReview] =
     await Promise.all([
       prisma.booking.findMany({
         where: { professionalId: userId, startAt: { gte: new Date() } },
@@ -22,7 +22,7 @@ export async function getProfessionalDashboardData(userId: string) {
         },
         orderBy: { createdAt: "desc" },
       }),
-      prisma.feedback.findFirst({
+      prisma.professionalReview.findFirst({
         where: { booking: { professionalId: userId } },
         orderBy: { submittedAt: "desc" },
       }),
@@ -49,7 +49,7 @@ export async function getProfessionalDashboardData(userId: string) {
       totalEarnings,
       responseRate,
       recentEarnings,
-      recentFeedback: latestFeedback?.text ?? null,
+      recentFeedback: latestReview?.text ?? null,
     },
   };
 }

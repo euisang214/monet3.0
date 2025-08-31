@@ -19,6 +19,7 @@ export default async function FeedbackPage() {
             <span style={{ color: 'var(--text-muted)' }}>
               {format(f.submittedAt, 'MMMM d, yyyy')}
             </span>
+            <div>{'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}</div>
             <p>{f.text}</p>
           </div>
         ))}
