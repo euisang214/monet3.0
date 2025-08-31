@@ -31,10 +31,16 @@ const AvailabilityCalendar = () => {
     }
     if(!res.ok) return;
     const data = await res.json();
-    const fetched: Slot[] = (data.busy || []).map((b: any) => ({
-      start: b.start,
-      end: b.end,
-    }));
+    const fetched: Slot[] = [];
+    (data.busy || []).forEach((b: any) => {
+      const start = new Date(b.start);
+      const end = new Date(b.end);
+      for (let t = new Date(start); t < end; t.setMinutes(t.getMinutes() + 30)) {
+        const slotStart = new Date(t);
+        const slotEnd = new Date(t.getTime() + 30 * 60 * 1000);
+        fetched.push({ start: slotStart.toISOString(), end: slotEnd.toISOString() });
+      }
+    });
     setBusyEvents(fetched);
   };
 
@@ -54,19 +60,22 @@ const AvailabilityCalendar = () => {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const times = Array.from({ length: 48 }, (_, i) => addMinutes(weekStart, i * 30));
 
-  const isBusy = (date: Date) => busyEvents.some(e => date >= new Date(e.start) && date < new Date(e.end));
+  const isBusy = (date: Date) => busyEvents.some(e => new Date(e.start).getTime() === date.getTime());
   const isAvailable = (date: Date) => events.some(e => new Date(e.start).getTime() === date.getTime());
 
   const toggleSlot = (date: Date) => {
     const startIso = date.toISOString();
     const endIso = new Date(date.getTime() + 30 * 60 * 1000).toISOString();
 
+    const available = isAvailable(date);
+
     if(isBusy(date)){
       setBusyEvents(prev => prev.filter(e => new Date(e.start).getTime() !== date.getTime()));
+      if(!available) setEvents(prev => [...prev, { start: startIso, end: endIso }]);
       return;
     }
 
-    if(isAvailable(date)){
+    if(available){
       setEvents(prev => prev.filter(e => e.start !== startIso));
     } else {
       setEvents(prev => [...prev, { start: startIso, end: endIso }]);
