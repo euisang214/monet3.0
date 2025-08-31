@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from './ui';
 import { addMinutes, addDays, startOfWeek, format } from 'date-fns';
 import { signIn } from 'next-auth/react';
@@ -9,14 +9,18 @@ type Slot = {
   end: string;
 };
 
-export type AvailabilityCalendarRef = {
-  getData: () => { events: Slot[]; busy: Slot[] };
-};
-
-const AvailabilityCalendar = forwardRef<AvailabilityCalendarRef>((_, ref) => {
+const AvailabilityCalendar = () => {
   const [events, setEvents] = useState<Slot[]>([]);
   const [busyEvents, setBusyEvents] = useState<Slot[]>([]);
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
+
+  const handleConfirm = async () => {
+    await fetch('/api/candidate/availability', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ events, busy: busyEvents }),
+    });
+  };
 
   const handleSync = async () => {
     const res = await fetch('/api/candidate/busy');
@@ -27,10 +31,16 @@ const AvailabilityCalendar = forwardRef<AvailabilityCalendarRef>((_, ref) => {
     }
     if(!res.ok) return;
     const data = await res.json();
-    const fetched: Slot[] = (data.busy || []).map((b: any) => ({
-      start: b.start,
-      end: b.end,
-    }));
+    const fetched: Slot[] = [];
+    (data.busy || []).forEach((b: any) => {
+      const start = new Date(b.start);
+      const end = new Date(b.end);
+      for (let t = new Date(start); t < end; t.setMinutes(t.getMinutes() + 30)) {
+        const slotStart = new Date(t);
+        const slotEnd = new Date(t.getTime() + 30 * 60 * 1000);
+        fetched.push({ start: slotStart.toISOString(), end: slotEnd.toISOString() });
+      }
+    });
     setBusyEvents(fetched);
   };
 
@@ -50,14 +60,21 @@ const AvailabilityCalendar = forwardRef<AvailabilityCalendarRef>((_, ref) => {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const times = Array.from({ length: 48 }, (_, i) => addMinutes(weekStart, i * 30));
 
-  const isBusy = (date: Date) => busyEvents.some(e => date >= new Date(e.start) && date < new Date(e.end));
+  const isBusy = (date: Date) => busyEvents.some(e => new Date(e.start).getTime() === date.getTime());
   const isAvailable = (date: Date) => events.some(e => new Date(e.start).getTime() === date.getTime());
 
   const toggleSlot = (date: Date) => {
-    if(isBusy(date)) return;
     const startIso = date.toISOString();
     const endIso = new Date(date.getTime() + 30 * 60 * 1000).toISOString();
-    if(isAvailable(date)){
+    const available = isAvailable(date);
+
+    if(isBusy(date)){
+      setBusyEvents(prev => prev.filter(e => new Date(e.start).getTime() !== date.getTime()));
+      if(!available) setEvents(prev => [...prev, { start: startIso, end: endIso }]);
+      return;
+    }
+
+    if(available){
       setEvents(prev => prev.filter(e => e.start !== startIso));
     } else {
       setEvents(prev => [...prev, { start: startIso, end: endIso }]);
@@ -67,16 +84,13 @@ const AvailabilityCalendar = forwardRef<AvailabilityCalendarRef>((_, ref) => {
   const prevWeek = () => setWeekStart(prev => addDays(prev, -7));
   const nextWeek = () => setWeekStart(prev => addDays(prev, 7));
 
-  useImperativeHandle(ref, () => ({
-    getData: () => ({ events, busy: busyEvents }),
-  }), [events, busyEvents]);
-
   return (
     <div className="col" style={{ gap: 12 }}>
       <div className="row" style={{ gap: 8 }}>
         <Button onClick={prevWeek}>{'<'}</Button>
         <Button onClick={nextWeek}>{'>'}</Button>
         <Button onClick={handleSync}>Sync Google Calendar</Button>
+        <Button onClick={handleConfirm}>Confirm Availability</Button>
       </div>
       <div
         className="calendar-grid"
@@ -130,8 +144,8 @@ const AvailabilityCalendar = forwardRef<AvailabilityCalendarRef>((_, ref) => {
                   style={{
                     borderTop: '1px solid var(--border)',
                     borderLeft: '1px solid var(--border)',
-                    background: busy ? '#f87171' : available ? '#86efac' : 'transparent',
-                    cursor: busy ? 'not-allowed' : 'pointer',
+                    background: busy || available ? '#f87171' : 'transparent',
+                    cursor: 'pointer',
                   }}
                 />
               );
@@ -141,6 +155,6 @@ const AvailabilityCalendar = forwardRef<AvailabilityCalendarRef>((_, ref) => {
       </div>
     </div>
   );
-});
+};
 
 export default AvailabilityCalendar;
