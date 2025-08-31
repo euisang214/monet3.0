@@ -24,7 +24,7 @@ export function PublicShell({ children, session }: ShellProps) {
           </div>
           <div className="row" style={{ gap: 8 }}>
             {session?.user ? (
-              <form action={signOutAction} method="post">
+              <form action={signOutAction}>
                 <button className="btn btn-danger">Sign Out</button>
               </form>
             ) : (
@@ -66,7 +66,7 @@ export function CandidateShell({ children }: ShellProps) {
 
           <div className="row" style={{ gap: 8 }}>
             <Link href="/candidate/settings">Settings</Link>
-            <form action={signOutAction} method="post">
+            <form action={signOutAction}>
               <button className="btn btn-danger">Sign Out</button>
             </form>
           </div>
@@ -87,7 +87,7 @@ export function ProfessionalShell({ children }: ShellProps) {
           <Link href="/professional/dashboard" style={{ fontWeight: 700 }}>
             Monet
           </Link>
-          <form action={signOutAction} method="post">
+          <form action={signOutAction}>
             <button className="btn btn-danger">Sign Out</button>
           </form>
         </div>

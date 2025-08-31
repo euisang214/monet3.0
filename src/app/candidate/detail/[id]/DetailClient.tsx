@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import clsx from 'clsx';
 import { Button, Card, Badge } from '../../../../components/ui';
 import { ProfessionalResponse } from './types';
 
@@ -42,17 +43,15 @@ export default function DetailClient({ pro }: { pro: ProfessionalResponse }) {
         <Button>Schedule a Call</Button>
       </div>
 
-      <div className="row" style={{ gap: 16 }}>
+      <div className="tabs">
         <button
-          className="badge"
-          style={tab === 'about' ? activeStyle : inactiveStyle}
+          className={clsx('tab', { active: tab === 'about' })}
           onClick={() => setTab('about')}
         >
           About
         </button>
         <button
-          className="badge"
-          style={tab === 'reviews' ? activeStyle : inactiveStyle}
+          className={clsx('tab', { active: tab === 'reviews' })}
           onClick={() => setTab('reviews')}
         >
           Reviews
