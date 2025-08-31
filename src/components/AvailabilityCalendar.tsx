@@ -1,5 +1,6 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { Button } from './ui';
 import { addMinutes, addDays, startOfWeek, format } from 'date-fns';
 import { signIn } from 'next-auth/react';
@@ -13,6 +14,8 @@ const AvailabilityCalendar = () => {
   const [events, setEvents] = useState<Slot[]>([]);
   const [busyEvents, setBusyEvents] = useState<Slot[]>([]);
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
+  const [isDragging, setIsDragging] = useState(false);
+  const draggedSlots = useRef<Set<number>>(new Set());
 
   const handleConfirm = async () => {
     await fetch('/api/candidate/availability', {
@@ -57,6 +60,15 @@ const AvailabilityCalendar = () => {
     handleSync();
   }, []);
 
+  useEffect(() => {
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      draggedSlots.current.clear();
+    };
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => window.removeEventListener('mouseup', handleMouseUp);
+  }, []);
+
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const times = Array.from({ length: 48 }, (_, i) => addMinutes(weekStart, i * 30));
 
@@ -69,17 +81,17 @@ const AvailabilityCalendar = () => {
 
     const available = isAvailable(date);
 
-    if(isBusy(date)){
-      setBusyEvents(prev => prev.filter(e => new Date(e.start).getTime() !== date.getTime()));
-      if(!available) setEvents(prev => [...prev, { start: startIso, end: endIso }]);
-      return;
-    }
+    flushSync(() => {
+      if (isBusy(date)) {
+        setBusyEvents(prev => prev.filter(e => new Date(e.start).getTime() !== date.getTime()));
+      }
 
-    if(available){
-      setEvents(prev => prev.filter(e => e.start !== startIso));
-    } else {
-      setEvents(prev => [...prev, { start: startIso, end: endIso }]);
-    }
+      if (available) {
+        setEvents(prev => prev.filter(e => e.start !== startIso));
+      } else {
+        setEvents(prev => [...prev, { start: startIso, end: endIso }]);
+      }
+    });
   };
 
   const prevWeek = () => setWeekStart(prev => addDays(prev, -7));
@@ -100,7 +112,8 @@ const AvailabilityCalendar = () => {
           gridTemplateColumns: '60px repeat(7, 1fr)',
           gridTemplateRows: '30px repeat(48, 20px)',
           border: '1px solid var(--border)',
-          overflowX: 'auto'
+          overflowX: 'auto',
+          userSelect: 'none'
         }}
       >
         <div style={{ borderBottom: '1px solid var(--border)' }} />
@@ -138,10 +151,21 @@ const AvailabilityCalendar = () => {
               slotStart.setHours(t.getHours(), t.getMinutes(), 0, 0);
               const busy = isBusy(slotStart);
               const available = isAvailable(slotStart);
+              const key = slotStart.getTime();
               return (
                 <div
                   key={`${col}-${row}`}
-                  onClick={() => toggleSlot(slotStart)}
+                  onMouseDown={() => {
+                    toggleSlot(slotStart);
+                    setIsDragging(true);
+                    draggedSlots.current = new Set([key]);
+                  }}
+                  onMouseEnter={() => {
+                    if (isDragging && !draggedSlots.current.has(key)) {
+                      toggleSlot(slotStart);
+                      draggedSlots.current.add(key);
+                    }
+                  }}
                   style={{
                     borderTop: '1px solid var(--border)',
                     borderLeft: '1px solid var(--border)',
