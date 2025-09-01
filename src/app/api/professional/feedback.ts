@@ -1,10 +1,35 @@
 import { prisma } from "../../../../lib/db";
 
-export async function getProfessionalFeedback(userId: string) {
-  return prisma.professionalReview.findMany({
-    where: { booking: { professionalId: userId } },
-    include: { booking: { include: { candidate: true } } },
-    orderBy: { submittedAt: "desc" },
+export async function getProvidedFeedback(userId: string) {
+  return prisma.booking.findMany({
+    where: { professionalId: userId, feedback: { not: null } },
+    include: {
+      candidate: {
+        include: {
+          candidateProfile: { include: { education: true } },
+        },
+      },
+      feedback: true,
+    },
+    orderBy: { startAt: "desc" },
+  });
+}
+
+export async function getPendingFeedback(userId: string) {
+  return prisma.booking.findMany({
+    where: {
+      professionalId: userId,
+      feedback: null,
+      status: "completed_pending_feedback",
+    },
+    include: {
+      candidate: {
+        include: {
+          candidateProfile: { include: { education: true } },
+        },
+      },
+    },
+    orderBy: { startAt: "desc" },
   });
 }
 
