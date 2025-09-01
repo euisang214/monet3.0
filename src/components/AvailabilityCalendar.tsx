@@ -60,8 +60,20 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ weeks = 2, 
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem('candidateAvailability');
-    if(saved) setEvents(JSON.parse(saved));
+    const load = async () => {
+      const saved = localStorage.getItem('candidateAvailability');
+      if (saved) {
+        setEvents(JSON.parse(saved));
+      } else {
+        const res = await fetch('/api/candidate/availability');
+        if (res.ok) {
+          const data = await res.json();
+          setEvents(data.events || []);
+          setBusyEvents(data.busy || []);
+        }
+      }
+    };
+    load();
   }, []);
 
   useEffect(() => {
