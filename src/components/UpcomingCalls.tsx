@@ -29,13 +29,7 @@ export default function UpcomingCalls({ calls }: { calls: Call[] }) {
             style={{ justifyContent: 'space-between' }}
           >
             <div className="col" style={{ gap: 2 }}>
-              <strong>{c.professional.email}</strong>
-              <span style={{ color: 'var(--text-muted)' }}>
-                {c.professional.professionalProfile?.title ?? ''}
-              </span>
-              <span style={{ color: 'var(--text-muted)' }}>
-                {c.professional.professionalProfile?.employer ?? ''}
-              </span>
+              <strong>{`${c.professional.professionalProfile?.title} @ ${c.professional.professionalProfile?.employer}`}</strong>
               <span style={{ color: 'var(--text-muted)' }}>
                 {formatDateTime(c.startAt)}
               </span>

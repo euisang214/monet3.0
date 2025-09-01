@@ -57,15 +57,9 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
           </ul>
         </div>
         <p>
-          <strong>Feedback Text:</strong>
+          <strong>Feedback:</strong>
         </p>
         <p>{feedback.text}</p>
-        <p>
-          <strong>Word Count:</strong> {feedback.wordCount}
-        </p>
-        <p>
-          <strong>QC Status:</strong> {feedback.qcStatus}
-        </p>
       </Card>
     </section>
   );
