@@ -27,7 +27,9 @@ export default function LoginForm() {
       callbackUrl,
       redirect: false,
     });
-    if (res?.url) window.location.href = res.url;
+    if (res?.url) {
+      window.location.href = res.url;
+    }
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
