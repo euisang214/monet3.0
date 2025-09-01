@@ -19,6 +19,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ weeks = 2, 
   const [events, setEvents] = useState<Slot[]>([]);
   const [busyEvents, setBusyEvents] = useState<Slot[]>([]);
   const [defaultBusy, setDefaultBusy] = useState<Slot[]>([]);
+  const [defaultBusyRanges, setDefaultBusyRanges] = useState<{ day: number; start: string; end: string }[]>([]);
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [isDragging, setIsDragging] = useState(false);
   const draggedSlots = useRef<Set<number>>(new Set());
@@ -85,16 +86,25 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ weeks = 2, 
   }, []);
 
   useEffect(() => {
-    const saved = localStorage.getItem('candidateDefaultBusy');
-    if (!saved) {
-      setDefaultBusy([]);
-      return;
+    async function loadDefaults() {
+      try {
+        const res = await fetch('/api/candidate/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setDefaultBusyRanges(data.defaultBusy || []);
+        }
+      } catch {
+        setDefaultBusyRanges([]);
+      }
     }
-    const ranges: { day: number; start: string; end: string }[] = JSON.parse(saved);
+    loadDefaults();
+  }, []);
+
+  useEffect(() => {
     const base = startOfWeek(weekStart, { weekStartsOn: 0 });
     const slots: Slot[] = [];
     for (let w = 0; w < weeks; w++) {
-      ranges.forEach(r => {
+      defaultBusyRanges.forEach(r => {
         const day = addDays(base, r.day + w * 7);
         const [sh, sm] = r.start.split(':').map(Number);
         const [eh, em] = r.end.split(':').map(Number);
@@ -110,7 +120,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ weeks = 2, 
       });
     }
     setDefaultBusy(slots);
-  }, [weekStart]);
+  }, [weekStart, weeks, defaultBusyRanges]);
 
   useEffect(() => {
     const handleMouseUp = () => {
