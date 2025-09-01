@@ -11,6 +11,7 @@ interface LinkValue {
   label: string;
   href?: string;
   variant?: 'primary' | 'danger' | 'muted';
+  disabled?: boolean;
 }
 
 type RowData = Record<string, string | string[] | LinkValue | ReactNode>;
@@ -66,9 +67,13 @@ export default function DashboardClient({
           typeof val === 'object' &&
           'label' in val
         ) {
-          const { label, href, variant } = val as LinkValue;
-          const btn = <Button variant={variant}>{label}</Button>;
-          row[c.key] = href ? <Link href={href}>{btn}</Link> : btn;
+          const { label, href, variant, disabled } = val as LinkValue;
+          const btn = (
+            <Button variant={variant} disabled={disabled}>
+              {label}
+            </Button>
+          );
+          row[c.key] = href && !disabled ? <Link href={href}>{btn}</Link> : btn;
         } else if (val && typeof val === 'object' && 'label' in val) {
           row[c.key] = (val as LinkValue).label;
         } else if (Array.isArray(val)) {

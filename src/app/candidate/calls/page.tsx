@@ -9,6 +9,7 @@ import {
 import { prisma } from "../../../../lib/db";
 import { BookingStatus } from "@prisma/client";
 import type { CSSProperties } from "react";
+import { formatDateTime } from "../../../../lib/date";
 
 function statusStyle(status: BookingStatus): CSSProperties {
   switch (status) {
@@ -103,16 +104,22 @@ export default async function CallsPage({
     const daysSince = Math.floor(
       (Date.now() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24)
     );
+    const callDate = new Date(b.startAt);
+    const hasHappened = callDate.getTime() <= Date.now();
     return {
       name,
       firm: b.professional.professionalProfile?.employer ?? "",
       title: b.professional.professionalProfile?.title ?? "",
       days: String(daysSince),
+      date: { label: formatDateTime(callDate) },
       status: (
         <span className="badge" style={statusStyle(b.status)}>
           {b.status}
         </span>
       ),
+      feedback: hasHappened
+        ? { label: "View Feedback", href: `/candidate/history/${b.id}` }
+        : { label: "View Feedback", variant: "muted", disabled: true },
     };
   });
 
@@ -121,7 +128,9 @@ export default async function CallsPage({
     { key: "firm", label: "Firm" },
     { key: "title", label: "Title" },
     { key: "days", label: "Days Since Requested" },
+    { key: "date", label: "Date of Call" },
     { key: "status", label: "Status" },
+    { key: "feedback", label: "View Feedback" },
   ];
 
   return (
@@ -134,6 +143,7 @@ export default async function CallsPage({
         initialActive={active}
         dateFilters={dateFilters}
         dateFilterLabels={dateFilterLabels}
+        buttonColumns={["date", "feedback"]}
       />
       <Pagination page={page} totalPages={totalPages} />
     </section>
