@@ -15,7 +15,7 @@ export default async function FeedbackPage() {
       <div className="col" style={{ gap: 12 }}>
         {feedback.map((f) => (
           <div key={f.bookingId} className="card" style={{ padding: 16 }}>
-            <strong>{f.booking.candidate.email}</strong>
+            <strong>{`${f.booking.candidate.firstName} ${f.booking.candidate.lastName}`}</strong>
             <span style={{ color: 'var(--text-muted)' }}>
               {format(f.submittedAt, 'MMMM d, yyyy')}
             </span>
