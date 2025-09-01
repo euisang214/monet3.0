@@ -7,14 +7,15 @@ import { useSearchParams } from 'next/navigation';
 interface Props {
   page: number;
   totalPages: number;
+  param?: string;
 }
 
-export default function Pagination({ page, totalPages }: Props) {
+export default function Pagination({ page, totalPages, param = 'page' }: Props) {
   const searchParams = useSearchParams();
 
   const createHref = (p: number) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('page', p.toString());
+    params.set(param, p.toString());
     return `?${params.toString()}`;
   };
 

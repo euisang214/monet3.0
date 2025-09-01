@@ -33,6 +33,7 @@ interface Props {
   dateFilterLabels?: Record<string, string>;
   page?: number;
   totalPages?: number;
+  pageParam?: string;
 }
 
 export default function DashboardClient({
@@ -46,6 +47,7 @@ export default function DashboardClient({
   dateFilterLabels = {},
   page,
   totalPages,
+  pageParam = 'page',
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -115,7 +117,7 @@ export default function DashboardClient({
         params.delete(label);
       }
     });
-    params.delete('page');
+    params.delete(pageParam);
     router.push(`?${params.toString()}`);
   };
 
@@ -158,7 +160,7 @@ export default function DashboardClient({
         <DataTable columns={columns as any} rows={tableRows as any} />
       </Card>
       {typeof page === 'number' && typeof totalPages === 'number' && (
-        <Pagination page={page} totalPages={totalPages} />
+        <Pagination page={page} totalPages={totalPages} param={pageParam} />
       )}
     </div>
   );
