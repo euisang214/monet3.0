@@ -57,7 +57,6 @@ export default async function CallsPage({
       include: {
         professional: {
           select: {
-            email: true,
             firstName: true,
             lastName: true,
             professionalProfile: { select: { title: true, employer: true } },
@@ -69,6 +68,7 @@ export default async function CallsPage({
   ]);
 
   const filtered = bookings.filter((b) => {
+    if (b.candidateId !== session.user.id) return false;
     if (
       active.Title?.length &&
       !active.Title.includes(b.professional.professionalProfile?.title ?? "")
@@ -86,10 +86,9 @@ export default async function CallsPage({
   });
 
   const rows = filtered.map((b) => {
-    const name =
-      [b.professional.firstName, b.professional.lastName]
-        .filter(Boolean)
-        .join(" ") || b.professional.email;
+    const name = [b.professional.firstName, b.professional.lastName]
+      .filter(Boolean)
+      .join(" ");
     const daysSince = Math.floor(
       (Date.now() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24)
     );
