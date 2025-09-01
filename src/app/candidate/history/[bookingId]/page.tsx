@@ -49,7 +49,7 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
           </ul>
         </div>
         <div>
-          <strong>Top Actions</strong>
+          <strong>Summary</strong>
           <ul>
             {feedback.actions.map((a, i) => (
               <li key={i}>{a}</li>
@@ -57,7 +57,7 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
           </ul>
         </div>
         <p>
-          <strong>Feedback:</strong>
+          <strong>Written Feedback:</strong>
         </p>
         <p>{feedback.text}</p>
       </Card>

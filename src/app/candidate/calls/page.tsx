@@ -143,7 +143,7 @@ export default async function CallsPage({
         initialActive={active}
         dateFilters={dateFilters}
         dateFilterLabels={dateFilterLabels}
-        buttonColumns={["date", "feedback"]}
+        buttonColumns={["feedback"]}
       />
       <Pagination page={page} totalPages={totalPages} />
     </section>
