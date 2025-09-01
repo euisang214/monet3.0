@@ -119,18 +119,17 @@ export default function DashboardClient({
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
             {filterKeys.map((label) =>
               dateFilters.includes(label) ? (
-                <label
+                <Input
                   key={label}
-                  className="col"
-                  style={{ gap: 4 }}
-                >
-                  <span>{dateFilterLabels[label] || label}</span>
-                  <Input
-                    type="date"
-                    value={active[label]?.[0] || ''}
-                    onChange={(e) => handleDateChange(label, e.target.value)}
-                  />
-                </label>
+                  type={active[label]?.[0] ? 'date' : 'text'}
+                  placeholder={dateFilterLabels[label] || label}
+                  value={active[label]?.[0] || ''}
+                  onFocus={(e) => (e.target.type = 'date')}
+                  onBlur={(e) => {
+                    if (!e.target.value) e.target.type = 'text';
+                  }}
+                  onChange={(e) => handleDateChange(label, e.target.value)}
+                />
               ) : (
                 <FilterDropdown
                   key={label}
