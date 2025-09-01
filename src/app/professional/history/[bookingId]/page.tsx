@@ -3,7 +3,11 @@ import HistoricalFeedback from "../../../../components/HistoricalFeedback";
 import { notFound, redirect } from "next/navigation";
 import { Feedback } from "@prisma/client";
 
-export default async function FeedbackPage({ params }: { params: { bookingId: string } }) {
+export default async function ProfessionalHistoryPage({
+  params,
+}: {
+  params: { bookingId: string };
+}) {
   const session = await auth();
   if (!session?.user) {
     redirect("/login");
@@ -18,25 +22,19 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
   if (!res.ok) throw new Error("Failed to load feedback");
   type FeedbackResponse = Feedback & {
     booking: {
-      professional: {
+      candidate: {
         firstName: string | null;
         lastName: string | null;
-        professionalProfile: {
-          title: string | null;
-          employer: string | null;
-        } | null;
+        email: string;
       } | null;
     };
   };
   const feedback: FeedbackResponse = await res.json();
 
-  const pro = feedback.booking.professional;
-  const name = `${pro.firstName ?? ""} ${pro.lastName ?? ""}`.trim();
-  const profile = pro.professionalProfile;
-  const titleEmployer = profile
-    ? `${profile.title} @ ${profile.employer}`
-    : undefined;
-  const heading = [name, titleEmployer].filter(Boolean).join(", ");
+  const candidate = feedback.booking.candidate;
+  const heading =
+    `${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim() ||
+    candidate.email;
 
   return (
     <section className="col" style={{ gap: 16 }}>

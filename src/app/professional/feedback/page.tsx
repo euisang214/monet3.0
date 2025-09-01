@@ -33,7 +33,7 @@ export default async function FeedbackPage({
       name,
       education,
       date: format(b.startAt, "MMMM d, yyyy"),
-      feedback: { label: "View Feedback", href: `/candidate/history/${b.id}` },
+      feedback: { label: "View Feedback", href: `/professional/history/${b.id}` },
     };
   });
 
@@ -47,7 +47,7 @@ export default async function FeedbackPage({
       name,
       education,
       date: format(b.startAt, "MMMM d, yyyy"),
-      feedback: { label: "Provide Feedback", href: `/candidate/history/${b.id}` },
+      feedback: { label: "Provide Feedback", href: `/professional/feedback/${b.id}` },
     };
   });
 

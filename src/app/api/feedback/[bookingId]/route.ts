@@ -11,7 +11,20 @@ export async function GET(_req: NextRequest, { params }: { params: { bookingId: 
   const fb = await prisma.feedback.findUnique({
     where: { bookingId: params.bookingId },
     include: {
-      booking: { select: { candidateId: true, professionalId: true } },
+      booking: {
+        select: {
+          candidateId: true,
+          professionalId: true,
+          candidate: { select: { firstName: true, lastName: true, email: true } },
+          professional: {
+            select: {
+              firstName: true,
+              lastName: true,
+              professionalProfile: { select: { title: true, employer: true } },
+            },
+          },
+        },
+      },
     },
   });
   if (!fb) return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -23,8 +36,7 @@ export async function GET(_req: NextRequest, { params }: { params: { bookingId: 
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  const { booking, ...rest } = fb as any;
-  return NextResponse.json(rest);
+  return NextResponse.json(fb);
 }
 
 export async function POST(req: NextRequest, { params }:{params:{bookingId:string}}){
