@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import DashboardClient from "../../../components/DashboardClient";
+import Pagination from "../../../components/Pagination";
 import {
   getFilterOptions,
   FilterConfig,
@@ -31,6 +32,9 @@ export default async function CallsPage({
   const session = await auth();
   if (!session?.user.id) return null;
 
+  const page = Number(searchParams.page) || 1;
+  const perPage = 10;
+
   const filterConfig: FilterConfig = {
     Title: { model: "professionalProfile", field: "title" },
     Firm: { model: "professionalProfile", field: "employer" },
@@ -52,10 +56,28 @@ export default async function CallsPage({
   const afterDate = active.After?.[0] ? new Date(active.After[0]) : undefined;
   const beforeDate = active.Before?.[0] ? new Date(active.Before[0]) : undefined;
 
-  const [filterOptions, bookings] = await Promise.all([
+  const where: any = { candidateId: session.user.id };
+  if (active.Status?.length) {
+    where.status = { in: active.Status as BookingStatus[] };
+  }
+  if (afterDate || beforeDate) {
+    where.startAt = {};
+    if (afterDate) where.startAt.gte = afterDate;
+    if (beforeDate) where.startAt.lte = beforeDate;
+  }
+  if (active.Title?.length || active.Firm?.length) {
+    where.professional = {
+      professionalProfile: {
+        ...(active.Title?.length ? { title: { in: active.Title } } : {}),
+        ...(active.Firm?.length ? { employer: { in: active.Firm } } : {}),
+      },
+    };
+  }
+
+  const [filterOptions, bookings, total] = await Promise.all([
     getFilterOptions(filterConfig),
     prisma.booking.findMany({
-      where: { candidateId: session.user.id },
+      where,
       include: {
         professional: {
           select: {
@@ -66,28 +88,15 @@ export default async function CallsPage({
         },
       },
       orderBy: { startAt: "desc" },
+      skip: (page - 1) * perPage,
+      take: perPage,
     }),
+    prisma.booking.count({ where }),
   ]);
 
-  const filtered = bookings.filter((b) => {
-    if (b.candidateId !== session.user.id) return false;
-    if (
-      active.Title?.length &&
-      !active.Title.includes(b.professional.professionalProfile?.title ?? "")
-    )
-      return false;
-    if (
-      active.Firm?.length &&
-      !active.Firm.includes(b.professional.professionalProfile?.employer ?? "")
-    )
-      return false;
-    if (active.Status?.length && !active.Status.includes(b.status)) return false;
-    if (afterDate && b.startAt < afterDate) return false;
-    if (beforeDate && b.startAt > beforeDate) return false;
-    return true;
-  });
+  const totalPages = Math.ceil(total / perPage);
 
-  const rows = filtered.map((b) => {
+  const rows = bookings.map((b) => {
     const name = [b.professional.firstName, b.professional.lastName]
       .filter(Boolean)
       .join(" ");
@@ -126,6 +135,7 @@ export default async function CallsPage({
         dateFilters={dateFilters}
         dateFilterLabels={dateFilterLabels}
       />
+      <Pagination page={page} totalPages={totalPages} />
     </section>
   );
 }
