@@ -4,12 +4,21 @@ import { auth } from "@/auth";
 import { getProfessionalDashboardData } from "../../api/professional/dashboard";
 import { format } from "date-fns";
 
-export default async function ProDashboard() {
+export default async function ProDashboard({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const session = await auth();
   if (!session?.user) return null;
 
-  const { upcoming, stats } = await getProfessionalDashboardData(
-    session.user.id
+  const page = Number(searchParams.page) || 1;
+  const perPage = 10;
+
+  const { upcoming, stats, totalPages } = await getProfessionalDashboardData(
+    session.user.id,
+    page,
+    perPage
   );
 
   const rows = upcoming.map((b) => ({
@@ -34,6 +43,8 @@ export default async function ProDashboard() {
         columns={columns}
         showFilters={false}
         buttonColumns={["action"]}
+        page={page}
+        totalPages={totalPages}
       />
       <div className="grid grid-2">
         <Card style={{ padding: 16 }}>

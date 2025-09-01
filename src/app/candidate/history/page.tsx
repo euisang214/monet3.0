@@ -3,9 +3,17 @@ import DashboardClient from "../../../components/DashboardClient";
 import { getPastCalls } from "../../../app/api/bookings/history";
 import { formatDateTime } from "../../../../lib/date";
 
-export default async function History() {
+export default async function History({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const session = await auth();
-  const calls = session?.user.id ? await getPastCalls(session.user.id) : [];
+  const page = Number(searchParams.page) || 1;
+  const perPage = 10;
+  const { calls, totalPages } = session?.user.id
+    ? await getPastCalls(session.user.id, page, perPage)
+    : { calls: [], totalPages: 1 };
 
   const rows = calls.map((c) => ({
     title: c.professional.professionalProfile
@@ -27,6 +35,8 @@ export default async function History() {
       columns={columns}
       showFilters={false}
       buttonColumns={["action"]}
+      page={page}
+      totalPages={totalPages}
     />
   );
 }
