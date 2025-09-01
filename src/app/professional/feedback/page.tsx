@@ -3,13 +3,24 @@ import { auth } from "@/auth";
 import { getProvidedFeedback, getPendingFeedback } from "../../api/professional/feedback";
 import { format } from "date-fns";
 
-export default async function FeedbackPage() {
+export default async function FeedbackPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const session = await auth();
   if (!session?.user) return null;
 
-  const [provided, pending] = await Promise.all([
-    getProvidedFeedback(session.user.id),
-    getPendingFeedback(session.user.id),
+  const providedPage = Number(searchParams.providedPage) || 1;
+  const pendingPage = Number(searchParams.pendingPage) || 1;
+  const perPage = 10;
+
+  const [
+    { feedback: provided, totalPages: providedTotalPages },
+    { feedback: pending, totalPages: pendingTotalPages },
+  ] = await Promise.all([
+    getProvidedFeedback(session.user.id, providedPage, perPage),
+    getPendingFeedback(session.user.id, pendingPage, perPage),
   ]);
 
   const providedRows = provided.map((b) => {
@@ -62,6 +73,9 @@ export default async function FeedbackPage() {
         columns={providedColumns}
         showFilters={false}
         buttonColumns={["feedback"]}
+        page={providedPage}
+        totalPages={providedTotalPages}
+        pageParam="providedPage"
       />
       <h2>Pending Feedback</h2>
       <DashboardClient
@@ -69,6 +83,9 @@ export default async function FeedbackPage() {
         columns={pendingColumns}
         showFilters={false}
         buttonColumns={["feedback"]}
+        page={pendingPage}
+        totalPages={pendingTotalPages}
+        pageParam="pendingPage"
       />
     </section>
   );
