@@ -75,6 +75,11 @@ const candidateActivities = ['Finance club', 'Case competitions', 'Volunteering'
 const professionalInterests = ['Mergers and Acquisitions', 'Private Equity', 'Venture Capital', 'FinTech', 'Consulting'];
 const professionalActivities = ['Mentoring', 'Volunteering', 'Cycling', 'Traveling', 'Blogging'];
 
+// sample names for users
+const firstNames = ['Alex', 'Jamie', 'Taylor', 'Jordan', 'Casey', 'Riley', 'Morgan', 'Avery', 'Parker', 'Quinn'];
+const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Martinez', 'Hernandez'];
+const randomName = () => ({ firstName: pick(firstNames), lastName: pick(lastNames) });
+
 async function createCandidates() {
   const out = [];
 
@@ -87,6 +92,8 @@ async function createCandidates() {
       email: 'euisang214@gmail.com',
       role: Role.CANDIDATE,
       hashedPassword: await bcrypt.hash('candidate123!', 10),
+      firstName: 'Euisang',
+      lastName: 'Kim',
     },
   });
   await prisma.candidateProfile.upsert({
@@ -111,6 +118,8 @@ async function createCandidates() {
       email: 'victoriagehh@gmail.com',
       role: Role.CANDIDATE,
       hashedPassword: await bcrypt.hash('professional123!', 10),
+      firstName: 'Victoria',
+      lastName: 'Geh',
     },
   });
   await prisma.candidateProfile.upsert({
@@ -128,12 +137,15 @@ async function createCandidates() {
 
   // additional mock candidates
   for (let i = 1; i <= 9; i++) {
+    const { firstName, lastName } = randomName();
     const user = await prisma.user.create({
       data: {
         id: `candidate-${i}`,
         email: `candidate${i}@example.com`,
         role: Role.CANDIDATE,
         hashedPassword: await bcrypt.hash('candidate123!', 10),
+        firstName,
+        lastName,
       },
     });
     await prisma.candidateProfile.create({
@@ -163,6 +175,8 @@ async function createProfessionals() {
       email: 'euisangss@gmail.com',
       role: Role.PROFESSIONAL,
       hashedPassword: await bcrypt.hash('professional123!', 10),
+      firstName: 'Euisang',
+      lastName: 'Seo',
     },
   });
   await prisma.professionalProfile.upsert({
@@ -185,12 +199,15 @@ async function createProfessionals() {
 
   // additional mock professionals
   for (let i = 1; i <= 9; i++) {
+    const { firstName, lastName } = randomName();
     const user = await prisma.user.create({
       data: {
         id: `professional-${i}`,
         email: `pro${i}@example.com`,
         role: Role.PROFESSIONAL,
         hashedPassword: await bcrypt.hash('professional123!', 10),
+        firstName,
+        lastName,
       },
     });
     await prisma.professionalProfile.create({
@@ -484,6 +501,8 @@ async function main() {
       email: 'admin@monet.local',
       role: Role.ADMIN,
       hashedPassword: await bcrypt.hash('admin123!', 10),
+      firstName: 'Admin',
+      lastName: 'User',
     },
   });
 
