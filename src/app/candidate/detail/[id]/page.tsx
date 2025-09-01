@@ -10,5 +10,5 @@ export default async function Detail({ params }: { params: { id: string } }) {
     throw new Error('Failed to load professional profile');
   }
   const pro: ProfessionalResponse = await res.json();
-  return <DetailClient pro={pro} />;
+  return <DetailClient pro={pro} proId={params.id} />;
 }

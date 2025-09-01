@@ -10,19 +10,31 @@ type Slot = {
   end: string;
 };
 
-const AvailabilityCalendar = () => {
+interface AvailabilityCalendarProps {
+  weeks?: number;
+  onConfirm?: (slots: Slot[]) => void;
+}
+
+const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ weeks = 2, onConfirm }) => {
   const [events, setEvents] = useState<Slot[]>([]);
   const [busyEvents, setBusyEvents] = useState<Slot[]>([]);
+  const [defaultBusy, setDefaultBusy] = useState<Slot[]>([]);
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [isDragging, setIsDragging] = useState(false);
   const draggedSlots = useRef<Set<number>>(new Set());
 
   const handleConfirm = async () => {
-    await fetch('/api/candidate/availability', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ events, busy: busyEvents }),
-    });
+    const end = addDays(new Date(), weeks * 7);
+    const filtered = events.filter(e => new Date(e.start) < end);
+    if (onConfirm) {
+      await onConfirm(filtered);
+    } else {
+      await fetch('/api/candidate/availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ events: filtered, busy: [...busyEvents, ...defaultBusy] }),
+      });
+    }
   };
 
   const handleSync = async () => {
@@ -61,6 +73,34 @@ const AvailabilityCalendar = () => {
   }, []);
 
   useEffect(() => {
+    const saved = localStorage.getItem('candidateDefaultBusy');
+    if (!saved) {
+      setDefaultBusy([]);
+      return;
+    }
+    const ranges: { day: number; start: string; end: string }[] = JSON.parse(saved);
+    const base = startOfWeek(weekStart, { weekStartsOn: 0 });
+    const slots: Slot[] = [];
+    for (let w = 0; w < weeks; w++) {
+      ranges.forEach(r => {
+        const day = addDays(base, r.day + w * 7);
+        const [sh, sm] = r.start.split(':').map(Number);
+        const [eh, em] = r.end.split(':').map(Number);
+        const start = new Date(day);
+        start.setHours(sh, sm, 0, 0);
+        const end = new Date(day);
+        end.setHours(eh, em, 0, 0);
+        for (let t = new Date(start); t < end; t.setMinutes(t.getMinutes() + 30)) {
+          const slotStart = new Date(t);
+          const slotEnd = new Date(t.getTime() + 30 * 60 * 1000);
+          slots.push({ start: slotStart.toISOString(), end: slotEnd.toISOString() });
+        }
+      });
+    }
+    setDefaultBusy(slots);
+  }, [weekStart]);
+
+  useEffect(() => {
     const handleMouseUp = () => {
       setIsDragging(false);
       draggedSlots.current.clear();
@@ -72,7 +112,10 @@ const AvailabilityCalendar = () => {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const times = Array.from({ length: 48 }, (_, i) => addMinutes(weekStart, i * 30));
 
-  const isBusy = (date: Date) => busyEvents.some(e => new Date(e.start).getTime() === date.getTime());
+  const isBusy = (date: Date) => {
+    const all = [...busyEvents, ...defaultBusy];
+    return all.some(e => new Date(e.start).getTime() === date.getTime());
+  };
   const isAvailable = (date: Date) => events.some(e => new Date(e.start).getTime() === date.getTime());
 
   const toggleSlot = (date: Date) => {

@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import clsx from 'clsx';
 import { Button, Card, Badge } from '../../../../components/ui';
 import { ProfessionalResponse } from './types';
 
-export default function DetailClient({ pro }: { pro: ProfessionalResponse }) {
+export default function DetailClient({ pro, proId }: { pro: ProfessionalResponse; proId: string }) {
   const [tab, setTab] = useState<'about' | 'reviews'>('about');
   const name = pro.identity.redacted ? undefined : pro.identity.name;
   const heading = name ?? `${pro.title} at ${pro.employer}`;
@@ -40,7 +41,9 @@ export default function DetailClient({ pro }: { pro: ProfessionalResponse }) {
             </div>
           </div>
         </div>
-        <Button>Schedule a Call</Button>
+        <Link href={`/candidate/detail/${proId}/schedule`}>
+          <Button>Schedule a Call</Button>
+        </Link>
       </div>
 
       <div className="tabs">
