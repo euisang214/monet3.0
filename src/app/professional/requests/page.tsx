@@ -4,11 +4,22 @@ import { Button, Badge } from "../../../components/ui";
 import { auth } from "@/auth";
 import { getProfessionalRequests } from "../../api/professional/requests";
 
-export default async function Requests() {
+export default async function Requests({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const session = await auth();
   if (!session?.user) return null;
 
-  const requests = await getProfessionalRequests(session.user.id);
+  const page = Number(searchParams.page) || 1;
+  const perPage = 10;
+
+  const { requests, totalPages } = await getProfessionalRequests(
+    session.user.id,
+    page,
+    perPage
+  );
 
   const rows = requests.map((r) => {
     const candidate = r.candidate;
@@ -53,7 +64,13 @@ export default async function Requests() {
   return (
     <section className="col" style={{ gap: 16 }}>
       <h2>Requests</h2>
-      <DashboardClient data={rows} columns={columns} showFilters={false} />
+      <DashboardClient
+        data={rows}
+        columns={columns}
+        showFilters={false}
+        page={page}
+        totalPages={totalPages}
+      />
     </section>
   );
 }

@@ -4,11 +4,22 @@ import { auth } from "@/auth";
 import { getProfessionalEarnings } from "../../api/professional/earnings";
 import { format } from "date-fns";
 
-export default async function Earnings() {
+export default async function Earnings({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const session = await auth();
   if (!session?.user) return null;
 
-  const { stats, payments } = await getProfessionalEarnings(session.user.id);
+  const page = Number(searchParams.page) || 1;
+  const perPage = 10;
+
+  const { stats, payments, totalPages } = await getProfessionalEarnings(
+    session.user.id,
+    page,
+    perPage
+  );
 
   const rows = payments.map((p) => ({
     date: format(p.createdAt, "MMMM d, yyyy"),
@@ -48,7 +59,13 @@ export default async function Earnings() {
           </div>
         </div>
       </Card>
-      <DashboardClient data={rows} columns={columns} showFilters={false} />
+      <DashboardClient
+        data={rows}
+        columns={columns}
+        showFilters={false}
+        page={page}
+        totalPages={totalPages}
+      />
     </section>
   );
 }
