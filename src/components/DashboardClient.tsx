@@ -13,7 +13,7 @@ interface LinkValue {
   variant?: 'primary' | 'danger' | 'muted';
 }
 
-type RowData = Record<string, string | string[] | LinkValue>;
+type RowData = Record<string, string | string[] | LinkValue | ReactNode>;
 
 interface Column {
   key: string;
@@ -28,6 +28,7 @@ interface Props {
   showFilters?: boolean;
   buttonColumns?: string[];
   dateFilters?: string[];
+  dateFilterLabels?: Record<string, string>;
 }
 
 export default function DashboardClient({
@@ -38,6 +39,7 @@ export default function DashboardClient({
   showFilters = true,
   buttonColumns = [],
   dateFilters = [],
+  dateFilterLabels = {},
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -117,13 +119,18 @@ export default function DashboardClient({
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
             {filterKeys.map((label) =>
               dateFilters.includes(label) ? (
-                <Input
+                <label
                   key={label}
-                  type="date"
-                  value={active[label]?.[0] || ''}
-                  onChange={(e) => handleDateChange(label, e.target.value)}
-                  placeholder={label}
-                />
+                  className="col"
+                  style={{ gap: 4 }}
+                >
+                  <span>{dateFilterLabels[label] || label}</span>
+                  <Input
+                    type="date"
+                    value={active[label]?.[0] || ''}
+                    onChange={(e) => handleDateChange(label, e.target.value)}
+                  />
+                </label>
               ) : (
                 <FilterDropdown
                   key={label}
