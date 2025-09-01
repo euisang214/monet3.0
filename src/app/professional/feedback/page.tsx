@@ -15,11 +15,15 @@ export default async function FeedbackPage() {
       <div className="col" style={{ gap: 12 }}>
         {feedback.map((f) => (
           <div key={f.bookingId} className="card" style={{ padding: 16 }}>
-            <strong>{`${f.booking.candidate.firstName} ${f.booking.candidate.lastName}`}</strong>
-            <span style={{ color: 'var(--text-muted)' }}>
-              {format(f.submittedAt, 'MMMM d, yyyy')}
-            </span>
-            <div>{'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}</div>
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <strong>{`${f.booking.candidate.firstName} ${f.booking.candidate.lastName}`}</strong>
+              <span style={{ color: 'var(--text-muted)' }}>
+                {format(f.submittedAt, 'MMMM d, yyyy')}
+              </span>
+            </div>
+            <div>
+              {'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}
+            </div>
             <p>{f.text}</p>
           </div>
         ))}
