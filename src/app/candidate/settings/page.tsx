@@ -2,6 +2,7 @@ import { Card, Button, Input } from "../../../components/ui";
 import { auth } from "@/auth";
 import { getCandidateSettings } from "../../../app/api/candidate/settings";
 import ResumePreview from "../../../components/ResumePreview";
+import BusyTimes from "./BusyTimes";
 
 export default async function CandidateSettings() {
   const session = await auth();
@@ -43,6 +44,9 @@ export default async function CandidateSettings() {
             <Input placeholder="Declared Bonus Amount (USD)"/>
             <Button>Generate Invoice</Button>
           </div>
+        </Card>
+        <Card className="col" style={{padding:16}}>
+          <BusyTimes />
         </Card>
       </div>
   )
