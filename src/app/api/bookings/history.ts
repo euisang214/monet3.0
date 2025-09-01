@@ -7,7 +7,14 @@ export async function getPastCalls(candidateId: string) {
       startAt: { lt: new Date() },
     },
     include: {
-      professional: { include: { professionalProfile: true } },
+      professional: {
+        select: {
+          email: true,
+          professionalProfile: {
+            select: { title: true, employer: true },
+          },
+        },
+      },
     },
     orderBy: { startAt: 'desc' },
   });

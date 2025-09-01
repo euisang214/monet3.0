@@ -12,6 +12,7 @@ interface Call {
     email: string;
     professionalProfile?: {
       title: string | null;
+      employer: string | null;
     } | null;
   };
 }
@@ -28,10 +29,7 @@ export default function UpcomingCalls({ calls }: { calls: Call[] }) {
             style={{ justifyContent: 'space-between' }}
           >
             <div className="col" style={{ gap: 2 }}>
-              <strong>{c.professional.email}</strong>
-              <span style={{ color: 'var(--text-muted)' }}>
-                {c.professional.professionalProfile?.title ?? ''}
-              </span>
+              <strong>{`${c.professional.professionalProfile?.title} @ ${c.professional.professionalProfile?.employer}`}</strong>
               <span style={{ color: 'var(--text-muted)' }}>
                 {formatDateTime(c.startAt)}
               </span>

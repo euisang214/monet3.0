@@ -3,20 +3,18 @@
 import Link from 'next/link';
 import { useMemo, useState, ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import dynamic from 'next/dynamic';
-import { Card, Button } from './ui';
-const FilterDropdown = dynamic(() => import('./FilterDropdown'), { ssr: false });
-const DataTable = dynamic(() => import('./ui').then((m) => m.DataTable), {
-  ssr: false,
-});
+import FilterDropdown from './FilterDropdown';
+import { Card, Button, DataTable, Input } from './ui';
 import { ActiveFilters } from '../app/api/filterOptions';
 
 interface LinkValue {
   label: string;
   href?: string;
+  variant?: 'primary' | 'danger' | 'muted';
+  disabled?: boolean;
 }
 
-type RowData = Record<string, string | string[] | LinkValue>;
+type RowData = Record<string, string | string[] | LinkValue | ReactNode>;
 
 interface Column {
   key: string;
@@ -30,6 +28,8 @@ interface Props {
   initialActive?: ActiveFilters;
   showFilters?: boolean;
   buttonColumns?: string[];
+  dateFilters?: string[];
+  dateFilterLabels?: Record<string, string>;
 }
 
 export default function DashboardClient({
@@ -39,16 +39,18 @@ export default function DashboardClient({
   initialActive = {},
   showFilters = true,
   buttonColumns = [],
+  dateFilters = [],
+  dateFilterLabels = {},
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const filterKeys = [...Object.keys(filterOptions), ...dateFilters];
+
   const [active, setActive] = useState<ActiveFilters>(
     showFilters
       ? {
-          ...Object.fromEntries(
-            Object.keys(filterOptions).map((k) => [k, []])
-          ),
+          ...Object.fromEntries(filterKeys.map((k) => [k, []])),
           ...initialActive,
         }
       : {}
@@ -65,14 +67,13 @@ export default function DashboardClient({
           typeof val === 'object' &&
           'label' in val
         ) {
-          const { label, href } = val as LinkValue;
-          row[c.key] = href ? (
-            <Link href={href}>
-              <Button>{label}</Button>
-            </Link>
-          ) : (
-            <Button>{label}</Button>
+          const { label, href, variant, disabled } = val as LinkValue;
+          const btn = (
+            <Button variant={variant} disabled={disabled}>
+              {label}
+            </Button>
           );
+          row[c.key] = href && !disabled ? <Link href={href}>{btn}</Link> : btn;
         } else if (val && typeof val === 'object' && 'label' in val) {
           row[c.key] = (val as LinkValue).label;
         } else if (Array.isArray(val)) {
@@ -88,12 +89,27 @@ export default function DashboardClient({
   const handleChange = (label: string, values: string[]) => {
     if (!showFilters) return;
     setActive((prev) => ({ ...prev, [label]: values }));
+  };
+
+  const handleDateChange = (label: string, value: string) => {
+    if (!showFilters) return;
+    setActive((prev) => ({ ...prev, [label]: value ? [value] : [] }));
+  };
+
+  const applyFilters = () => {
+    if (!showFilters) return;
     const params = new URLSearchParams(searchParams.toString());
-    if (values.length > 0) {
-      params.set(label, values.join(','));
-    } else {
-      params.delete(label);
-    }
+    Object.entries(active).forEach(([label, values]) => {
+      if (values.length > 0) {
+        if (dateFilters.includes(label)) {
+          params.set(label, values[0]);
+        } else {
+          params.set(label, values.join(','));
+        }
+      } else {
+        params.delete(label);
+      }
+    });
     params.delete('page');
     router.push(`?${params.toString()}`);
   };
@@ -106,15 +122,30 @@ export default function DashboardClient({
             Showing results for your search criteria
           </p>
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            {Object.entries(filterOptions).map(([label, options]) => (
-              <FilterDropdown
-                key={label}
-                label={label}
-                options={options}
-                initial={active[label] || []}
-                onChange={(vals) => handleChange(label, vals)}
-              />
-            ))}
+            {filterKeys.map((label) =>
+              dateFilters.includes(label) ? (
+                <Input
+                  key={label}
+                  type={active[label]?.[0] ? 'date' : 'text'}
+                  placeholder={dateFilterLabels[label] || label}
+                  value={active[label]?.[0] || ''}
+                  onFocus={(e) => (e.target.type = 'date')}
+                  onBlur={(e) => {
+                    if (!e.target.value) e.target.type = 'text';
+                  }}
+                  onChange={(e) => handleDateChange(label, e.target.value)}
+                />
+              ) : (
+                <FilterDropdown
+                  key={label}
+                  label={label}
+                  options={filterOptions[label] || []}
+                  initial={active[label] || []}
+                  onChange={(vals) => handleChange(label, vals)}
+                />
+              )
+            )}
+            <Button onClick={applyFilters}>Apply Filters</Button>
           </div>
         </>
       )}

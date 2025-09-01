@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '../../../../auth';
+import { auth } from '@/auth';
 import { prisma } from '../../../../lib/db';
 import {
   ensureCustomer,
@@ -62,7 +62,6 @@ export async function POST(req: NextRequest) {
     const schema = base.extend({
       employer: z.string(),
       title: z.string(),
-      seniority: z.string(),
       bio: z.string(),
       priceUSD: z.number(),
     });
@@ -70,7 +69,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
     }
-    const { employer, title, seniority, bio, priceUSD } = parsed.data;
+    const { employer, title, bio, priceUSD } = parsed.data;
     await prisma.user.update({
       where: { id: session.user.id },
       data: { role, firstName, lastName },
@@ -80,7 +79,6 @@ export async function POST(req: NextRequest) {
       update: {
         employer,
         title,
-        seniority,
         bio,
         priceUSD,
       },
@@ -88,7 +86,6 @@ export async function POST(req: NextRequest) {
         userId: session.user.id,
         employer,
         title,
-        seniority,
         bio,
         priceUSD,
       },

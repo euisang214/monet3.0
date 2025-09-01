@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/db';
 import { CALL_DURATION_MINUTES } from '../../../../../../lib/flags';
-import { auth } from '../../../../../../auth';
+import { auth } from '@/auth';
 
 export async function POST(req: NextRequest, { params }:{params:{id:string}}){
   const session = await auth();

@@ -9,24 +9,28 @@ export async function isCalendarConnected(userId: string){
 
 export async function getBusyTimes(userId: string){
   const acc = await prisma.oAuthAccount.findFirst({ where: { userId, provider: 'google' } });
-  if(!acc?.accessToken) return [];
+  if(!acc?.accessToken) throw new Error('NOT_AUTHENTICATED');
   const oauth2 = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
   oauth2.setCredentials({ access_token: acc.accessToken, refresh_token: acc.refreshToken || undefined });
   const cal = google.calendar({ version: 'v3', auth: oauth2 });
   const now = new Date();
-  const nextWeek = new Date(now.getTime() + 7*24*60*60*1000);
+  const nextMonth = new Date(now);
+  nextMonth.setMonth(now.getMonth() + 1);
   try{
     const res = await cal.freebusy.query({
       requestBody: {
         timeMin: now.toISOString(),
-        timeMax: nextWeek.toISOString(),
+        timeMax: nextMonth.toISOString(),
         items: [{ id: 'primary' }]
       }
     });
     const busy = res.data.calendars?.primary?.busy || [];
     return busy.map(b => ({ start: b.start as string, end: b.end as string }));
-  }catch(err){
+  }catch(err: any){
     console.error('Failed to fetch busy times', err);
+    if(err?.code === 401 || err?.response?.status === 401){
+      throw new Error('NOT_AUTHENTICATED');
+    }
     return [];
   }
 }

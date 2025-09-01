@@ -1,28 +1,31 @@
-'use client';
-import { Card, Button, Input } from "../../../components/ui";
-import React from 'react';
+import { Card } from "../../../components/ui";
+import { auth } from "@/auth";
+import { getProfessionalFeedback } from "../../api/professional/feedback";
+import { format } from "date-fns";
 
-export default function SubmitFeedback(){
+export default async function FeedbackPage() {
+  const session = await auth();
+  if (!session?.user) return null;
+
+  const feedback = await getProfessionalFeedback(session.user.id);
+
   return (
-      <Card style={{padding:16}}>
-        <h2>Submit Feedback</h2>
-        <div className="col" style={{gap:12, maxWidth:720}}>
-          <label>Cultural Fit</label><Rating/>
-          <label>Interest in Industry and Role</label><Rating/>
-          <label>Technical Knowledge</label><Rating/>
-          <label>Detailed Feedback</label><textarea className="input" style={{height:160}} placeholder="≥200 words, constructive, specific" />
-          <label>Exactly three action items</label>
-          <div className="col" style={{gap:8}}>
-            <Input placeholder="Action item 1"/>
-            <Input placeholder="Action item 2"/>
-            <Input placeholder="Action item 3"/>
+    <Card style={{ padding: 16 }}>
+      <h2>Feedback</h2>
+      <div className="col" style={{ gap: 12 }}>
+        {feedback.map((f) => (
+          <div key={f.bookingId} className="card" style={{ padding: 16 }}>
+            <strong>{f.booking.candidate.email}</strong>
+            <span style={{ color: 'var(--text-muted)' }}>
+              {format(f.submittedAt, 'MMMM d, yyyy')}
+            </span>
+            <div>{'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}</div>
+            <p>{f.text}</p>
           </div>
-          <div className="row" style={{justifyContent:'flex-end'}}><Button>Submit Feedback</Button></div>
-        </div>
-      </Card>
-  )
+        ))}
+        {feedback.length === 0 && <p>No feedback yet.</p>}
+      </div>
+    </Card>
+  );
 }
 
-function Rating(){
-  return <div className="row" style={{gap:4}}>{"★★★★★".split("").map((s,i)=>(<span key={i} style={{fontSize:22}}>☆</span>))}</div>
-}

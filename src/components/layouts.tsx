@@ -58,9 +58,8 @@ export function CandidateShell({ children }: ShellProps) {
             </Link>
             <nav className="nav">
               <Link href="/candidate/dashboard">Home</Link>
-              <Link href="/candidate/browse">Experts</Link>
-              <Link href="#">Calendar</Link>
-              <Link href="/candidate/history">History</Link>
+              {/* <Link href="/candidate/browse">Experts</Link> */}
+              <Link href="/candidate/calls">Calls</Link>
               <Link href="/candidate/availability">My Availability</Link>
             </nav>
           </div>

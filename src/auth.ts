@@ -3,7 +3,7 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import LinkedIn from 'next-auth/providers/linkedin';
 import bcrypt from 'bcryptjs';
-import { prisma } from './lib/db';
+import { prisma } from '../lib/db';
 import { z } from 'zod';
 
 declare module 'next-auth'{
@@ -12,7 +12,7 @@ declare module 'next-auth'{
   }
 }
 
-export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: 'jwt' },
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'dev-secret',
   providers: [
@@ -31,7 +31,7 @@ export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      authorization: { params: { scope: 'openid email profile https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events' } }
+      authorization: { params: { scope: 'openid email profile https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events', access_type: 'offline', prompt: 'consent' } }
     }),
     LinkedIn({
       clientId: process.env.LINKEDIN_CLIENT_ID || '',

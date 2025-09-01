@@ -1,5 +1,4 @@
-import { cache } from "react";
-import { auth } from "../../../../auth";
+import { auth } from "@/auth";
 import {
   getFilterOptions,
   FilterConfig,
@@ -7,9 +6,7 @@ import {
 } from "../../../app/api/filterOptions";
 import { listUsers } from "../../../app/api/users/list";
 import { Role } from "@prisma/client";
-import { getUpcomingCalls } from "../../../app/api/bookings/upcoming";
 import DashboardClient from "../../../components/DashboardClient";
-import UpcomingCalls from "../../../components/UpcomingCalls";
 import Pagination from "../../../components/Pagination";
 
 export default async function CandidateDashboard({
@@ -28,11 +25,6 @@ export default async function CandidateDashboard({
     Firm: {
       model: "professionalProfile",
       field: "employer",
-      relation: "professionalProfile",
-    },
-    "Experience Level": {
-      model: "professionalProfile",
-      field: "seniority",
       relation: "professionalProfile",
     },
     Availability: {
@@ -61,17 +53,12 @@ export default async function CandidateDashboard({
       active[key] = Array.isArray(value)
         ? (value as string[])
         : (value as string).split(",");
-    }
+  }
   }
 
-  const upcomingCallsPromise = session?.user.id
-    ? getUpcomingCalls(session.user.id)
-    : Promise.resolve([]);
-
-  const [filterOptions, listResult, upcomingCalls] = await Promise.all([
+  const [filterOptions, listResult] = await Promise.all([
     getFilterOptions(filterConfig),
     listUsers([Role.PROFESSIONAL], page, 50, active, filterConfig),
-    upcomingCallsPromise,
   ]);
 
   const { users: results, totalPages } = listResult;
@@ -82,7 +69,6 @@ export default async function CandidateDashboard({
     name: { label: u.email, href: `/candidate/detail/${u.id}` },
     title: u.professionalProfile?.title ?? "",
     firm: u.professionalProfile?.employer ?? "",
-    experience: u.professionalProfile?.seniority ?? "",
     availability: availabilityTransform(
       u.bookingsAsProfessional.map((b) => b.startAt as Date)
     ),
@@ -92,28 +78,22 @@ export default async function CandidateDashboard({
   const columns = [
     { key: "name", label: "Name" },
     { key: "title", label: "Title" },
-    { key: "experience", label: "Experience" },
     { key: "availability", label: "Availability" },
     { key: "action", label: "" },
   ];
 
   return (
-    <div className="row" style={{ alignItems: "flex-start", gap: 24 }}>
-      <aside style={{ width: 260 }}>
-        <UpcomingCalls calls={upcomingCalls} />
-      </aside>
-      <section className="col" style={{ gap: 16, flex: 1 }}>
-        <h2>Search Results</h2>
-        <DashboardClient
-          data={rows}
-          columns={columns}
-          filterOptions={filterOptions}
-          initialActive={active}
-          buttonColumns={["action"]}
-        />
-        <Pagination page={page} totalPages={totalPages} />
-      </section>
-    </div>
+    <section className="col" style={{ gap: 16 }}>
+      <h2>Search Results</h2>
+      <DashboardClient
+        data={rows}
+        columns={columns}
+        filterOptions={filterOptions}
+        initialActive={active}
+        buttonColumns={["action"]}
+      />
+      <Pagination page={page} totalPages={totalPages} />
+    </section>
   );
 }
 

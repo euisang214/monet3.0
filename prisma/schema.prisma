@@ -67,6 +67,7 @@ model User {
   bookingsAsProfessional Booking[]            @relation("ProfessionalBookings")
   notifications          Notification[]
   auditLogs              AuditLog[]           @relation("AuditActor")
+  availabilities         Availability[]
 
   @@index([role])
 }
@@ -92,7 +93,6 @@ model ProfessionalProfile {
   userId            String       @id
   employer          String
   title             String
-  seniority         String
   bio               String
   priceUSD          Int
   availabilityPrefs Json         @default("{}")
@@ -106,7 +106,6 @@ model ProfessionalProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([employer])
-  @@index([seniority])
   @@index([priceUSD])
 }
 
@@ -158,11 +157,12 @@ model Booking {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  candidate    User      @relation("CandidateBookings", fields: [candidateId], references: [id])
-  professional User      @relation("ProfessionalBookings", fields: [professionalId], references: [id])
-  payment      Payment?
-  feedback     Feedback?
-  payout       Payout?
+  candidate          User                @relation("CandidateBookings", fields: [candidateId], references: [id])
+  professional       User                @relation("ProfessionalBookings", fields: [professionalId], references: [id])
+  payment            Payment?
+  feedback           Feedback?
+  professionalReview ProfessionalReview?
+  payout             Payout?
 
   @@index([status, startAt])
   @@index([candidateId, startAt])
@@ -194,6 +194,15 @@ model Feedback {
   submittedAt          DateTime
   qcStatus             QCStatus
   qcReport             Json     @default("{}")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model ProfessionalReview {
+  bookingId   String   @id
+  rating      Int
+  text        String
+  submittedAt DateTime @default(now())
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
@@ -245,6 +254,18 @@ model Notification {
   @@index([scheduledFor])
 }
 
+model Availability {
+  id     String   @id @default(cuid())
+  userId String
+  start  DateTime
+  end    DateTime
+  busy   Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, start])
+}
+
 model AuditLog {
   id          String   @id @default(cuid())
   actorUserId String?
@@ -259,12 +280,11 @@ model AuditLog {
 
 // Postgres view for listing cards
 view ListingCardView {
-  userId    String
-  employer  String
-  title     String
-  seniority String
-  priceUSD  Int
-  tags      String[]
+  userId   String
+  employer String
+  title    String
+  priceUSD Int
+  tags     String[]
 
   @@ignore // Prisma doesn't manage view fields in client; created in migration SQL
 }

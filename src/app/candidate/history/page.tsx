@@ -1,4 +1,4 @@
-import { auth } from "../../../../auth";
+import { auth } from "@/auth";
 import DashboardClient from "../../../components/DashboardClient";
 import { getPastCalls } from "../../../app/api/bookings/history";
 import { formatDateTime } from "../../../../lib/date";
@@ -12,7 +12,7 @@ export default async function History() {
       ? `${c.professional.professionalProfile.title} at ${c.professional.professionalProfile.employer}`
       : c.professional.email,
     date: formatDateTime(c.startAt),
-    action: { label: "View Feedback", href: "#" },
+    action: { label: "View Feedback", href: `/candidate/history/${c.id}` },
   }));
 
   const columns = [

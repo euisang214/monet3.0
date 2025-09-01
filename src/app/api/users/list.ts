@@ -23,9 +23,11 @@ export async function listUsers(
       where,
       include: {
         professionalProfile: true,
-        candidateProfile: true,
-        bookingsAsProfessional: true,
-        bookingsAsCandidate: true,
+        bookingsAsProfessional: {
+          select: {
+            startAt: true,
+          },
+        },
       },
       skip,
       take: perPage,

@@ -25,7 +25,6 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
     } else {
       body.employer = formData.get('employer');
       body.title = formData.get('title');
-      body.seniority = formData.get('seniority');
       body.bio = formData.get('bio');
       body.priceUSD = Number(formData.get('priceUSD'));
     }
@@ -68,7 +67,6 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
         <>
           <Input name="employer" placeholder="Employer" required />
           <Input name="title" placeholder="Title" required />
-          <Input name="seniority" placeholder="Seniority" required />
           <textarea name="bio" placeholder="Bio" className="input" required />
           <Input name="priceUSD" type="number" placeholder="Price USD" required />
         </>

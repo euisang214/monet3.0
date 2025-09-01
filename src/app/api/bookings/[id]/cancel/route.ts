@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/db';
 import { differenceInMinutes } from 'date-fns';
-import { auth } from '../../../../../../auth';
+import { auth } from '@/auth';
 
 export async function POST(req: NextRequest, { params }:{params:{id:string}}){
   const session = await auth();

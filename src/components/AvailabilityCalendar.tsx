@@ -1,31 +1,80 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { Button } from './ui';
 import { addMinutes, addDays, startOfWeek, format } from 'date-fns';
+import { signIn } from 'next-auth/react';
 
 type Slot = {
   start: string;
   end: string;
 };
 
-export default function AvailabilityCalendar(){
+interface AvailabilityCalendarProps {
+  weeks?: number;
+  onConfirm?: (slots: Slot[]) => void;
+}
+
+const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({ weeks = 2, onConfirm }) => {
   const [events, setEvents] = useState<Slot[]>([]);
   const [busyEvents, setBusyEvents] = useState<Slot[]>([]);
+  const [defaultBusy, setDefaultBusy] = useState<Slot[]>([]);
+  const [defaultBusyRanges, setDefaultBusyRanges] = useState<{ day: number; start: string; end: string }[]>([]);
+  const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
+  const [isDragging, setIsDragging] = useState(false);
+  const draggedSlots = useRef<Set<number>>(new Set());
+
+  const handleConfirm = async () => {
+    const end = addDays(new Date(), weeks * 7);
+    const filtered = events.filter(e => new Date(e.start) < end);
+    if (onConfirm) {
+      await onConfirm(filtered);
+    } else {
+      await fetch('/api/candidate/availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ events: filtered, busy: [...busyEvents, ...defaultBusy] }),
+      });
+    }
+  };
 
   const handleSync = async () => {
     const res = await fetch('/api/candidate/busy');
+    if(res.status === 401){
+      alert('Please connect your Google Calendar to sync availability.');
+      await signIn('google', { callbackUrl: window.location.href });
+      return;
+    }
     if(!res.ok) return;
     const data = await res.json();
-    const fetched: Slot[] = (data.busy || []).map((b: any) => ({
-      start: b.start,
-      end: b.end,
-    }));
+    const fetched: Slot[] = [];
+    (data.busy || []).forEach((b: any) => {
+      const start = new Date(b.start);
+      const end = new Date(b.end);
+      for (let t = new Date(start); t < end; t.setMinutes(t.getMinutes() + 30)) {
+        const slotStart = new Date(t);
+        const slotEnd = new Date(t.getTime() + 30 * 60 * 1000);
+        fetched.push({ start: slotStart.toISOString(), end: slotEnd.toISOString() });
+      }
+    });
     setBusyEvents(fetched);
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem('candidateAvailability');
-    if(saved) setEvents(JSON.parse(saved));
+    const load = async () => {
+      const saved = localStorage.getItem('candidateAvailability');
+      if (saved) {
+        setEvents(JSON.parse(saved));
+      } else {
+        const res = await fetch('/api/candidate/availability');
+        if (res.ok) {
+          const data = await res.json();
+          setEvents(data.events || []);
+          setBusyEvents(data.busy || []);
+        }
+      }
+    };
+    load();
   }, []);
 
   useEffect(() => {
@@ -36,27 +85,91 @@ export default function AvailabilityCalendar(){
     handleSync();
   }, []);
 
-  const start = startOfWeek(new Date(), { weekStartsOn: 0 });
-  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  const times = Array.from({ length: 48 }, (_, i) => addMinutes(start, i * 30));
+  useEffect(() => {
+    async function loadDefaults() {
+      try {
+        const res = await fetch('/api/candidate/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setDefaultBusyRanges(data.defaultBusy || []);
+        }
+      } catch {
+        setDefaultBusyRanges([]);
+      }
+    }
+    loadDefaults();
+  }, []);
 
-  const isBusy = (date: Date) => busyEvents.some(e => date >= new Date(e.start) && date < new Date(e.end));
+  useEffect(() => {
+    const base = startOfWeek(weekStart, { weekStartsOn: 0 });
+    const slots: Slot[] = [];
+    for (let w = 0; w < weeks; w++) {
+      defaultBusyRanges.forEach(r => {
+        const day = addDays(base, r.day + w * 7);
+        const [sh, sm] = r.start.split(':').map(Number);
+        const [eh, em] = r.end.split(':').map(Number);
+        const start = new Date(day);
+        start.setHours(sh, sm, 0, 0);
+        const end = new Date(day);
+        end.setHours(eh, em, 0, 0);
+        for (let t = new Date(start); t < end; t.setMinutes(t.getMinutes() + 30)) {
+          const slotStart = new Date(t);
+          const slotEnd = new Date(t.getTime() + 30 * 60 * 1000);
+          slots.push({ start: slotStart.toISOString(), end: slotEnd.toISOString() });
+        }
+      });
+    }
+    setDefaultBusy(slots);
+  }, [weekStart, weeks, defaultBusyRanges]);
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      draggedSlots.current.clear();
+    };
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => window.removeEventListener('mouseup', handleMouseUp);
+  }, []);
+
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const times = Array.from({ length: 48 }, (_, i) => addMinutes(weekStart, i * 30));
+
+  const isBusy = (date: Date) => {
+    const all = [...busyEvents, ...defaultBusy];
+    return all.some(e => new Date(e.start).getTime() === date.getTime());
+  };
   const isAvailable = (date: Date) => events.some(e => new Date(e.start).getTime() === date.getTime());
 
   const toggleSlot = (date: Date) => {
-    if(isBusy(date)) return;
     const startIso = date.toISOString();
     const endIso = new Date(date.getTime() + 30 * 60 * 1000).toISOString();
-    if(isAvailable(date)){
-      setEvents(prev => prev.filter(e => e.start !== startIso));
-    } else {
-      setEvents(prev => [...prev, { start: startIso, end: endIso }]);
-    }
+
+    const available = isAvailable(date);
+
+    flushSync(() => {
+      if (isBusy(date)) {
+        setBusyEvents(prev => prev.filter(e => new Date(e.start).getTime() !== date.getTime()));
+      }
+
+      if (available) {
+        setEvents(prev => prev.filter(e => e.start !== startIso));
+      } else {
+        setEvents(prev => [...prev, { start: startIso, end: endIso }]);
+      }
+    });
   };
+
+  const prevWeek = () => setWeekStart(prev => addDays(prev, -7));
+  const nextWeek = () => setWeekStart(prev => addDays(prev, 7));
 
   return (
     <div className="col" style={{ gap: 12 }}>
-      <Button onClick={handleSync}>Sync Google Calendar</Button>
+      <div className="row" style={{ gap: 8 }}>
+        <Button onClick={prevWeek}>{'<'}</Button>
+        <Button onClick={nextWeek}>{'>'}</Button>
+        <Button onClick={handleSync}>Sync Google Calendar</Button>
+        <Button onClick={handleConfirm}>Confirm Availability</Button>
+      </div>
       <div
         className="calendar-grid"
         style={{
@@ -64,7 +177,8 @@ export default function AvailabilityCalendar(){
           gridTemplateColumns: '60px repeat(7, 1fr)',
           gridTemplateRows: '30px repeat(48, 20px)',
           border: '1px solid var(--border)',
-          overflowX: 'auto'
+          overflowX: 'auto',
+          userSelect: 'none'
         }}
       >
         <div style={{ borderBottom: '1px solid var(--border)' }} />
@@ -80,7 +194,7 @@ export default function AvailabilityCalendar(){
               fontWeight: 600,
             }}
           >
-            {format(d, 'EEE d')}
+            {format(d, 'EEE MMM d')}
           </div>
         ))}
 
@@ -102,15 +216,26 @@ export default function AvailabilityCalendar(){
               slotStart.setHours(t.getHours(), t.getMinutes(), 0, 0);
               const busy = isBusy(slotStart);
               const available = isAvailable(slotStart);
+              const key = slotStart.getTime();
               return (
                 <div
                   key={`${col}-${row}`}
-                  onClick={() => toggleSlot(slotStart)}
+                  onMouseDown={() => {
+                    toggleSlot(slotStart);
+                    setIsDragging(true);
+                    draggedSlots.current = new Set([key]);
+                  }}
+                  onMouseEnter={() => {
+                    if (isDragging && !draggedSlots.current.has(key)) {
+                      toggleSlot(slotStart);
+                      draggedSlots.current.add(key);
+                    }
+                  }}
                   style={{
                     borderTop: '1px solid var(--border)',
                     borderLeft: '1px solid var(--border)',
-                    background: busy ? '#f87171' : available ? '#86efac' : 'transparent',
-                    cursor: busy ? 'not-allowed' : 'pointer',
+                    background: busy || available ? '#f87171' : 'transparent',
+                    cursor: 'pointer',
                   }}
                 />
               );
@@ -120,4 +245,6 @@ export default function AvailabilityCalendar(){
       </div>
     </div>
   );
-}
+};
+
+export default AvailabilityCalendar;
