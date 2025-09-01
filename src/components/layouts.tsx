@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { signOutAction } from '../actions';
 
 type ShellProps = { children: React.ReactNode; session?: any };
@@ -84,87 +83,65 @@ export function ProfessionalShell({ children }: ShellProps) {
     <>
       <header style={{ borderBottom: '1px solid var(--border)', background: '#fff' }}>
         <div className="container row" style={{ justifyContent: 'space-between' }}>
-          <Link href="/professional/dashboard" style={{ fontWeight: 700 }}>
-            Monet
-          </Link>
-          <form action={signOutAction}>
-            <button className="btn btn-danger">Sign Out</button>
-          </form>
+          <div className="row" style={{ gap: 24, alignItems: 'center' }}>
+            <Link href="/professional/dashboard" style={{ fontWeight: 700 }}>
+              Monet
+            </Link>
+            <nav className="nav">
+              <Link href="/professional/dashboard">Home</Link>
+              <Link href="/professional/requests">Requests</Link>
+              <Link href="/professional/feedback">Feedback</Link>
+              <Link href="/professional/earnings">Earnings</Link>
+            </nav>
+          </div>
+
+          <div className="row" style={{ gap: 8 }}>
+            <Link href="/professional/settings">Settings</Link>
+            <form action={signOutAction}>
+              <button className="btn btn-danger">Sign Out</button>
+            </form>
+          </div>
         </div>
       </header>
-      <div
-        className="container"
-        style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 24, marginTop: 24 }}
-      >
-        <aside className="sidebar">
-          <Nav
-            items={[
-              { href: '/professional/dashboard', label: 'Dashboard' },
-              { href: '/professional/requests', label: 'Requests' },
-              { href: '/professional/feedback', label: 'Feedback' },
-              { href: '/professional/earnings', label: 'Earnings' },
-              { href: '/professional/settings', label: 'Settings' },
-            ]}
-          />
-        </aside>
-        <main>{children}</main>
-      </div>
+      <main className="container" style={{ marginTop: 24 }}>
+        {children}
+      </main>
     </>
   );
 }
 
 export function AdminShell({ children }: ShellProps) {
   return (
-    <div
-      className="container"
-      style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 24 }}
-    >
-      <aside className="sidebar">
-        <Nav
-          items={[
-            { href: '/admin/users', label: 'Users' },
-            { href: '/admin/bookings', label: 'Bookings' },
-            { href: '/admin/payments', label: 'Payments' },
-            { href: '/admin/payouts', label: 'Payouts' },
-            { href: '/admin/feedback', label: 'Feedback (QC)' },
-            { href: '/admin/disputes', label: 'Disputes' },
-            { href: '/admin/invoices', label: 'Invoices' },
-            { href: '/admin/audit-logs', label: 'Audit Logs' },
-          ]}
-        />
-      </aside>
-      <main>{children}</main>
-    </div>
-  );
-}
+    <>
+      <header style={{ borderBottom: '1px solid var(--border)', background: '#fff' }}>
+        <div className="container row" style={{ justifyContent: 'space-between' }}>
+          <div className="row" style={{ gap: 24, alignItems: 'center' }}>
+            <Link href="/admin/users" style={{ fontWeight: 700 }}>
+              Monet
+            </Link>
+            <nav className="nav">
+              <Link href="/admin/users">Users</Link>
+              <Link href="/admin/bookings">Bookings</Link>
+              <Link href="/admin/payments">Payments</Link>
+              <Link href="/admin/payouts">Payouts</Link>
+              <Link href="/admin/feedback">Feedback (QC)</Link>
+              <Link href="/admin/disputes">Disputes</Link>
+              <Link href="/admin/invoices">Invoices</Link>
+              <Link href="/admin/audit-logs">Audit Logs</Link>
+            </nav>
+          </div>
 
-function Nav({ items }: { items: { href: string; label: string }[] }) {
-  const router = useRouter();
-
-  React.useEffect(() => {
-    items.forEach((item) => router.prefetch(item.href));
-  }, [items, router]);
-
-  return (
-    <nav className="col">
-      {items.map((i) => (
-        <Link key={i.href} href={i.href} className="nav-link">
-          {i.label}
-        </Link>
-      ))}
-      <style jsx>{`
-        .nav-link {
-          padding: 10px 12px;
-          border-radius: 10px;
-          display: block;
-          color: var(--text-muted);
-          cursor: pointer;
-        }
-        .nav-link:hover {
-          background: var(--muted);
-          color: var(--text);
-        }
-      `}</style>
-    </nav>
+          <div className="row" style={{ gap: 8 }}>
+            <Link href="/admin/settings">Settings</Link>
+            <form action={signOutAction}>
+              <button className="btn btn-danger">Sign Out</button>
+            </form>
+          </div>
+        </div>
+      </header>
+      <main className="container" style={{ marginTop: 24 }}>
+        {children}
+      </main>
+    </>
   );
 }
