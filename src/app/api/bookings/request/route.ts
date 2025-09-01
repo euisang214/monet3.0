@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/db';
 import { rateLimit } from '../../../../../lib/rate-limit';
 import { auth } from '@/auth';
+import { mailer } from '../../../../../lib/email';
 
 export async function POST(req: NextRequest){
   const session = await auth();
@@ -18,5 +19,15 @@ export async function POST(req: NextRequest){
       endAt: new Date(0),
     }
   });
+  if(process.env.SMTP_HOST){
+    const pro = await prisma.user.findUnique({ where: { id: professionalId }, select: { email: true } });
+    if(pro?.email){
+      await mailer.sendMail({
+        to: pro.email,
+        subject: 'New booking request',
+        text: `You have a new booking request from ${session.user.email}.`,
+      });
+    }
+  }
   return NextResponse.json({ id: booking.id, status: booking.status, priceUSD });
 }

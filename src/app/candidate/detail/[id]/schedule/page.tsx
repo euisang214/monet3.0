@@ -7,7 +7,7 @@ export default function Schedule({ params }: { params: { id: string } }) {
   const [weeks, setWeeks] = useState(2);
 
   const handleConfirm = async (slots: any[]) => {
-    await fetch('/api/candidate/availability/share', {
+    await fetch('/api/bookings/request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ professionalId: params.id, slots, weeks }),
