@@ -1,5 +1,6 @@
 import "../../styles/global.css";
 import type { Metadata } from "next";
+import { StatusProvider } from "../components/StatusPopup";
 
 export const metadata: Metadata = {
   title: "Monet",
@@ -13,7 +14,9 @@ export default async function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <StatusProvider>{children}</StatusProvider>
+      </body>
     </html>
   );
 }

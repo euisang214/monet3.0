@@ -10,6 +10,7 @@
   --success: #16a34a;
   --danger: #dc2626;
   --warning: #f59e0b;
+  --error: #facc15;
   --radius: 16px;
   --shadow: 0 6px 24px rgba(0,0,0,0.08);
 }
