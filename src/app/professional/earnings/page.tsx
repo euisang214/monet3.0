@@ -1,4 +1,5 @@
 import { Card } from "../../../components/ui";
+import DashboardClient from "../../../components/DashboardClient";
 import { auth } from "@/auth";
 import { getProfessionalEarnings } from "../../api/professional/earnings";
 import { format } from "date-fns";
@@ -9,49 +10,46 @@ export default async function Earnings() {
 
   const { stats, payments } = await getProfessionalEarnings(session.user.id);
 
+  const rows = payments.map((p) => ({
+    date: format(p.createdAt, "MMMM d, yyyy"),
+    description: `Expert Call with ${p.booking.candidate.email}`,
+    amount: `+$${((p.amountGross - p.platformFee) / 100).toFixed(2)}`,
+    status:
+      p.status === "released"
+        ? "Completed"
+        : p.status === "held"
+        ? "Pending"
+        : p.status,
+  }));
+
+  const columns = [
+    { key: "date", label: "Date" },
+    { key: "description", label: "Description" },
+    { key: "amount", label: "Amount" },
+    { key: "status", label: "Status" },
+  ];
+
   return (
-    <Card style={{ padding: 16 }}>
+    <section className="col" style={{ gap: 16 }}>
       <h2>Earnings</h2>
-      <div className="grid grid-3" style={{ marginBottom: 16 }}>
-        <div className="card" style={{ padding: 16 }}>
-          <h4>Total Earnings</h4>
-          <div style={{ fontSize: 24 }}>{'$'}{(stats.total / 100).toFixed(2)}</div>
+      <Card style={{ padding: 16 }}>
+        <div className="grid grid-3" style={{ gap: 16 }}>
+          <div className="card" style={{ padding: 16 }}>
+            <h4>Total Earnings</h4>
+            <div style={{ fontSize: 24 }}>{"$"}{(stats.total / 100).toFixed(2)}</div>
+          </div>
+          <div className="card" style={{ padding: 16 }}>
+            <h4>Current Month</h4>
+            <div style={{ fontSize: 24 }}>{"$"}{(stats.currentMonth / 100).toFixed(2)}</div>
+          </div>
+          <div className="card" style={{ padding: 16 }}>
+            <h4>Pending Payouts</h4>
+            <div style={{ fontSize: 24 }}>{"$"}{(stats.pending / 100).toFixed(2)}</div>
+          </div>
         </div>
-        <div className="card" style={{ padding: 16 }}>
-          <h4>Current Month</h4>
-          <div style={{ fontSize: 24 }}>{'$'}{(stats.currentMonth / 100).toFixed(2)}</div>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <h4>Pending Payouts</h4>
-          <div style={{ fontSize: 24 }}>{'$'}{(stats.pending / 100).toFixed(2)}</div>
-        </div>
-      </div>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Description</th>
-            <th>Amount</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {payments.map((p) => (
-            <tr key={p.id}>
-              <td>{format(p.createdAt, 'MMMM d, yyyy')}</td>
-              <td>Expert Call with {p.booking.candidate.email}</td>
-              <td>+{'$'}{((p.amountGross - p.platformFee) / 100).toFixed(2)}</td>
-              <td>{p.status === 'released' ? 'Completed' : p.status === 'held' ? 'Pending' : p.status}</td>
-            </tr>
-          ))}
-          {payments.length === 0 && (
-            <tr>
-              <td colSpan={4}>No earnings yet.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </Card>
+      </Card>
+      <DashboardClient data={rows} columns={columns} showFilters={false} />
+    </section>
   );
 }
 
