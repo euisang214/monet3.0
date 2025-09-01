@@ -1,4 +1,4 @@
-import { auth } from "../../../../auth";
+import { auth } from "@/auth";
 import DashboardClient from "../../../components/DashboardClient";
 import { getPastCalls } from "../../../app/api/bookings/history";
 import { formatDateTime } from "../../../../lib/date";

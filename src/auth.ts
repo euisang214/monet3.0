@@ -3,7 +3,7 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import LinkedIn from 'next-auth/providers/linkedin';
 import bcrypt from 'bcryptjs';
-import { prisma } from './lib/db';
+import { prisma } from '../lib/db';
 import { z } from 'zod';
 
 declare module 'next-auth'{

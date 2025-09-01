@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '../../../../../auth';
+import { auth } from '@/auth';
 import { getBusyTimes } from '../../../../../lib/calendar/google';
 
 export async function GET(){

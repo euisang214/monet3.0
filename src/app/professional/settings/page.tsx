@@ -1,5 +1,5 @@
 import { Card, Button, Input } from "../../../components/ui";
-import { auth } from "../../../../auth";
+import { auth } from "@/auth";
 import { getProfessionalSettings } from "../../api/professional/settings";
 import StripeSection from "./StripeSection";
 

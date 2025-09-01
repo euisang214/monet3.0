@@ -1,5 +1,5 @@
 import { Card } from "../../components/ui";
-import { auth } from "../../../auth";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 

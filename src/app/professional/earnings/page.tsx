@@ -1,5 +1,5 @@
 import { Card } from "../../../components/ui";
-import { auth } from "../../../../auth";
+import { auth } from "@/auth";
 import { getProfessionalEarnings } from "../../api/professional/earnings";
 import { format } from "date-fns";
 

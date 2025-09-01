@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/db';
-import { auth } from '../../../../../auth';
+import { auth } from '@/auth';
 import { enqueueFeedbackQC } from '../../../../../lib/queues';
 
 export async function GET(_req: NextRequest, { params }: { params: { bookingId: string } }) {
