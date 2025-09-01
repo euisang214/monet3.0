@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import DashboardClient from "../../../components/DashboardClient";
-import Pagination from "../../../components/Pagination";
 import {
   getFilterOptions,
   FilterConfig,
@@ -144,8 +143,9 @@ export default async function CallsPage({
         dateFilters={dateFilters}
         dateFilterLabels={dateFilterLabels}
         buttonColumns={["feedback"]}
+        page={page}
+        totalPages={totalPages}
       />
-      <Pagination page={page} totalPages={totalPages} />
     </section>
   );
 }
