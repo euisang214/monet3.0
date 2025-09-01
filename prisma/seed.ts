@@ -87,6 +87,8 @@ async function createCandidates() {
       email: 'euisang214@gmail.com',
       role: Role.CANDIDATE,
       hashedPassword: await bcrypt.hash('candidate123!', 10),
+      firstName: 'Euisang',
+      lastName: 'Kim',
     },
   });
   await prisma.candidateProfile.upsert({
@@ -111,6 +113,8 @@ async function createCandidates() {
       email: 'victoriagehh@gmail.com',
       role: Role.CANDIDATE,
       hashedPassword: await bcrypt.hash('professional123!', 10),
+      firstName: 'Victoria',
+      lastName: 'Gehh',
     },
   });
   await prisma.candidateProfile.upsert({
@@ -134,6 +138,8 @@ async function createCandidates() {
         email: `candidate${i}@example.com`,
         role: Role.CANDIDATE,
         hashedPassword: await bcrypt.hash('candidate123!', 10),
+        firstName: `Candidate${i}`,
+        lastName: `User${i}`,
       },
     });
     await prisma.candidateProfile.create({
@@ -163,6 +169,8 @@ async function createProfessionals() {
       email: 'euisangss@gmail.com',
       role: Role.PROFESSIONAL,
       hashedPassword: await bcrypt.hash('professional123!', 10),
+      firstName: 'Euisang',
+      lastName: 'Song',
     },
   });
   await prisma.professionalProfile.upsert({
@@ -191,6 +199,8 @@ async function createProfessionals() {
         email: `pro${i}@example.com`,
         role: Role.PROFESSIONAL,
         hashedPassword: await bcrypt.hash('professional123!', 10),
+        firstName: `Pro${i}`,
+        lastName: `User${i}`,
       },
     });
     await prisma.professionalProfile.create({
@@ -484,6 +494,8 @@ async function main() {
       email: 'admin@monet.local',
       role: Role.ADMIN,
       hashedPassword: await bcrypt.hash('admin123!', 10),
+      firstName: 'Admin',
+      lastName: 'User',
     },
   });
 
