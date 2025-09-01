@@ -5,6 +5,7 @@ import { useMemo, useState, ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import FilterDropdown from './FilterDropdown';
 import { Card, Button, DataTable, Input } from './ui';
+import Pagination from './Pagination';
 import { ActiveFilters } from '../app/api/filterOptions';
 
 interface LinkValue {
@@ -30,6 +31,8 @@ interface Props {
   buttonColumns?: string[];
   dateFilters?: string[];
   dateFilterLabels?: Record<string, string>;
+  page?: number;
+  totalPages?: number;
 }
 
 export default function DashboardClient({
@@ -41,6 +44,8 @@ export default function DashboardClient({
   buttonColumns = [],
   dateFilters = [],
   dateFilterLabels = {},
+  page,
+  totalPages,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -152,6 +157,9 @@ export default function DashboardClient({
       <Card style={{ padding: 0 }}>
         <DataTable columns={columns as any} rows={tableRows as any} />
       </Card>
+      {typeof page === 'number' && typeof totalPages === 'number' && (
+        <Pagination page={page} totalPages={totalPages} />
+      )}
     </div>
   );
 }

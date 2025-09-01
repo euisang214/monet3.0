@@ -7,7 +7,6 @@ import {
 import { listUsers } from "../../../app/api/users/list";
 import { Role } from "@prisma/client";
 import DashboardClient from "../../../components/DashboardClient";
-import Pagination from "../../../components/Pagination";
 
 export default async function CandidateDashboard({
   searchParams,
@@ -91,8 +90,9 @@ export default async function CandidateDashboard({
         filterOptions={filterOptions}
         initialActive={active}
         buttonColumns={["action"]}
+        page={page}
+        totalPages={totalPages}
       />
-      <Pagination page={page} totalPages={totalPages} />
     </section>
   );
 }

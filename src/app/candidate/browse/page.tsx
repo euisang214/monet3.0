@@ -6,7 +6,6 @@ import {
 } from "../../../app/api/filterOptions";
 import { listUsers } from "../../../app/api/users/list";
 import { Role } from "@prisma/client";
-import Pagination from "../../../components/Pagination";
 
 export default async function Browse({
   searchParams,
@@ -87,8 +86,9 @@ export default async function Browse({
         filterOptions={filterOptions}
         initialActive={active}
         buttonColumns={["action"]}
+        page={page}
+        totalPages={totalPages}
       />
-      <Pagination page={page} totalPages={totalPages} />
     </section>
   );
 }
