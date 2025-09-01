@@ -2,7 +2,7 @@ import { prisma } from "../../../../lib/db";
 
 export async function getProvidedFeedback(userId: string) {
   return prisma.booking.findMany({
-    where: { professionalId: userId, feedback: { not: null } },
+    where: { professionalId: userId, feedback: { isNot: null } },
     include: {
       candidate: {
         include: {
@@ -19,7 +19,7 @@ export async function getPendingFeedback(userId: string) {
   return prisma.booking.findMany({
     where: {
       professionalId: userId,
-      feedback: null,
+      feedback: { is: null },
       status: "completed_pending_feedback",
     },
     include: {
