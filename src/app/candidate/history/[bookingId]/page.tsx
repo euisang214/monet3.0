@@ -12,7 +12,21 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
 
   const feedback = await prisma.feedback.findUnique({
     where: { bookingId: params.bookingId },
-    include: { booking: { select: { candidateId: true, professionalId: true } } },
+    include: {
+      booking: {
+        select: {
+          candidateId: true,
+          professionalId: true,
+          professional: {
+            select: {
+              firstName: true,
+              lastName: true,
+              professionalProfile: { select: { title: true, employer: true } },
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!feedback) {
@@ -28,9 +42,17 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
 
   const extraRatings = feedback.extraCategoryRatings as Record<string, number>;
 
+  const pro = feedback.booking.professional;
+  const name = `${pro.firstName ?? ""} ${pro.lastName ?? ""}`.trim();
+  const profile = pro.professionalProfile;
+  const titleEmployer = profile
+    ? `${profile.title} @ ${profile.employer}`
+    : undefined;
+  const heading = [name, titleEmployer].filter(Boolean).join(", ");
+
   return (
     <section className="col" style={{ gap: 16 }}>
-      <h2>Feedback</h2>
+      <h2>{heading}</h2>
       <Card className="col" style={{ padding: 16, gap: 8 }}>
         <p>
           <strong>Submitted:</strong> {formatDateTime(feedback.submittedAt)}
