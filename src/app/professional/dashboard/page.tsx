@@ -27,36 +27,35 @@ export default async function ProDashboard() {
   ];
 
   return (
-    <div className="grid grid-2">
+    <section className="col" style={{ gap: 16 }}>
+      <h2>Upcoming Calls</h2>
       <DashboardClient
         data={rows}
         columns={columns}
         showFilters={false}
         buttonColumns={["action"]}
       />
-      <Card style={{ padding: 16 }}>
-        <div className="grid grid-2">
-          <div className="card" style={{ padding: 16 }}>
-            <h4>Total Earnings</h4>
-            <div style={{ fontSize: 24 }}>
-              {'$'}{(stats.totalEarnings / 100).toFixed(2)}
-            </div>
+      <div className="grid grid-2">
+        <Card style={{ padding: 16 }}>
+          <h4>Total Earnings</h4>
+          <div style={{ fontSize: 24 }}>
+            {'$'}{(stats.totalEarnings / 100).toFixed(2)}
           </div>
-          <div className="card" style={{ padding: 16 }}>
-            <h4>Response Rate</h4>
-            <div style={{ fontSize: 24 }}>{stats.responseRate}%</div>
-          </div>
-          <div className="card" style={{ padding: 16 }}>
-            <h4>Recent Earnings</h4>
-            <div>{'$'}{(stats.recentEarnings / 100).toFixed(2)}</div>
-          </div>
-          <div className="card" style={{ padding: 16 }}>
-            <h4>Recent Feedback</h4>
-            <p>{stats.recentFeedback ?? "No feedback yet."}</p>
-          </div>
-        </div>
-      </Card>
-    </div>
+        </Card>
+        <Card style={{ padding: 16 }}>
+          <h4>Response Rate</h4>
+          <div style={{ fontSize: 24 }}>{stats.responseRate}%</div>
+        </Card>
+        <Card style={{ padding: 16 }}>
+          <h4>Recent Earnings</h4>
+          <div>{'$'}{(stats.recentEarnings / 100).toFixed(2)}</div>
+        </Card>
+        <Card style={{ padding: 16 }}>
+          <h4>Recent Feedback</h4>
+          <p>{stats.recentFeedback ?? "No feedback yet."}</p>
+        </Card>
+      </div>
+    </section>
   );
 }
 
