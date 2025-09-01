@@ -1,3 +1,4 @@
-import { handlers } from '../../../../../auth';
+export { GET, POST } from '@/auth';
 
-export const { GET, POST } = handlers;
+// Ensure NextAuth handlers remain dynamic to avoid static optimization
+export const dynamic = 'force-dynamic';

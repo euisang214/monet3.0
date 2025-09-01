@@ -1,4 +1,4 @@
-import { auth } from '../../auth';
+import { auth } from '@/auth';
 
 export type Role = 'CANDIDATE' | 'PROFESSIONAL' | 'ADMIN';
 
