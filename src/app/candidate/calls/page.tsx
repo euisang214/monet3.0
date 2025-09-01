@@ -7,18 +7,19 @@ import {
 } from "../../../app/api/filterOptions";
 import { prisma } from "../../../../lib/db";
 import { BookingStatus } from "@prisma/client";
+import type { CSSProperties } from "react";
 
-function statusVariant(status: BookingStatus): "primary" | "danger" | "muted" {
+function statusStyle(status: BookingStatus): CSSProperties {
   switch (status) {
-    case "cancelled":
-    case "refunded":
-      return "danger";
-    case "accepted":
     case "completed":
     case "completed_pending_feedback":
-      return "primary";
+      return { backgroundColor: "var(--accent)", color: "white" };
+    case "accepted":
+      return { backgroundColor: "var(--success)", color: "white" };
+    case "requested":
+      return { backgroundColor: "var(--purple)", color: "white" };
     default:
-      return "muted";
+      return { backgroundColor: "var(--muted)", color: "var(--text-muted)" };
   }
 }
 
@@ -37,6 +38,7 @@ export default async function CallsPage({
   };
 
   const dateFilters = ["After", "Before"];
+  const dateFilterLabels = { After: "Start Date", Before: "End Date" };
   const active: ActiveFilters = {};
   [...Object.keys(filterConfig), ...dateFilters].forEach((key) => {
     const value = searchParams[key];
@@ -97,7 +99,11 @@ export default async function CallsPage({
       firm: b.professional.professionalProfile?.employer ?? "",
       title: b.professional.professionalProfile?.title ?? "",
       days: String(daysSince),
-      status: { label: b.status, variant: statusVariant(b.status) },
+      status: (
+        <span className="badge" style={statusStyle(b.status)}>
+          {b.status}
+        </span>
+      ),
     };
   });
 
@@ -117,8 +123,8 @@ export default async function CallsPage({
         columns={columns}
         filterOptions={filterOptions}
         initialActive={active}
-        buttonColumns={["status"]}
         dateFilters={dateFilters}
+        dateFilterLabels={dateFilterLabels}
       />
     </section>
   );
