@@ -1,7 +1,8 @@
-import { Card, Button } from "../../../components/ui";
+import Link from "next/link";
+import DashboardClient from "../../../components/DashboardClient";
+import { Button, Badge } from "../../../components/ui";
 import { auth } from "@/auth";
 import { getProfessionalRequests } from "../../api/professional/requests";
-import { format } from "date-fns";
 
 export default async function Requests() {
   const session = await auth();
@@ -9,29 +10,51 @@ export default async function Requests() {
 
   const requests = await getProfessionalRequests(session.user.id);
 
+  const rows = requests.map((r) => {
+    const candidate = r.candidate;
+    const profile = candidate.candidateProfile;
+    const name = `${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim() ||
+      candidate.email;
+    const school = profile?.education?.[0]?.school ?? "";
+    const interests = (
+      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        {(profile?.interests ?? []).map((i) => (
+          <Badge key={i}>{i}</Badge>
+        ))}
+      </div>
+    );
+    const activities = (
+      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        {(profile?.activities ?? []).map((a) => (
+          <Badge key={a}>{a}</Badge>
+        ))}
+      </div>
+    );
+    const action = (
+      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        <Button style={{ backgroundColor: "green", color: "white" }}>Accept</Button>
+        <Button variant="danger">Reject</Button>
+        <Link href={`/candidate/detail/${candidate.id}`}>
+          <Button variant="primary">View Details</Button>
+        </Link>
+      </div>
+    );
+    return { name, school, interests, activities, action };
+  });
+
+  const columns = [
+    { key: "name", label: "Name" },
+    { key: "school", label: "School" },
+    { key: "interests", label: "Interests" },
+    { key: "activities", label: "Activities" },
+    { key: "action", label: "" },
+  ];
+
   return (
-    <div className="grid grid-2">
-      <Card style={{ padding: 16 }}>
-        <h3>Requests</h3>
-        <div className="col" style={{ gap: 12 }}>
-          {requests.map((r) => (
-            <div key={r.id} className="row" style={{ justifyContent: 'space-between' }}>
-              <div className="col">
-                <strong>{r.candidate.email}</strong>
-                <span style={{ color: 'var(--text-muted)' }}>
-                  {format(r.startAt, 'PPpp')}
-                </span>
-              </div>
-              <div className="row" style={{ gap: 8 }}>
-                <Button>Accept</Button>
-                <Button variant="muted">Decline</Button>
-              </div>
-            </div>
-          ))}
-          {requests.length === 0 && <p>No pending requests.</p>}
-        </div>
-      </Card>
-    </div>
+    <section className="col" style={{ gap: 16 }}>
+      <h2>Requests</h2>
+      <DashboardClient data={rows} columns={columns} showFilters={false} />
+    </section>
   );
 }
 
