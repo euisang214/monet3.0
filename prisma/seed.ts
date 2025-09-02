@@ -195,7 +195,7 @@ async function createProfessionals() {
       education: { create: [randomEducation()] },
     },
   });
-  out.push(euisangss);
+  out.push({ ...euisangss, priceUSD: 100 });
 
   // additional mock professionals
   for (let i = 1; i <= 9; i++) {
@@ -224,7 +224,7 @@ async function createProfessionals() {
         education: { create: [randomEducation()] },
       },
     });
-    out.push(user);
+    out.push({ ...user, priceUSD: 80 + i });
   }
 
   return out;
@@ -285,6 +285,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
       data: {
         candidateId: candidates[spec.candidateIdx].id,
         professionalId: professionals[spec.professionalIdx].id,
+        priceUSD: professionals[spec.professionalIdx].priceUSD,
         status: BookingStatus.accepted,
         startAt: start,
         endAt: new Date(start.getTime() + 30 * 60 * 1000),
@@ -371,6 +372,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
       data: {
         candidateId: candidates[spec.candidateIdx].id,
         professionalId: professionals[spec.professionalIdx].id,
+        priceUSD: professionals[spec.professionalIdx].priceUSD,
         status: BookingStatus.completed,
         startAt: start,
         endAt: new Date(start.getTime() + 30 * 60 * 1000),
@@ -423,6 +425,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
       data: {
         candidateId: cand.id,
         professionalId: pro.id,
+        priceUSD: pro.priceUSD,
         status: completed ? BookingStatus.completed : BookingStatus.requested,
         startAt: start,
         endAt: new Date(start.getTime() + 30 * 60 * 1000),
@@ -464,6 +467,99 @@ async function createBookings(candidates: any[], professionals: any[]) {
           text: 'Promising candidate who is eager to learn.',
         },
       });
+    }
+  }
+
+  // additional bookings specific to professional euisangss@gmail.com
+  const proEuisang = professionals.find(
+    (p) => p.email === 'euisangss@gmail.com'
+  );
+  if (proEuisang) {
+    // bookings with provided feedback
+    for (let i = 0; i < 10; i++) {
+      const cand = pick(candidates);
+      const start = new Date(Date.now() - (i + 40) * 24 * 60 * 60 * 1000);
+      const booking = await prisma.booking.create({
+        data: {
+          candidateId: cand.id,
+          professionalId: proEuisang.id,
+          priceUSD: proEuisang.priceUSD,
+          status: BookingStatus.completed,
+          startAt: start,
+          endAt: new Date(start.getTime() + 30 * 60 * 1000),
+        },
+      });
+      bookings.push(booking);
+
+      await prisma.payment.create({
+        data: {
+          bookingId: booking.id,
+          amountGross: 10000,
+          platformFee: 2000,
+          escrowHoldId: `pi_provided_${i}`,
+          status: PaymentStatus.released,
+        },
+      });
+
+      await prisma.feedback.create({
+        data: {
+          bookingId: booking.id,
+          starsCategory1: 5,
+          starsCategory2: 5,
+          starsCategory3: 5,
+          extraCategoryRatings: {},
+          wordCount: 60,
+          actions: ['Mock interview', 'Resume review'],
+          text: `Detailed feedback session ${i + 1}.`,
+          submittedAt: new Date(),
+          qcStatus: QCStatus.passed,
+          qcReport: {},
+        },
+      });
+    }
+
+    // bookings pending feedback
+    for (let i = 0; i < 10; i++) {
+      const cand = pick(candidates);
+      const start = new Date(Date.now() - (i + 1) * 24 * 60 * 60 * 1000);
+      const booking = await prisma.booking.create({
+        data: {
+          candidateId: cand.id,
+          professionalId: proEuisang.id,
+          priceUSD: proEuisang.priceUSD,
+          status: BookingStatus.completed_pending_feedback,
+          startAt: start,
+          endAt: new Date(start.getTime() + 30 * 60 * 1000),
+        },
+      });
+      bookings.push(booking);
+
+      await prisma.payment.create({
+        data: {
+          bookingId: booking.id,
+          amountGross: 10000,
+          platformFee: 2000,
+          escrowHoldId: `pi_pending_${i}`,
+          status: PaymentStatus.released,
+        },
+      });
+    }
+
+    // incoming call requests
+    for (let i = 0; i < 10; i++) {
+      const cand = pick(candidates);
+      const start = new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000);
+      const booking = await prisma.booking.create({
+        data: {
+          candidateId: cand.id,
+          professionalId: proEuisang.id,
+          priceUSD: proEuisang.priceUSD,
+          status: BookingStatus.requested,
+          startAt: start,
+          endAt: new Date(start.getTime() + 30 * 60 * 1000),
+        },
+      });
+      bookings.push(booking);
     }
   }
 
