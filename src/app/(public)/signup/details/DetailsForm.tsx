@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input, Button, Select } from '../../../../components/ui';
 
@@ -12,6 +12,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
   const [verificationSent, setVerificationSent] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [employer, setEmployer] = useState('');
@@ -76,23 +77,20 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
     }
   }
 
-  useEffect(() => {
-    if (!verificationSent) return;
-    let timer: ReturnType<typeof setTimeout>;
-    const check = async () => {
-      const res = await fetch('/api/verification/status');
-      const data = await res.json().catch(() => null);
-      if (data?.verified) {
-        setEmailVerified(true);
-      } else {
-        timer = setTimeout(check, 2000);
-      }
-    };
-    check();
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [verificationSent]);
+  async function checkVerification() {
+    setVerificationError(null);
+    setChecking(true);
+    const res = await fetch('/api/verification/status', { cache: 'no-store' });
+    setChecking(false);
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.verified) {
+      setEmailVerified(true);
+    } else if (!res.ok) {
+      setVerificationError('Failed to check verification');
+    } else {
+      setVerificationError('Email not yet verified');
+    }
+  }
 
   return (
     <form onSubmit={handleSubmit} className="col" style={{ gap: 12 }}>
@@ -167,17 +165,26 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
               setEmailVerified(false);
             }}
           />
-          <Button
-            type="button"
-            onClick={requestVerification}
-            disabled={!corporateEmail || verifying || emailVerified}
-          >
-            {emailVerified
-              ? 'Email verified'
-              : verificationSent
-                ? 'Verification sent'
-                : 'Verify work email'}
-          </Button>
+          <div className="row" style={{ gap: 8 }}>
+            <Button
+              type="button"
+              onClick={requestVerification}
+              disabled={!corporateEmail || verifying || emailVerified}
+            >
+              {emailVerified
+                ? 'Email verified'
+                : verificationSent
+                  ? 'Verification sent'
+                  : 'Verify work email'}
+            </Button>
+            <Button
+              type="button"
+              onClick={checkVerification}
+              disabled={!verificationSent || checking || emailVerified}
+            >
+              {checking ? 'Checking...' : 'Check status'}
+            </Button>
+          </div>
           {verificationError && <p style={{ color: 'red' }}>{verificationError}</p>}
         </>
       )}
