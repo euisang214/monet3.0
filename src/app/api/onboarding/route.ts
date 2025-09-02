@@ -27,14 +27,34 @@ export async function POST(req: NextRequest) {
   if (role === 'CANDIDATE') {
     const schema = base.extend({
       resumeUrl: z.string().url().optional(),
-      interests: z.string().optional(),
-      activities: z.string().optional(),
+      interests: z.array(z.string().min(1)).min(1),
+      activities: z.array(z.string().min(1)).min(1),
+      experience: z
+        .array(
+          z.object({
+            firm: z.string().min(1),
+            title: z.string().min(1),
+            startDate: z.string().min(1),
+            endDate: z.string().min(1),
+          }),
+        )
+        .min(1),
+      education: z
+        .array(
+          z.object({
+            school: z.string().min(1),
+            title: z.string().min(1),
+            startDate: z.string().min(1),
+            endDate: z.string().min(1),
+          }),
+        )
+        .min(1),
     });
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
     }
-    const { resumeUrl, interests, activities } = parsed.data;
+    const { resumeUrl, interests, activities, experience, education } = parsed.data;
     await prisma.user.update({
       where: { id: session.user.id },
       data: { role, firstName, lastName },
@@ -43,14 +63,48 @@ export async function POST(req: NextRequest) {
       where: { userId: session.user.id },
       update: {
         resumeUrl: resumeUrl || undefined,
-        interests: interests ? interests.split(',').map((s) => s.trim()) : [],
-        activities: activities ? activities.split(',').map((s) => s.trim()) : [],
+        interests,
+        activities,
+        experience: {
+          deleteMany: {},
+          create: experience.map((e) => ({
+            firm: e.firm,
+            title: e.title,
+            startDate: new Date(e.startDate),
+            endDate: new Date(e.endDate),
+          })),
+        },
+        education: {
+          deleteMany: {},
+          create: education.map((e) => ({
+            school: e.school,
+            title: e.title,
+            startDate: new Date(e.startDate),
+            endDate: new Date(e.endDate),
+          })),
+        },
       },
       create: {
         userId: session.user.id,
         resumeUrl: resumeUrl || undefined,
-        interests: interests ? interests.split(',').map((s) => s.trim()) : [],
-        activities: activities ? activities.split(',').map((s) => s.trim()) : [],
+        interests,
+        activities,
+        experience: {
+          create: experience.map((e) => ({
+            firm: e.firm,
+            title: e.title,
+            startDate: new Date(e.startDate),
+            endDate: new Date(e.endDate),
+          })),
+        },
+        education: {
+          create: education.map((e) => ({
+            school: e.school,
+            title: e.title,
+            startDate: new Date(e.startDate),
+            endDate: new Date(e.endDate),
+          })),
+        },
       },
     });
     await ensureCustomer(
@@ -65,12 +119,44 @@ export async function POST(req: NextRequest) {
       bio: z.string(),
       priceUSD: z.number(),
       corporateEmail: z.string().email(),
+      interests: z.array(z.string().min(1)).min(1),
+      activities: z.array(z.string().min(1)).min(1),
+      experience: z
+        .array(
+          z.object({
+            firm: z.string().min(1),
+            title: z.string().min(1),
+            startDate: z.string().min(1),
+            endDate: z.string().min(1),
+          }),
+        )
+        .min(1),
+      education: z
+        .array(
+          z.object({
+            school: z.string().min(1),
+            title: z.string().min(1),
+            startDate: z.string().min(1),
+            endDate: z.string().min(1),
+          }),
+        )
+        .min(1),
     });
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
     }
-    const { employer, title, bio, priceUSD, corporateEmail } = parsed.data;
+    const {
+      employer,
+      title,
+      bio,
+      priceUSD,
+      corporateEmail,
+      interests,
+      activities,
+      experience,
+      education,
+    } = parsed.data;
     const userRecord = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { corporateEmailVerified: true },
@@ -93,6 +179,26 @@ export async function POST(req: NextRequest) {
         bio,
         priceUSD,
         corporateEmail,
+        interests,
+        activities,
+        experience: {
+          deleteMany: {},
+          create: experience.map((e) => ({
+            firm: e.firm,
+            title: e.title,
+            startDate: new Date(e.startDate),
+            endDate: new Date(e.endDate),
+          })),
+        },
+        education: {
+          deleteMany: {},
+          create: education.map((e) => ({
+            school: e.school,
+            title: e.title,
+            startDate: new Date(e.startDate),
+            endDate: new Date(e.endDate),
+          })),
+        },
       },
       create: {
         userId: session.user.id,
@@ -101,6 +207,24 @@ export async function POST(req: NextRequest) {
         bio,
         priceUSD,
         corporateEmail,
+        interests,
+        activities,
+        experience: {
+          create: experience.map((e) => ({
+            firm: e.firm,
+            title: e.title,
+            startDate: new Date(e.startDate),
+            endDate: new Date(e.endDate),
+          })),
+        },
+        education: {
+          create: education.map((e) => ({
+            school: e.school,
+            title: e.title,
+            startDate: new Date(e.startDate),
+            endDate: new Date(e.endDate),
+          })),
+        },
       },
     });
     const accountId = await ensureConnectedAccount(
