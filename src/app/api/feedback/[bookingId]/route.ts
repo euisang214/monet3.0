@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/db';
 import { auth } from '@/auth';
-import { enqueueFeedbackQC } from '../../../../../lib/queues';
 
 export async function GET(_req: NextRequest, { params }: { params: { bookingId: string } }) {
   const session = await auth();
@@ -53,6 +52,7 @@ export async function POST(req: NextRequest, { params }:{params:{bookingId:strin
     create: { bookingId: params.bookingId, starsCategory1, starsCategory2, starsCategory3, actions, text, wordCount, extraCategoryRatings, submittedAt: new Date(), qcStatus: 'revise' },
   });
   // Enqueue QC
+  const { enqueueFeedbackQC } = await import('../../../../../lib/queues');
   await enqueueFeedbackQC(params.bookingId);
   return NextResponse.json({ ok: true, feedback: fb });
 }

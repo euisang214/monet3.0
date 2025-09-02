@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { enqueueFeedbackQC } from '../../../../../../lib/queues';
 
 export async function POST(_: Request, { params }:{params:{bookingId:string}}){
+  const { enqueueFeedbackQC } = await import('../../../../../../lib/queues');
   await enqueueFeedbackQC(params.bookingId);
   return NextResponse.json({ ok: true });
 }
