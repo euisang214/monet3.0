@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   });
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
+    return NextResponse.json({ error: 'Choose a role; minimum 6 character password' }, { status: 400 });
   }
   const { email, password, role } = parsed.data;
   const existing = await prisma.user.findUnique({ where: { email } });
