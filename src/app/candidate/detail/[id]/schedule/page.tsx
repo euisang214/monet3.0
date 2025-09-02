@@ -1,17 +1,19 @@
-'use client';
-import { useState } from 'react';
-import AvailabilityCalendar from '../../../../../components/AvailabilityCalendar';
-import { Card, Input } from '../../../../../components/ui';
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import AvailabilityCalendar from "../../../../../components/AvailabilityCalendar";
+import { Card, Input } from "../../../../../components/ui";
 
 export default function Schedule({ params }: { params: { id: string } }) {
   const [weeks, setWeeks] = useState(2);
+  const router = useRouter();
 
-  const handleConfirm = async (slots: any[]) => {
-    await fetch('/api/bookings/request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ professionalId: params.id, slots, weeks }),
+  const handleConfirm = (slots: any[]) => {
+    const qs = new URLSearchParams({
+      slots: JSON.stringify(slots),
+      weeks: String(weeks),
     });
+    router.push(`/candidate/detail/${params.id}/schedule/checkout?${qs.toString()}`);
   };
 
   return (
