@@ -7,6 +7,8 @@ export default function SignUpForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState<'CANDIDATE' | 'PROFESSIONAL' | ''>('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   async function handleOAuth(provider: 'google' | 'linkedin') {
     const callbackUrl = role ? `/signup/details?role=${role}` : '/signup/details';
@@ -32,7 +34,7 @@ export default function SignUpForm() {
       await signIn('credentials', {
         email,
         password,
-        callbackUrl: '/signup/details',
+        callbackUrl: `/signup/details?role=${role}`,
       });
     } else {
       const data = await res.json().catch(() => null);
@@ -52,10 +54,26 @@ export default function SignUpForm() {
         <option value="CANDIDATE">Candidate</option>
         <option value="PROFESSIONAL">Professional</option>
       </Select>
-      <Input name="email" type="email" placeholder="Email" required />
-      <Input name="password" type="password" placeholder="Password" required />
+      <Input
+        name="email"
+        type="email"
+        placeholder="Email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <Input
+        name="password"
+        type="password"
+        placeholder="Password"
+        required
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <Button type="submit" disabled={loading}>Create Account</Button>
+      <Button type="submit" disabled={loading || !role || !email || !password}>
+        Create Account
+      </Button>
       <Button
         type="button"
         onClick={() => handleOAuth('google')}

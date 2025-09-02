@@ -97,7 +97,7 @@ model ProfessionalProfile {
   priceUSD          Int
   availabilityPrefs Json         @default("{}")
   verifiedAt        DateTime?
-  corporateEmail    String?
+  corporateEmail    String
   experience        Experience[] @relation("ProfessionalExperience")
   education         Education[]  @relation("ProfessionalEducation")
   interests         String[]

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input, Button, Select } from '../../../../components/ui';
 
@@ -7,6 +7,17 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
   const [role, setRole] = useState<'CANDIDATE' | 'PROFESSIONAL'>(initialRole);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [corporateEmail, setCorporateEmail] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [employer, setEmployer] = useState('');
+  const [title, setTitle] = useState('');
+  const [bio, setBio] = useState('');
+  const [priceUSD, setPriceUSD] = useState('');
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -27,6 +38,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
       body.title = formData.get('title');
       body.bio = formData.get('bio');
       body.priceUSD = Number(formData.get('priceUSD'));
+      body.corporateEmail = corporateEmail;
     }
     setLoading(true);
     const res = await fetch('/api/onboarding', {
@@ -47,6 +59,41 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
     }
   }
 
+  async function requestVerification() {
+    setVerificationError(null);
+    setVerifying(true);
+    const res = await fetch('/api/verification/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ corporateEmail }),
+    });
+    setVerifying(false);
+    if (res.ok) {
+      setVerificationSent(true);
+    } else {
+      const data = await res.json().catch(() => null);
+      setVerificationError(data?.error || 'Failed to send verification');
+    }
+  }
+
+  useEffect(() => {
+    if (!verificationSent) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const check = async () => {
+      const res = await fetch('/api/verification/status');
+      const data = await res.json().catch(() => null);
+      if (data?.verified) {
+        setEmailVerified(true);
+      } else {
+        timer = setTimeout(check, 2000);
+      }
+    };
+    check();
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [verificationSent]);
+
   return (
     <form onSubmit={handleSubmit} className="col" style={{ gap: 12 }}>
       <Select value={role} onChange={(e) => setRole(e.target.value as 'CANDIDATE' | 'PROFESSIONAL')}>
@@ -54,8 +101,20 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
         <option value="PROFESSIONAL">Professional</option>
       </Select>
 
-      <Input name="firstName" placeholder="First name" required />
-      <Input name="lastName" placeholder="Last name" required />
+      <Input
+        name="firstName"
+        placeholder="First name"
+        required
+        value={firstName}
+        onChange={(e) => setFirstName(e.target.value)}
+      />
+      <Input
+        name="lastName"
+        placeholder="Last name"
+        required
+        value={lastName}
+        onChange={(e) => setLastName(e.target.value)}
+      />
 
       {role === 'CANDIDATE' ? (
         <>
@@ -65,15 +124,76 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
         </>
       ) : (
         <>
-          <Input name="employer" placeholder="Employer" required />
-          <Input name="title" placeholder="Title" required />
-          <textarea name="bio" placeholder="Bio" className="input" required />
-          <Input name="priceUSD" type="number" placeholder="Price USD" required />
+          <Input
+            name="employer"
+            placeholder="Employer"
+            required
+            value={employer}
+            onChange={(e) => setEmployer(e.target.value)}
+          />
+          <Input
+            name="title"
+            placeholder="Title"
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <textarea
+            name="bio"
+            placeholder="Bio"
+            className="input"
+            required
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+          />
+          <Input
+            name="priceUSD"
+            type="number"
+            placeholder="Price USD"
+            required
+            value={priceUSD}
+            onChange={(e) => setPriceUSD(e.target.value)}
+          />
+          <Input
+            name="corporateEmail"
+            type="email"
+            placeholder="Work email"
+            required
+            value={corporateEmail}
+            onChange={(e) => {
+              setCorporateEmail(e.target.value);
+              setVerificationSent(false);
+              setVerificationError(null);
+              setEmailVerified(false);
+            }}
+          />
+          <Button
+            type="button"
+            onClick={requestVerification}
+            disabled={!corporateEmail || verifying || emailVerified}
+          >
+            {emailVerified
+              ? 'Email verified'
+              : verificationSent
+                ? 'Verification sent'
+                : 'Verify work email'}
+          </Button>
+          {verificationError && <p style={{ color: 'red' }}>{verificationError}</p>}
         </>
       )}
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <Button type="submit" disabled={loading}>Continue</Button>
+      <Button
+        type="submit"
+        disabled={
+          loading ||
+          (role === 'CANDIDATE'
+            ? !(firstName && lastName)
+            : !(firstName && lastName && employer && title && bio && priceUSD && corporateEmail && emailVerified))
+        }
+      >
+        Continue
+      </Button>
     </form>
   );
 }
