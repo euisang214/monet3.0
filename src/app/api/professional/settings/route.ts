@@ -45,7 +45,6 @@ export async function DELETE() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   await prisma.user.delete({ where: { id: session.user.id } });
-  await prisma.professionalProfile.delete({ where: { userId: session.user.id } });
   return NextResponse.json({ ok: true });
 }
 
