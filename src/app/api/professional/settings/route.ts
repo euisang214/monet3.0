@@ -45,7 +45,10 @@ export async function DELETE() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   await prisma.user.delete({ where: { id: session.user.id } });
-  await prisma.professionalProfile.delete({ where: { userId: session.user.id } });
+  // ProfessionalProfile is linked to User with onDelete: Cascade, so removing the
+  // user automatically removes the professional profile. Trying to delete it
+  // separately after the user has been deleted triggers a "Record to delete does
+  // not exist" error, preventing account deletion.
   return NextResponse.json({ ok: true });
 }
 
