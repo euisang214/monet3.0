@@ -80,6 +80,16 @@ const firstNames = ['Alex', 'Jamie', 'Taylor', 'Jordan', 'Casey', 'Riley', 'Morg
 const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Martinez', 'Hernandez'];
 const randomName = () => ({ firstName: pick(firstNames), lastName: pick(lastNames) });
 
+// generate a simple corporate-style email based on name and firm
+const corporateEmailFor = (
+  firstName: string,
+  lastName: string,
+  employer: string,
+) => {
+  const domain = employer.toLowerCase().replace(/[^a-z]/g, '') + '.com';
+  return `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${domain}`;
+};
+
 async function createCandidates() {
   const out = [];
 
@@ -179,12 +189,13 @@ async function createProfessionals() {
       lastName: 'Seo',
     },
   });
+  const euisangEmployer = pick(firms);
   await prisma.professionalProfile.upsert({
     where: { userId: euisangss.id },
     update: {},
     create: {
       userId: euisangss.id,
-      employer: pick(firms),
+      employer: euisangEmployer,
       title: pick(jobTitles),
       bio: 'Experienced finance professional with transaction and coverage background.',
       priceUSD: 100,
@@ -193,7 +204,7 @@ async function createProfessionals() {
       activities: [pick(professionalActivities)],
       experience: { create: [randomExperience(), randomExperience()] },
       education: { create: [randomEducation()] },
-      corporateEmail: euisangss.email,
+      corporateEmail: corporateEmailFor('Euisang', 'Seo', euisangEmployer),
     },
   });
   out.push({ ...euisangss, priceUSD: 100 });
@@ -211,10 +222,11 @@ async function createProfessionals() {
         lastName,
       },
     });
+    const employer = pick(firms);
     await prisma.professionalProfile.create({
       data: {
         userId: user.id,
-        employer: pick(firms),
+        employer,
         title: pick(jobTitles),
         bio: 'Experienced finance professional with transaction and coverage background.',
         priceUSD: 80 + i,
@@ -223,7 +235,7 @@ async function createProfessionals() {
         activities: [pick(professionalActivities)],
         experience: { create: [randomExperience(), randomExperience()] },
         education: { create: [randomEducation()] },
-        corporateEmail: user.email,
+        corporateEmail: corporateEmailFor(firstName, lastName, employer),
       },
     });
     out.push({ ...user, priceUSD: 80 + i });
