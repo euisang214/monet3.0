@@ -82,7 +82,7 @@ export default function SettingsForm() {
 
   const handleDelete = async () => {
     const res = await fetch('/api/candidate/settings', { method: 'DELETE' });
-    if (res.ok) {
+    if (res.ok) { 
       await signOut({ redirectTo: '/' });
     } else {
       alert('Failed to delete account');
