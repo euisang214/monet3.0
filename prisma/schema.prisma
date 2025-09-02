@@ -151,6 +151,7 @@ model Booking {
   status           BookingStatus
   startAt          DateTime
   endAt            DateTime
+  priceUSD         Int?
   zoomMeetingId    String?
   zoomJoinUrl      String?
   calendarEventIds Json          @default("[]")

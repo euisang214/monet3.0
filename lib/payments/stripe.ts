@@ -17,13 +17,14 @@ export const PLATFORM_FEE = Number(process.env.PLATFORM_FEE || '0');
  */
 export async function createCheckoutIntent(
   bookingId: string,
-  amountUSD: number,
   opts: { takeRate?: number; customerId?: string } = {},
 ) {
   const { takeRate = PLATFORM_FEE, customerId } = opts;
-  const amount = Math.round(amountUSD * 100);
   const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
   if (!booking) throw new Error('booking not found');
+  if (booking.priceUSD == null)
+    throw new Error('booking price not set');
+  const amount = Math.round(booking.priceUSD * 100);
 
   const pi = await stripe.paymentIntents.create({
     amount,
