@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { signIn, type SignInResponse } from 'next-auth/react';
+import { z } from 'zod';
 import { Input, Button } from '../../../components/ui';
 
 export default function LoginForm() {
@@ -8,7 +9,8 @@ export default function LoginForm() {
   const [email, setEmail] = useState('');
 
   async function getCallbackUrl(email: string) {
-    if (!email) return '/candidate/dashboard';
+    const schema = z.string().email();
+    if (!email || !schema.safeParse(email).success) return '/signup';
     try {
       const res = await fetch(`/api/auth/role?email=${encodeURIComponent(email)}`);
       if (!res.ok) return '/candidate/dashboard';
