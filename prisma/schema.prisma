@@ -158,8 +158,8 @@ model Booking {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  candidate          User                @relation("CandidateBookings", fields: [candidateId], references: [id])
-  professional       User                @relation("ProfessionalBookings", fields: [professionalId], references: [id])
+  candidate          User                @relation("CandidateBookings", fields: [candidateId], references: [id], onDelete: Cascade)
+  professional       User                @relation("ProfessionalBookings", fields: [professionalId], references: [id], onDelete: Cascade)
   payment            Payment?
   feedback           Feedback?
   professionalReview ProfessionalReview?
@@ -276,7 +276,7 @@ model AuditLog {
   metadata    Json     @default("{}")
   createdAt   DateTime @default(now())
 
-  actor User? @relation("AuditActor", fields: [actorUserId], references: [id])
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: Cascade)
 }
 
 // Postgres view for listing cards
