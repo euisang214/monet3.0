@@ -64,12 +64,23 @@ export async function POST(req: NextRequest) {
       title: z.string(),
       bio: z.string(),
       priceUSD: z.number(),
+      corporateEmail: z.string().email(),
     });
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
     }
-    const { employer, title, bio, priceUSD } = parsed.data;
+    const { employer, title, bio, priceUSD, corporateEmail } = parsed.data;
+    const userRecord = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { corporateEmailVerified: true },
+    });
+    if (!userRecord?.corporateEmailVerified) {
+      return NextResponse.json(
+        { error: 'email_not_verified' },
+        { status: 400 },
+      );
+    }
     await prisma.user.update({
       where: { id: session.user.id },
       data: { role, firstName, lastName },
@@ -81,6 +92,7 @@ export async function POST(req: NextRequest) {
         title,
         bio,
         priceUSD,
+        corporateEmail,
       },
       create: {
         userId: session.user.id,
@@ -88,6 +100,7 @@ export async function POST(req: NextRequest) {
         title,
         bio,
         priceUSD,
+        corporateEmail,
       },
     });
     const accountId = await ensureConnectedAccount(

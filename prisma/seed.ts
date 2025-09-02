@@ -193,6 +193,7 @@ async function createProfessionals() {
       activities: [pick(professionalActivities)],
       experience: { create: [randomExperience(), randomExperience()] },
       education: { create: [randomEducation()] },
+      corporateEmail: euisangss.email,
     },
   });
   out.push({ ...euisangss, priceUSD: 100 });
@@ -222,6 +223,7 @@ async function createProfessionals() {
         activities: [pick(professionalActivities)],
         experience: { create: [randomExperience(), randomExperience()] },
         education: { create: [randomEducation()] },
+        corporateEmail: user.email,
       },
     });
     out.push({ ...user, priceUSD: 80 + i });
