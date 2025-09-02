@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { signOut } from 'next-auth/react';
 import { Card, Button, Input } from '../../../components/ui';
 import StripeSection from './StripeSection';
 
@@ -49,8 +50,12 @@ export default function SettingsForm() {
   const handleCancel = () => setForm(initial);
 
   const handleDelete = async () => {
-    await fetch('/api/professional/settings', { method: 'DELETE' });
-    alert('Account deleted');
+    const res = await fetch('/api/professional/settings', { method: 'DELETE' });
+    if (res.ok) {
+      await signOut({ redirectTo: '/' });
+    } else {
+      alert('Failed to delete account');
+    }
   };
 
   return (

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { signOut } from 'next-auth/react';
 import { Card, Button, Input } from '../../../components/ui';
 import ResumePreview from '../../../components/ResumePreview';
 import BusyTimes, { BusyRange } from './BusyTimes';
@@ -80,8 +81,12 @@ export default function SettingsForm() {
   };
 
   const handleDelete = async () => {
-    await fetch('/api/candidate/settings', { method: 'DELETE' });
-    alert('Account deleted');
+    const res = await fetch('/api/candidate/settings', { method: 'DELETE' });
+    if (res.ok) {
+      await signOut({ redirectTo: '/' });
+    } else {
+      alert('Failed to delete account');
+    }
   };
 
   return (
