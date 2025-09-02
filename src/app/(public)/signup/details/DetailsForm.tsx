@@ -18,26 +18,97 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
   const [title, setTitle] = useState('');
   const [bio, setBio] = useState('');
   const [priceUSD, setPriceUSD] = useState('');
+  const [resumeUrl, setResumeUrl] = useState('');
+  const [interests, setInterests] = useState<string[]>(['']);
+  const [activities, setActivities] = useState<string[]>(['']);
+  const [experience, setExperience] = useState<
+    { firm: string; title: string; startDate: string; endDate: string }[]
+  >([{ firm: '', title: '', startDate: '', endDate: '' }]);
+  const [education, setEducation] = useState<
+    { school: string; title: string; startDate: string; endDate: string }[]
+  >([{ school: '', title: '', startDate: '', endDate: '' }]);
   const router = useRouter();
+
+  const addInterest = () => setInterests([...interests, '']);
+  const updateInterest = (i: number, val: string) => {
+    const copy = [...interests];
+    copy[i] = val;
+    setInterests(copy);
+  };
+  const removeInterest = (i: number) =>
+    setInterests(interests.filter((_, idx) => idx !== i));
+
+  const addActivity = () => setActivities([...activities, '']);
+  const updateActivity = (i: number, val: string) => {
+    const copy = [...activities];
+    copy[i] = val;
+    setActivities(copy);
+  };
+  const removeActivity = (i: number) =>
+    setActivities(activities.filter((_, idx) => idx !== i));
+
+  const addExperience = () =>
+    setExperience([
+      ...experience,
+      { firm: '', title: '', startDate: '', endDate: '' },
+    ]);
+  const updateExperience = (
+    i: number,
+    field: 'firm' | 'title' | 'startDate' | 'endDate',
+    val: string,
+  ) => {
+    const copy = [...experience];
+    copy[i] = { ...copy[i], [field]: val };
+    setExperience(copy);
+  };
+  const removeExperience = (i: number) =>
+    setExperience(experience.filter((_, idx) => idx !== i));
+
+  const addEducation = () =>
+    setEducation([
+      ...education,
+      { school: '', title: '', startDate: '', endDate: '' },
+    ]);
+  const updateEducation = (
+    i: number,
+    field: 'school' | 'title' | 'startDate' | 'endDate',
+    val: string,
+  ) => {
+    const copy = [...education];
+    copy[i] = { ...copy[i], [field]: val };
+    setEducation(copy);
+  };
+  const removeEducation = (i: number) =>
+    setEducation(education.filter((_, idx) => idx !== i));
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const formData = new FormData(form);
     const body: any = {
       role,
-      firstName: formData.get('firstName'),
-      lastName: formData.get('lastName'),
+      firstName,
+      lastName,
+      interests: interests.map((s) => s.trim()),
+      activities: activities.map((s) => s.trim()),
+      experience: experience.map((e) => ({
+        firm: e.firm,
+        title: e.title,
+        startDate: e.startDate,
+        endDate: e.endDate,
+      })),
+      education: education.map((e) => ({
+        school: e.school,
+        title: e.title,
+        startDate: e.startDate,
+        endDate: e.endDate,
+      })),
     };
     if (role === 'CANDIDATE') {
-      body.resumeUrl = formData.get('resumeUrl') || undefined;
-      body.interests = formData.get('interests') || '';
-      body.activities = formData.get('activities') || '';
+      body.resumeUrl = resumeUrl || undefined;
     } else {
-      body.employer = formData.get('employer');
-      body.title = formData.get('title');
-      body.bio = formData.get('bio');
-      body.priceUSD = Number(formData.get('priceUSD'));
+      body.employer = employer;
+      body.title = title;
+      body.bio = bio;
+      body.priceUSD = Number(priceUSD);
       body.corporateEmail = corporateEmail;
     }
     setLoading(true);
@@ -94,6 +165,37 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
     };
   }, [verificationSent]);
 
+  const interestsValid =
+    interests.length > 0 && interests.every((s) => s.trim());
+  const activitiesValid =
+    activities.length > 0 && activities.every((s) => s.trim());
+  const experienceValid =
+    experience.length > 0 &&
+    experience.every((e) => e.firm && e.title && e.startDate && e.endDate);
+  const educationValid =
+    education.length > 0 &&
+    education.every((e) => e.school && e.title && e.startDate && e.endDate);
+  const baseValid =
+    firstName &&
+    lastName &&
+    interestsValid &&
+    activitiesValid &&
+    experienceValid &&
+    educationValid;
+  const canSubmit =
+    role === 'CANDIDATE'
+      ? Boolean(baseValid)
+      : Boolean(
+          baseValid &&
+            employer &&
+            title &&
+            bio &&
+            priceUSD &&
+            corporateEmail &&
+            emailVerified,
+        );
+  const submitDisabled = loading || !canSubmit;
+
   return (
     <form onSubmit={handleSubmit} className="col" style={{ gap: 12 }}>
       <Select value={role} onChange={(e) => setRole(e.target.value as 'CANDIDATE' | 'PROFESSIONAL')}>
@@ -117,11 +219,12 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
       />
 
       {role === 'CANDIDATE' ? (
-        <>
-          <Input name="resumeUrl" placeholder="Resume URL" />
-          <Input name="interests" placeholder="Interests (comma separated)" />
-          <Input name="activities" placeholder="Activities (comma separated)" />
-        </>
+        <Input
+          name="resumeUrl"
+          placeholder="Resume URL"
+          value={resumeUrl}
+          onChange={(e) => setResumeUrl(e.target.value)}
+        />
       ) : (
         <>
           <Input
@@ -182,15 +285,131 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
         </>
       )}
 
+      <div>Interests</div>
+      {interests.map((interest, i) => (
+        <div key={i} className="row" style={{ gap: 8 }}>
+          <Input
+            placeholder="Interest"
+            required
+            value={interest}
+            onChange={(e) => updateInterest(i, e.target.value)}
+          />
+          {interests.length > 1 && (
+            <Button type="button" onClick={() => removeInterest(i)}>
+              Remove
+            </Button>
+          )}
+        </div>
+      ))}
+      <Button type="button" onClick={addInterest}>
+        Add Interest
+      </Button>
+
+      <div>Activities</div>
+      {activities.map((activity, i) => (
+        <div key={i} className="row" style={{ gap: 8 }}>
+          <Input
+            placeholder="Activity"
+            required
+            value={activity}
+            onChange={(e) => updateActivity(i, e.target.value)}
+          />
+          {activities.length > 1 && (
+            <Button type="button" onClick={() => removeActivity(i)}>
+              Remove
+            </Button>
+          )}
+        </div>
+      ))}
+      <Button type="button" onClick={addActivity}>
+        Add Activity
+      </Button>
+
+      <div>Experience</div>
+      {experience.map((exp, i) => (
+        <div key={i} className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <Input
+            placeholder="Firm"
+            required
+            value={exp.firm}
+            onChange={(e) => updateExperience(i, 'firm', e.target.value)}
+          />
+          <Input
+            placeholder="Title"
+            required
+            value={exp.title}
+            onChange={(e) => updateExperience(i, 'title', e.target.value)}
+          />
+          <Input
+            type="date"
+            placeholder="Start date"
+            required
+            value={exp.startDate}
+            onChange={(e) => updateExperience(i, 'startDate', e.target.value)}
+          />
+          <Input
+            type="date"
+            placeholder="End date"
+            required
+            value={exp.endDate}
+            onChange={(e) => updateExperience(i, 'endDate', e.target.value)}
+          />
+          {experience.length > 1 && (
+            <Button type="button" onClick={() => removeExperience(i)}>
+              Remove
+            </Button>
+          )}
+        </div>
+      ))}
+      <Button type="button" onClick={addExperience}>
+        Add Experience
+      </Button>
+
+      <div>Education</div>
+      {education.map((edu, i) => (
+        <div key={i} className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <Input
+            placeholder="School"
+            required
+            value={edu.school}
+            onChange={(e) => updateEducation(i, 'school', e.target.value)}
+          />
+          <Input
+            placeholder="Title"
+            required
+            value={edu.title}
+            onChange={(e) => updateEducation(i, 'title', e.target.value)}
+          />
+          <Input
+            type="date"
+            placeholder="Start date"
+            required
+            value={edu.startDate}
+            onChange={(e) => updateEducation(i, 'startDate', e.target.value)}
+          />
+          <Input
+            type="date"
+            placeholder="End date"
+            required
+            value={edu.endDate}
+            onChange={(e) => updateEducation(i, 'endDate', e.target.value)}
+          />
+          {education.length > 1 && (
+            <Button type="button" onClick={() => removeEducation(i)}>
+              Remove
+            </Button>
+          )}
+        </div>
+      ))}
+      <Button type="button" onClick={addEducation}>
+        Add Education
+      </Button>
+
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <Button
         type="submit"
-        disabled={
-          loading ||
-          (role === 'CANDIDATE'
-            ? !(firstName && lastName)
-            : !(firstName && lastName && employer && title && bio && priceUSD && corporateEmail && emailVerified))
-        }
+        disabled={submitDisabled}
+        variant={submitDisabled ? 'muted' : 'primary'}
       >
         Continue
       </Button>
