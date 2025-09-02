@@ -90,7 +90,10 @@ export async function DELETE() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   await prisma.user.delete({ where: { id: session.user.id } });
-  await prisma.candidateProfile.delete({ where: { userId: session.user.id } });
+  // CandidateProfile has an onDelete: Cascade relation with User, so deleting the
+  // user will automatically remove the candidate profile. Attempting to delete
+  // it explicitly after the user has been removed results in a "Record to
+  // delete does not exist" error, which caused the delete account button to fail.
   return NextResponse.json({ ok: true });
 }
 
