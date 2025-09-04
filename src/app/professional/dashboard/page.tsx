@@ -32,7 +32,7 @@ export default async function ProDashboard({
     { key: "candidate", label: "Candidate" },
     { key: "date", label: "Date" },
     { key: "time", label: "Time" },
-    { key: "action", label: "" },
+    { key: "action", label: "Zoom" },
   ];
 
   return (

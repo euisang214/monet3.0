@@ -16,7 +16,7 @@ export default function RequestActions({ bookingId, candidateId }: { bookingId: 
   };
 
   return (
-    <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+    <div className="row" style={{ gap: 8, flexWrap: 'nowrap' }}>
       <Link href={`/professional/requests/${bookingId}`}>
         <Button style={{ backgroundColor: 'green', color: 'white' }}>Accept</Button>
       </Link>

@@ -35,7 +35,7 @@ function DataTableComponent<T extends Record<string, React.ReactNode>>({
   rows: T[];
 }) {
   return (
-    <table className="table" style={{ tableLayout: 'fixed' }}>
+    <table className="table">
       <thead>
         <tr>
           {columns.map((c) => (
