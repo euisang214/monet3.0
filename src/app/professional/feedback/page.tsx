@@ -67,16 +67,6 @@ export default async function FeedbackPage({
 
   return (
     <section className="col" style={{ gap: 16 }}>
-      <h2>Provided Feedback</h2>
-      <DashboardClient
-        data={providedRows}
-        columns={providedColumns}
-        showFilters={false}
-        buttonColumns={["feedback"]}
-        page={providedPage}
-        totalPages={providedTotalPages}
-        pageParam="providedPage"
-      />
       <h2>Pending Feedback</h2>
       <DashboardClient
         data={pendingRows}
@@ -86,6 +76,16 @@ export default async function FeedbackPage({
         page={pendingPage}
         totalPages={pendingTotalPages}
         pageParam="pendingPage"
+      />
+      <h2>Provided Feedback</h2>
+      <DashboardClient
+        data={providedRows}
+        columns={providedColumns}
+        showFilters={false}
+        buttonColumns={["feedback"]}
+        page={providedPage}
+        totalPages={providedTotalPages}
+        pageParam="providedPage"
       />
     </section>
   );

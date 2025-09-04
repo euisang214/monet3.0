@@ -75,11 +75,13 @@ export default async function CandidateDashboard({
   }));
 
   const columns = [
-    { key: "name", label: "Name" },
+    { key: "firm", label: "Firm" },
     { key: "title", label: "Title" },
     { key: "availability", label: "Availability" },
     { key: "action", label: "" },
   ];
+
+  console.log(rows);
 
   return (
     <section className="col" style={{ gap: 16 }}>

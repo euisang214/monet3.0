@@ -71,10 +71,10 @@ export default async function Browse({
   }));
 
   const columns = [
-    { key: "name", label: "Name" },
+    { key: "firm", label: "Firm" },
     { key: "title", label: "Title" },
     { key: "availability", label: "Availability" },
-    { key: "action", label: "" },
+    { key: "action", label: "Profiles" },
   ];
 
   return (

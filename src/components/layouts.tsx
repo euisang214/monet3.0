@@ -16,9 +16,9 @@ export function PublicShell({ children, session }: ShellProps) {
               Monet
             </Link>
             <nav className="nav">
-              <Link href="/#about">About Us</Link>
+              {/* <Link href="/#about">About Us</Link>
               <Link href="/#how">How It Works</Link>
-              <Link href="/#contact">Contact</Link>
+              <Link href="/#contact">Contact</Link> */}
             </nav>
           </div>
           <div className="row" style={{ gap: 8 }}>
