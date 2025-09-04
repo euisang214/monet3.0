@@ -9,8 +9,8 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import { Card, Button } from "../../../../../components/ui";
-import { ProfessionalResponse } from "../types";
+import { Card, Button } from "../../../../../../components/ui";
+import { ProfessionalResponse } from "../../types";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
