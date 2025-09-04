@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import HistoricalFeedback from "../../../../components/HistoricalFeedback";
 import { notFound, redirect } from "next/navigation";
 import { Feedback } from "@prisma/client";
+import { cookies } from "next/headers";
 
 export default async function FeedbackPage({ params }: { params: { bookingId: string } }) {
   const session = await auth();
@@ -9,9 +10,11 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
     redirect("/login");
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/feedback/${params.bookingId}`, {
+  const res = await fetch(`/api/feedback/${params.bookingId}`, {
     cache: "no-store",
+    headers: {
+      cookie: cookies().toString(),
+    },
   });
   if (res.status === 401) redirect("/login");
   if (res.status === 404 || res.status === 403) notFound();
