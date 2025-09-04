@@ -1,6 +1,6 @@
-import Link from "next/link";
 import DashboardClient from "../../../components/DashboardClient";
-import { Button, Badge } from "../../../components/ui";
+import { Badge } from "../../../components/ui";
+import RequestActions from "../../../components/RequestActions";
 import { auth } from "@/auth";
 import { getProfessionalRequests } from "../../api/professional/requests";
 
@@ -42,13 +42,7 @@ export default async function Requests({
       </div>
     );
     const action = (
-      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-        <Button style={{ backgroundColor: "green", color: "white" }}>Accept</Button>
-        <Button variant="danger">Reject</Button>
-        <Link href={`/candidate/detail/${candidate.id}`}>
-          <Button variant="primary">View Details</Button>
-        </Link>
-      </div>
+      <RequestActions bookingId={r.id} candidateId={candidate.id} />
     );
     return { name, school, interests, activities, action };
   });
