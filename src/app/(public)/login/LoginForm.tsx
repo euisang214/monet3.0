@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { signIn, type SignInResponse } from 'next-auth/react';
+import Link from 'next/link';
 import { z } from 'zod';
 import { Input, Button } from '../../../components/ui';
 
@@ -65,6 +66,9 @@ export default function LoginForm() {
         required
       />
       <Input name="password" type="password" placeholder="Password" required />
+      <div style={{ alignSelf: 'flex-end' }}>
+        <Link href="/forgot-password">Forgot password?</Link>
+      </div>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <Button type="submit">Log In</Button>
       <Button
