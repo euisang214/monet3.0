@@ -4,19 +4,19 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { Button, Card, Badge } from '../../../../components/ui';
-import { ProfessionalResponse } from './types';
+import { Button, Card, Badge } from './ui';
+import { ProfileResponse } from '../types/profile';
 
-export default function DetailClient({ pro, proId }: { pro: ProfessionalResponse; proId: string }) {
+export default function ProfileDetail({
+  profile,
+  schedulePath,
+}: {
+  profile: ProfileResponse;
+  schedulePath?: string;
+}) {
   const [tab, setTab] = useState<'about' | 'reviews'>('about');
-  const name = pro.identity.redacted ? undefined : pro.identity.name;
-  const heading = name ?? `${pro.title} at ${pro.employer}`;
-  const activeStyle = {
-    background: 'var(--gray-900)',
-    color: 'white',
-    cursor: 'pointer',
-  } as const;
-  const inactiveStyle = { cursor: 'pointer' } as const;
+  const name = profile.identity?.redacted ? undefined : profile.identity?.name;
+  const heading = name ?? (profile.title && profile.employer ? `${profile.title} at ${profile.employer}` : undefined);
 
   return (
     <section className="col" style={{ gap: 16 }}>
@@ -35,28 +35,26 @@ export default function DetailClient({ pro, proId }: { pro: ProfessionalResponse
           </div>
           <div className="col" style={{ gap: 4 }}>
             {heading && <h2>{heading}</h2>}
-            <span>{`Price per Session: $${pro.priceUSD}`}</span>
+            {profile.priceUSD !== undefined && (
+              <span>{`Price per Session: $${profile.priceUSD}`}</span>
+            )}
             <div className="row" style={{ alignItems: 'center', gap: 8 }}>
-              {pro.verified && <Badge>Verified Expert</Badge>}
+              {profile.verified && <Badge>Verified Expert</Badge>}
             </div>
           </div>
         </div>
-        <Link href={`/candidate/detail/${proId}/schedule`}>
-          <Button>Schedule a Call</Button>
-        </Link>
+        {schedulePath && (
+          <Link href={schedulePath}>
+            <Button>Schedule a Call</Button>
+          </Link>
+        )}
       </div>
 
       <div className="tabs">
-        <button
-          className={clsx('tab', { active: tab === 'about' })}
-          onClick={() => setTab('about')}
-        >
+        <button className={clsx('tab', { active: tab === 'about' })} onClick={() => setTab('about')}>
           About
         </button>
-        <button
-          className={clsx('tab', { active: tab === 'reviews' })}
-          onClick={() => setTab('reviews')}
-        >
+        <button className={clsx('tab', { active: tab === 'reviews' })} onClick={() => setTab('reviews')}>
           Reviews
         </button>
       </div>
@@ -65,8 +63,8 @@ export default function DetailClient({ pro, proId }: { pro: ProfessionalResponse
         <Card className="col" style={{ padding: 16, gap: 24 }}>
           <div className="col" style={{ gap: 8 }}>
             <h3>Summary</h3>
-            {pro.bio ? (
-              <p>{pro.bio}</p>
+            {profile.bio ? (
+              <p>{profile.bio}</p>
             ) : (
               <p style={{ color: 'var(--text-muted)' }}>No information available</p>
             )}
@@ -74,9 +72,9 @@ export default function DetailClient({ pro, proId }: { pro: ProfessionalResponse
 
           <div className="col" style={{ gap: 8 }}>
             <h3>Experience</h3>
-            {pro.experience && pro.experience.length > 0 ? (
+            {profile.experience && profile.experience.length > 0 ? (
               <ul>
-                {pro.experience.map((item, idx) => {
+                {profile.experience.map((item, idx) => {
                   const period =
                     item.startDate && item.endDate
                       ? `${new Date(item.startDate).getFullYear()}-${new Date(item.endDate).getFullYear()}`
@@ -96,9 +94,9 @@ export default function DetailClient({ pro, proId }: { pro: ProfessionalResponse
 
           <div className="col" style={{ gap: 8 }}>
             <h3>Education</h3>
-            {pro.education && pro.education.length > 0 ? (
+            {profile.education && profile.education.length > 0 ? (
               <ul>
-                {pro.education.map((item, idx) => {
+                {profile.education.map((item, idx) => {
                   const period =
                     item.startDate && item.endDate
                       ? `${new Date(item.startDate).getFullYear()}-${new Date(item.endDate).getFullYear()}`
@@ -118,9 +116,9 @@ export default function DetailClient({ pro, proId }: { pro: ProfessionalResponse
 
           <div className="col" style={{ gap: 8 }}>
             <h3>Interests</h3>
-            {pro.interests && pro.interests.length > 0 ? (
+            {profile.interests && profile.interests.length > 0 ? (
               <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                {pro.interests.map((interest) => (
+                {profile.interests.map((interest) => (
                   <Badge key={interest}>{interest}</Badge>
                 ))}
               </div>
@@ -131,9 +129,9 @@ export default function DetailClient({ pro, proId }: { pro: ProfessionalResponse
 
           <div className="col" style={{ gap: 8 }}>
             <h3>Activities</h3>
-            {pro.activities && pro.activities.length > 0 ? (
+            {profile.activities && profile.activities.length > 0 ? (
               <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                {pro.activities.map((activity) => (
+                {profile.activities.map((activity) => (
                   <Badge key={activity}>{activity}</Badge>
                 ))}
               </div>
@@ -144,8 +142,8 @@ export default function DetailClient({ pro, proId }: { pro: ProfessionalResponse
         </Card>
       ) : (
         <Card className="col" style={{ padding: 16, gap: 16 }}>
-          {pro.reviews && pro.reviews.length > 0 ? (
-            pro.reviews.map((r, idx) => (
+          {profile.reviews && profile.reviews.length > 0 ? (
+            profile.reviews.map((r, idx) => (
               <div key={idx} className="col" style={{ gap: 4 }}>
                 <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                   <strong>{r.candidate}</strong>
