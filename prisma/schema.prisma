@@ -68,6 +68,7 @@ model User {
   notifications          Notification[]
   auditLogs              AuditLog[]           @relation("AuditActor")
   availabilities         Availability[]
+  passwordResetTokens   PasswordResetToken[]
 
   @@index([role])
 }
@@ -87,6 +88,16 @@ model OAuthAccount {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
 }
 
 model ProfessionalProfile {
