@@ -154,6 +154,8 @@ model Booking {
   priceUSD         Int?
   zoomMeetingId    String?
   zoomJoinUrl      String?
+  candidateJoinedAt    DateTime?
+  professionalJoinedAt DateTime?
   calendarEventIds Json          @default("[]")
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
