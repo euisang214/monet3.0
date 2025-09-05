@@ -21,7 +21,7 @@ export default function RequestActions({ bookingId, candidateId }: { bookingId: 
         <Button style={{ backgroundColor: 'green', color: 'white' }}>Accept</Button>
       </Link>
       <Button variant="danger" onClick={decline} disabled={loading}>Reject</Button>
-      <Link href={`/candidate/detail/${candidateId}`}>
+      <Link href={`/professional/detail/${candidateId}`}>
         <Button variant="primary">View Details</Button>
       </Link>
     </div>

@@ -1,11 +1,12 @@
-export interface ProfessionalResponse {
+export interface ProfileResponse {
   identity: { name?: string; email?: string; redacted?: boolean };
-  title: string;
-  priceUSD: number;
-  tags: string[];
+  title?: string;
+  priceUSD?: number;
+  tags?: string[];
   verified?: boolean;
   bio?: string;
   employer?: string;
+  resumeUrl?: string;
   experience?: {
     firm: string;
     title: string;

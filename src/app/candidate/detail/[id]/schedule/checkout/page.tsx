@@ -10,7 +10,7 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { Card, Button } from "../../../../../../components/ui";
-import { ProfessionalResponse } from "../../types";
+import { ProfileResponse } from "../../../../../../types/profile";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
@@ -69,12 +69,12 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
   const slots = JSON.parse(searchParams.get("slots") || "[]");
   const weeks = parseInt(searchParams.get("weeks") || "2");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [pro, setPro] = useState<ProfessionalResponse | null>(null);
+  const [pro, setPro] = useState<ProfileResponse | null>(null);
 
   useEffect(() => {
     fetch(`/api/professionals/${params.id}`).then(async (res) => {
       if (res.ok) {
-        const data: ProfessionalResponse = await res.json();
+        const data: ProfileResponse = await res.json();
         setPro(data);
       }
     });
