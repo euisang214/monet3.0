@@ -10,7 +10,8 @@ async function fetchSettings(userId: string) {
   if (!user) return null;
   const flags: any = user.flags || {};
   const timezone = flags.timezone || '';
-  const verified = !!user.professionalProfile?.verifiedAt;
+  const verified =
+    user.corporateEmailVerified || !!user.professionalProfile?.verifiedAt;
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
   return { name: fullName, email: user.email, timezone, verified };
 }
