@@ -40,7 +40,7 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
     });
 
     if (res.ok) {
-      router.push(`/professional/history/${bookingId}`);
+      router.push(`/professional/requests`);
     } else {
       alert("Failed to submit feedback");
     }
