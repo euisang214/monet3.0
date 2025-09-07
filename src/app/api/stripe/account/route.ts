@@ -5,6 +5,7 @@ import {
   stripe,
   ensureConnectedAccount,
   createAccountOnboardingLink,
+  createAccountUpdateLink,
 } from '../../../../../lib/payments/stripe';
 
 export async function GET(_req: NextRequest) {
@@ -54,13 +55,20 @@ export async function POST(_req: NextRequest) {
       user.firstName || '',
       user.lastName || '',
     );
+    const account = await stripe.accounts.retrieve(accountId);
     const baseUrl = process.env.APP_URL || 'http://localhost:3000';
-    const onboardingUrl = await createAccountOnboardingLink(
-      accountId,
-      `${baseUrl}/professional/settings`,
-      `${baseUrl}/professional/settings`,
-    );
-    return NextResponse.json({ onboardingUrl });
+    const url = account.details_submitted
+      ? await createAccountUpdateLink(
+          accountId,
+          `${baseUrl}/professional/settings`,
+          `${baseUrl}/professional/settings`,
+        )
+      : await createAccountOnboardingLink(
+          accountId,
+          `${baseUrl}/professional/settings`,
+          `${baseUrl}/professional/settings`,
+        );
+    return NextResponse.json({ onboardingUrl: url });
   } catch (e) {
     return NextResponse.json({ error: 'stripe_error' }, { status: 500 });
   }

@@ -33,7 +33,7 @@ export default function StripeSection() {
       setMessage('Redirecting to Stripe...');
       window.location.href = data.onboardingUrl;
     } catch {
-      setError('Failed to start Stripe onboarding');
+      setError('Failed to open Stripe');
     } finally {
       setLoading(false);
     }
@@ -50,22 +50,19 @@ export default function StripeSection() {
       ? 'Loading...'
       : 'Not connected';
 
-  const canConnect =
-    status === 'not_connected' || status === 'incomplete';
-
   return (
     <>
       <h3>Payment</h3>
       <p>Onboard to Stripe Connect to receive payouts.</p>
-      {canConnect && (
-        <Button onClick={handleConnect} disabled={loading}>
-          {loading
-            ? 'Loading...'
-            : status === 'incomplete'
-            ? 'Resume Onboarding'
-            : 'Connect Stripe'}
-        </Button>
-      )}
+      <Button onClick={handleConnect} disabled={loading || status === 'loading'}>
+        {loading || status === 'loading'
+          ? 'Loading...'
+          : status === 'incomplete'
+          ? 'Resume Onboarding'
+          : status === 'not_connected'
+          ? 'Connect Stripe'
+          : 'Edit Stripe'}
+      </Button>
       <p>Account status: {statusLabel}</p>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {message && <p style={{ color: 'green' }}>{message}</p>}
