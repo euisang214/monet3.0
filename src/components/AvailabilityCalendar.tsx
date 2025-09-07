@@ -39,6 +39,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [isDragging, setIsDragging] = useState(false);
   const draggedSlots = useRef<Set<number>>(new Set());
+  const lastSlot = useRef<number | null>(null);
   const [selected, setSelected] = useState<Slot | null>(null);
 
   useEffect(() => {
@@ -157,6 +158,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     const handleMouseUp = () => {
       setIsDragging(false);
       draggedSlots.current.clear();
+      lastSlot.current = null;
     };
     window.addEventListener('mouseup', handleMouseUp);
     return () => window.removeEventListener('mouseup', handleMouseUp);
@@ -260,14 +262,39 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       toggleSlot(slotStart);
                       setIsDragging(true);
                       draggedSlots.current = new Set([key]);
+                      lastSlot.current = key;
                     } else if (available) {
                       setSelected({ start: startIso, end: new Date(slotStart.getTime() + 30 * 60 * 1000).toISOString() });
                     }
                   }}
                   onMouseEnter={() => {
-                    if (isEdit && isDragging && !draggedSlots.current.has(key)) {
-                      toggleSlot(slotStart);
-                      draggedSlots.current.add(key);
+                    if (isEdit && isDragging) {
+                      const current = key;
+                      const previous = lastSlot.current;
+                      if (previous !== null) {
+                        const prevDate = new Date(previous);
+                        const currDate = slotStart;
+                        if (prevDate.toDateString() === currDate.toDateString()) {
+                          const step = 30 * 60 * 1000;
+                          const diff = current - previous;
+                          const dir = diff > 0 ? step : -step;
+                          for (let t = previous + dir; dir > 0 ? t <= current : t >= current; t += dir) {
+                            if (!draggedSlots.current.has(t)) {
+                              toggleSlot(new Date(t));
+                              draggedSlots.current.add(t);
+                            }
+                          }
+                        } else if (!draggedSlots.current.has(current)) {
+                          toggleSlot(currDate);
+                          draggedSlots.current.add(current);
+                        }
+                      } else {
+                        if (!draggedSlots.current.has(current)) {
+                          toggleSlot(slotStart);
+                          draggedSlots.current.add(current);
+                        }
+                      }
+                      lastSlot.current = current;
                     }
                   }}
                   style={{
