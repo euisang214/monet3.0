@@ -49,15 +49,29 @@ export async function POST(req: NextRequest) {
           }),
         )
         .min(1),
+      defaultBusy: z
+        .array(
+          z.object({
+            day: z.number().min(0).max(6),
+            start: z.string(),
+            end: z.string(),
+          }),
+        )
+        .optional(),
     });
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
     }
-    const { resumeUrl, interests, activities, experience, education } = parsed.data;
+    const { resumeUrl, interests, activities, experience, education, defaultBusy } = parsed.data;
+    const existing = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { flags: true },
+    });
+    const flags = { ...(existing?.flags as any || {}), ...(defaultBusy ? { defaultBusy } : {}) };
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { role, firstName, lastName },
+      data: { role, firstName, lastName, flags },
     });
     await prisma.candidateProfile.upsert({
       where: { userId: session.user.id },
