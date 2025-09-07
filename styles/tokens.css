@@ -25,7 +25,11 @@ button{cursor:pointer}
 .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow);}
 .row{display:flex; gap:16px; align-items:center}
 .col{display:flex; flex-direction:column; gap:8px}
-.btn{display:inline-flex; align-items:center; justify-content:center; height:40px; padding:0 16px; border-radius:12px; border:1px solid var(--border); background:var(--card); cursor:pointer; font-weight:600}
+.btn{display:inline-flex; align-items:center; justify-content:center; height:40px; padding:0 16px; border-radius:12px; border:1px solid var(--border); background:var(--card); cursor:pointer; font-weight:600; position:relative; overflow:hidden; transition:filter 0.2s}
+.btn:not(:disabled):hover{filter:brightness(0.95)}
+.btn:not(:disabled)::after{content:""; position:absolute; inset:0; border-radius:50%; background:rgba(255,255,255,0.4); transform:scale(0); opacity:0; pointer-events:none}
+.btn:not(:disabled):active::after{animation:ripple 600ms linear}
+@keyframes ripple{from{transform:scale(0); opacity:0.4} to{transform:scale(4); opacity:0}}
 .btn-primary{background:var(--accent); color:white; border-color:var(--accent-strong)}
 .btn-danger{background:var(--danger); color:white; border-color:var(--danger)}
 .btn-muted{background:var(--muted)}
