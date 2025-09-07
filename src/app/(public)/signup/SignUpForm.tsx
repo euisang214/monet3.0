@@ -71,20 +71,24 @@ export default function SignUpForm() {
         onChange={(e) => setPassword(e.target.value)}
       />
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <Button type="submit" disabled={loading || !role || !email || !password}>
+      <Button type="submit" 
+        variant={role ? 'primary' : 'muted'}
+        disabled={loading || !role || !email || !password}>
         Create Account
       </Button>
       <Button
         type="button"
         onClick={() => handleOAuth('google')}
-        variant="muted"
+        variant={role ? 'primary' : 'muted'}
+        disabled={!role}
       >
         Sign up with Google
       </Button>
       <Button
         type="button"
         onClick={() => handleOAuth('linkedin')}
-        variant="muted"
+        variant={role ? 'primary' : 'muted'}
+        disabled={!role}
       >
         Sign up with LinkedIn
       </Button>
