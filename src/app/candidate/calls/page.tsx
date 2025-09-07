@@ -24,6 +24,18 @@ function statusStyle(status: BookingStatus): CSSProperties {
   }
 }
 
+function cleanStatus(str : String) {
+  return str
+    .replace(`completed_pending_feedback`, "Pending Feedback")
+    // Replace underscores with spaces
+    .replace(/_/g, " ")
+    // Split into words
+    .split(" ")
+    // Capitalize each word and join
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export default async function CallsPage({
   searchParams,
 }: {
@@ -113,7 +125,7 @@ export default async function CallsPage({
       date: { label: formatDateTime(callDate) },
       status: (
         <span className="badge" style={statusStyle(b.status)}>
-          {b.status}
+          {toPascalCase(b.status)}
         </span>
       ),
       feedback: hasHappened
