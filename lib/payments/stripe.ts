@@ -106,6 +106,21 @@ export async function createAccountOnboardingLink(
   return link.url;
 }
 
+/** Create an Express account update link for a connected account */
+export async function createAccountUpdateLink(
+  accountId: string,
+  refreshUrl: string,
+  returnUrl: string,
+) {
+  const link = await stripe.accountLinks.create({
+    account: accountId,
+    refresh_url: refreshUrl,
+    return_url: returnUrl,
+    type: 'account_update',
+  });
+  return link.url;
+}
+
 /**
  * Release held funds to a professional's connected Stripe account.
  * The platform retains the fee recorded at checkout.
