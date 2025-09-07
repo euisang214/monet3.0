@@ -77,14 +77,16 @@ export default function SignUpForm() {
       <Button
         type="button"
         onClick={() => handleOAuth('google')}
-        variant="muted"
+        variant={role ? 'primary' : 'muted'}
+        disabled={!role}
       >
         Sign up with Google
       </Button>
       <Button
         type="button"
         onClick={() => handleOAuth('linkedin')}
-        variant="muted"
+        variant={role ? 'primary' : 'muted'}
+        disabled={!role}
       >
         Sign up with LinkedIn
       </Button>
