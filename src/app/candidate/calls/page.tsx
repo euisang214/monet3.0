@@ -25,6 +25,7 @@ function statusStyle(status: BookingStatus): CSSProperties {
 }
 
 function cleanStatus(str : String) {
+  if (typeof str !== "string") return ""; // safeguard
   return str
     .replace(`completed_pending_feedback`, "Pending Feedback")
     // Replace underscores with spaces
@@ -34,6 +35,22 @@ function cleanStatus(str : String) {
     // Capitalize each word and join
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
+}
+
+function cleanStatusArray(values: any[]): string[] {
+  return values
+    .filter((v) => typeof v === "string") // ignore null/undefined/non-strings
+    .map((str: string) =>
+      str
+        .replace("completed_pending_feedback", "Pending Feedback")
+        .replace(/_/g, " ")
+        .split(" ")
+        .map(
+          (word) =>
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        )
+        .join(" ")
+    );
 }
 
 export default async function CallsPage({
@@ -50,7 +67,7 @@ export default async function CallsPage({
   const filterConfig: FilterConfig = {
     Title: { model: "professionalProfile", field: "title" },
     Firm: { model: "professionalProfile", field: "employer" },
-    Status: { model: "booking", field: "status" },
+    Status: { model: "booking", field: "status", transform: cleanStatusArray},
   };
 
   const dateFilters = ["After", "Before"];
