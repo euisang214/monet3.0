@@ -81,8 +81,6 @@ export default async function CandidateDashboard({
     { key: "action", label: "" },
   ];
 
-  console.log(rows);
-
   return (
     <section className="col" style={{ gap: 16 }}>
       <h2>Search Results</h2>

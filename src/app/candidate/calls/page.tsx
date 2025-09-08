@@ -125,7 +125,7 @@ export default async function CallsPage({
       date: { label: formatDateTime(callDate) },
       status: (
         <span className="badge" style={statusStyle(b.status)}>
-          {toPascalCase(b.status)}
+          {cleanStatus(b.status)}
         </span>
       ),
       feedback: hasHappened

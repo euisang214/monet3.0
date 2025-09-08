@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import HistoricalFeedback from "../../../../components/HistoricalFeedback";
 import { notFound, redirect } from "next/navigation";
 import { Feedback } from "@prisma/client";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 export default async function FeedbackPage({ params }: { params: { bookingId: string } }) {
   const session = await auth();
@@ -10,7 +10,10 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
     redirect("/login");
   }
 
-  const res = await fetch(`/api/feedback/${params.bookingId}`, {
+  const headersList = headers();
+  const protocol = headersList.get("x-forwarded-proto") || "http";
+  const host = headersList.get("host") || "localhost:3000";
+  const res = await fetch(`${protocol}://${host}/api/feedback/${params.bookingId}`, {
     cache: "no-store",
     headers: {
       cookie: cookies().toString(),
