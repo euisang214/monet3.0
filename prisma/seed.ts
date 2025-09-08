@@ -293,8 +293,11 @@ async function createBookings(candidates: any[], professionals: any[]) {
     },
   ];
 
+  // schedule upcoming calls at least 30 days in the future
   for (const spec of upcomingSpecs) {
-    const start = new Date(Date.now() + spec.daysFromNow * 24 * 60 * 60 * 1000);
+    const start = new Date(
+      Date.now() + (spec.daysFromNow + 30) * 24 * 60 * 60 * 1000,
+    );
     const booking = await prisma.booking.create({
       data: {
         candidateId: candidates[spec.candidateIdx].id,
@@ -562,10 +565,12 @@ async function createBookings(candidates: any[], professionals: any[]) {
       });
     }
 
-    // incoming call requests
+    // incoming call requests scheduled at least 30 days out
     for (let i = 0; i < 10; i++) {
       const cand = pick(candidates);
-      const start = new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000);
+      const start = new Date(
+        Date.now() + (i + 1 + 30) * 24 * 60 * 60 * 1000,
+      );
       const booking = await prisma.booking.create({
         data: {
           candidateId: cand.id,
