@@ -2,10 +2,18 @@
 
 import { Input, Button } from "../../../../components/ui";
 import { useRouter } from "next/navigation";
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 export default function FeedbackForm({ bookingId }: { bookingId: string }) {
   const router = useRouter();
+  const [starsCategory1, setStarsCategory1] = useState("");
+  const [starsCategory2, setStarsCategory2] = useState("");
+  const [starsCategory3, setStarsCategory3] = useState("");
+  const [actions, setActions] = useState("");
+  const [text, setText] = useState("");
+
+  const submitDisabled =
+    !starsCategory1 || !starsCategory2 || !starsCategory3 || !actions || !text;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -51,17 +59,41 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
       <div className="col" style={{ gap: 4 }}>
         <h3>Category 1 Rating</h3>
         <p className="text-sm">Evaluate core technical skills.</p>
-        <Input type="number" name="starsCategory1" min={1} max={5} />
+        <Input
+          type="number"
+          name="starsCategory1"
+          min={1}
+          max={5}
+          value={starsCategory1}
+          onChange={(e) => setStarsCategory1(e.target.value)}
+          required
+        />
       </div>
       <div className="col" style={{ gap: 4 }}>
         <h3>Category 2 Rating</h3>
         <p className="text-sm">Assess communication and collaboration.</p>
-        <Input type="number" name="starsCategory2" min={1} max={5} />
+        <Input
+          type="number"
+          name="starsCategory2"
+          min={1}
+          max={5}
+          value={starsCategory2}
+          onChange={(e) => setStarsCategory2(e.target.value)}
+          required
+        />
       </div>
       <div className="col" style={{ gap: 4 }}>
         <h3>Category 3 Rating</h3>
         <p className="text-sm">Judge problem-solving approach.</p>
-        <Input type="number" name="starsCategory3" min={1} max={5} />
+        <Input
+          type="number"
+          name="starsCategory3"
+          min={1}
+          max={5}
+          value={starsCategory3}
+          onChange={(e) => setStarsCategory3(e.target.value)}
+          required
+        />
       </div>
       <div className="col" style={{ gap: 4 }}>
         <h3>Extra Category Ratings</h3>
@@ -71,14 +103,34 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
       <div className="col" style={{ gap: 4 }}>
         <h3>Action Items</h3>
         <p className="text-sm">List concrete next steps, one per line.</p>
-        <textarea name="actions" className="input" rows={3} />
+        <textarea
+          name="actions"
+          className="input"
+          rows={3}
+          value={actions}
+          onChange={(e) => setActions(e.target.value)}
+          required
+        />
       </div>
       <div className="col" style={{ gap: 4 }}>
         <h3>Written Feedback</h3>
         <p className="text-sm">Provide a narrative summary of the session.</p>
-        <textarea name="text" className="input" rows={5} />
+        <textarea
+          name="text"
+          className="input"
+          rows={5}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          required
+        />
       </div>
-      <Button type="submit">Submit</Button>
+      <Button
+        type="submit"
+        disabled={submitDisabled}
+        variant={submitDisabled ? "muted" : "primary"}
+      >
+        Submit
+      </Button>
     </form>
   );
 }
