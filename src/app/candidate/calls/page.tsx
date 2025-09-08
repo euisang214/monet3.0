@@ -98,6 +98,7 @@ export default async function CallsPage({
             professionalProfile: { select: { title: true, employer: true } },
           },
         },
+        feedback: { select: { bookingId: true } },
       },
       orderBy: { startAt: "desc" },
       skip: (page - 1) * perPage,
@@ -116,7 +117,7 @@ export default async function CallsPage({
       (Date.now() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24)
     );
     const callDate = new Date(b.startAt);
-    const hasHappened = callDate.getTime() <= Date.now();
+    const hasFeedback = Boolean(b.feedback);
     return {
       name,
       firm: b.professional.professionalProfile?.employer ?? "",
@@ -128,7 +129,7 @@ export default async function CallsPage({
           {cleanStatus(b.status)}
         </span>
       ),
-      feedback: hasHappened
+      feedback: hasFeedback
         ? { label: "View Feedback", href: `/candidate/history/${b.id}` }
         : { label: "View Feedback", variant: "muted", disabled: true },
     };
