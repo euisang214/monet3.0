@@ -104,6 +104,7 @@ async function createCandidates() {
       hashedPassword: await bcrypt.hash('candidate123!', 10),
       firstName: 'Euisang',
       lastName: 'Kim',
+      timezone: process.env.DEFAULT_TIMEZONE || 'UTC',
     },
   });
   await prisma.candidateProfile.upsert({
@@ -130,6 +131,7 @@ async function createCandidates() {
       hashedPassword: await bcrypt.hash('professional123!', 10),
       firstName: 'Victoria',
       lastName: 'Geh',
+      timezone: process.env.DEFAULT_TIMEZONE || 'UTC',
     },
   });
   await prisma.candidateProfile.upsert({
@@ -156,6 +158,7 @@ async function createCandidates() {
         hashedPassword: await bcrypt.hash('candidate123!', 10),
         firstName,
         lastName,
+        timezone: process.env.DEFAULT_TIMEZONE || 'UTC',
       },
     });
     await prisma.candidateProfile.create({
@@ -187,6 +190,7 @@ async function createProfessionals() {
       hashedPassword: await bcrypt.hash('professional123!', 10),
       firstName: 'Euisang',
       lastName: 'Seo',
+      timezone: process.env.DEFAULT_TIMEZONE || 'UTC',
     },
   });
   const euisangEmployer = pick(firms);
@@ -220,6 +224,7 @@ async function createProfessionals() {
         hashedPassword: await bcrypt.hash('professional123!', 10),
         firstName,
         lastName,
+        timezone: process.env.DEFAULT_TIMEZONE || 'UTC',
       },
     });
     const employer = pick(firms);

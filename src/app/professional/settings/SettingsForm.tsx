@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
-import { Card, Button, Input } from '../../../components/ui';
+import { Card, Button, Input, Select } from '../../../components/ui';
 import StripeSection from './StripeSection';
+import { timezones } from '../../../lib/timezones';
 
 interface SettingsData {
   name: string;
@@ -16,7 +17,7 @@ export default function SettingsForm() {
   const [form, setForm] = useState<SettingsData>({
     name: '',
     email: '',
-    timezone: '',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     verified: false,
   });
   const [initial, setInitial] = useState<SettingsData>(form);
@@ -67,7 +68,13 @@ export default function SettingsForm() {
         <label>Email</label>
         <Input value={form.email} onChange={e => handleChange('email', e.target.value)} />
         <label>Timezone</label>
-        <Input value={form.timezone} onChange={e => handleChange('timezone', e.target.value)} />
+        <Select value={form.timezone} onChange={e => handleChange('timezone', e.target.value)}>
+          {timezones.map((tz) => (
+            <option key={tz} value={tz}>
+              {tz}
+            </option>
+          ))}
+        </Select>
         <div className="row" style={{ gap: 8, marginTop: 12 }}>
           <Button onClick={handleSave}>Save Changes</Button>
           <Button variant="muted" onClick={handleCancel}>

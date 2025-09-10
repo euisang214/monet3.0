@@ -57,6 +57,7 @@ model User {
   lastName                String?
   stripeCustomerId        String?
   stripeAccountId         String?
+  timezone                String   @default("UTC")
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 

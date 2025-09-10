@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { Input, Button, Select } from '../../../components/ui';
+import { timezones } from '../../../lib/timezones';
 
 export default function SignUpForm() {
   const [error, setError] = useState<string | null>(null);
@@ -9,6 +10,9 @@ export default function SignUpForm() {
   const [role, setRole] = useState<'CANDIDATE' | 'PROFESSIONAL' | ''>('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [timezone, setTimezone] = useState(
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+  );
 
   async function handleOAuth(provider: 'google' | 'linkedin') {
     const callbackUrl = role ? `/signup/details?role=${role}` : '/signup/details';
@@ -23,11 +27,12 @@ export default function SignUpForm() {
     const email = (form.elements.namedItem('email') as HTMLInputElement).value;
     const password = (form.elements.namedItem('password') as HTMLInputElement).value;
     const role = (form.elements.namedItem('role') as HTMLSelectElement).value as 'CANDIDATE' | 'PROFESSIONAL';
+    const timezone = (form.elements.namedItem('timezone') as HTMLSelectElement).value;
     setLoading(true);
     const res = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, role })
+      body: JSON.stringify({ email, password, role, timezone })
     });
     setLoading(false);
     if (res.ok) {
@@ -70,6 +75,18 @@ export default function SignUpForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
+      <Select
+        name="timezone"
+        value={timezone}
+        onChange={(e) => setTimezone(e.target.value)}
+        required
+      >
+        {timezones.map((tz) => (
+          <option key={tz} value={tz}>
+            {tz}
+          </option>
+        ))}
+      </Select>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <Button type="submit" 
         variant={role ? 'primary' : 'muted'}
