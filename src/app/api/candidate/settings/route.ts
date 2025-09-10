@@ -30,7 +30,7 @@ async function fetchSettings(userId: string) {
   };
   const defaultBusy = flags.defaultBusy || [];
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
-  return { name: fullName, email: user.email, resumeUrl, notifications, defaultBusy };
+  return { name: fullName, email: user.email, resumeUrl, notifications, defaultBusy, timezone: user.timezone };
 }
 
 export async function GET() {
@@ -46,6 +46,10 @@ export async function PUT(req: Request) {
   const form = await req.formData();
   const name = (form.get('name') as string) || '';
   const email = (form.get('email') as string) || '';
+  const timezone = (form.get('timezone') as string) || process.env.DEFAULT_TIMEZONE || 'UTC';
+  if (!Intl.supportedValuesOf('timeZone').includes(timezone)) {
+    return NextResponse.json({ error: 'invalid_timezone' }, { status: 400 });
+  }
   const notifications = JSON.parse((form.get('notifications') as string) || '{}');
   const defaultBusy = JSON.parse((form.get('defaultBusy') as string) || '[]');
   const file = form.get('resume') as File | null;
@@ -61,7 +65,7 @@ export async function PUT(req: Request) {
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { firstName, lastName, email, flags },
+    data: { firstName, lastName, email, flags, timezone },
   });
 
   if (file && file.size > 0 && process.env.AWS_S3_BUCKET) {

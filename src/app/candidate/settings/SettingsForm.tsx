@@ -1,14 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
-import { Card, Button, Input } from '../../../components/ui';
+import { Card, Button, Input, Select } from '../../../components/ui';
 import ResumePreview from '../../../components/ResumePreview';
 import BusyTimes, { BusyRange } from './BusyTimes';
+import { timezones } from '../../../lib/timezones';
 
 interface SettingsData {
   name: string;
   email: string;
   resumeUrl?: string | null;
+  timezone: string;
 }
 
 interface Notifications {
@@ -17,8 +19,8 @@ interface Notifications {
 }
 
 export default function SettingsForm() {
-  const [form, setForm] = useState<SettingsData>({ name: '', email: '', resumeUrl: null });
-  const [initialForm, setInitialForm] = useState<SettingsData>({ name: '', email: '', resumeUrl: null });
+  const [form, setForm] = useState<SettingsData>({ name: '', email: '', resumeUrl: null, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+  const [initialForm, setInitialForm] = useState<SettingsData>({ name: '', email: '', resumeUrl: null, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [busyRanges, setBusyRanges] = useState<BusyRange[]>([]);
   const [initialBusy, setInitialBusy] = useState<BusyRange[]>([]);
@@ -36,8 +38,8 @@ export default function SettingsForm() {
       const res = await fetch('/api/candidate/settings');
       if (res.ok) {
         const data = await res.json();
-        setForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl });
-        setInitialForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl });
+        setForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl, timezone: data.timezone });
+        setInitialForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl, timezone: data.timezone });
         setBusyRanges(data.defaultBusy || []);
         setInitialBusy(data.defaultBusy || []);
         setNotifications(data.notifications || { feedbackReceived: true, chatScheduled: true });
@@ -57,12 +59,13 @@ export default function SettingsForm() {
     fd.append('email', form.email);
     fd.append('notifications', JSON.stringify(notifications));
     fd.append('defaultBusy', JSON.stringify(busyRanges));
+    fd.append('timezone', form.timezone);
     if (resumeFile) fd.append('resume', resumeFile);
     const res = await fetch('/api/candidate/settings', { method: 'PUT', body: fd });
     if (res.ok) {
       const data = await res.json();
-      setForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl });
-      setInitialForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl });
+        setForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl, timezone: data.timezone });
+        setInitialForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl, timezone: data.timezone });
       setBusyRanges(data.defaultBusy || []);
       setInitialBusy(data.defaultBusy || []);
       setNotifications(data.notifications || { feedbackReceived: true, chatScheduled: true });
@@ -97,6 +100,12 @@ export default function SettingsForm() {
         <Input value={form.name} onChange={e => handleChange('name', e.target.value)} />
         <label>Email</label>
         <Input value={form.email} onChange={e => handleChange('email', e.target.value)} />
+        <label>Timezone</label>
+        <Select value={form.timezone} onChange={e => handleChange('timezone', e.target.value)}>
+          {timezones.map((tz) => (
+            <option key={tz} value={tz}>{tz}</option>
+          ))}
+        </Select>
         <label>Resume Upload</label>
         <Input type="file" onChange={e => setResumeFile(e.target.files?.[0] || null)} />
         {form.resumeUrl && (

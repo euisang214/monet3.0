@@ -51,7 +51,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               email: user.email,
               role: 'CANDIDATE',
               googleCalendarConnected: provider === 'google',
-              linkedinConnected: provider === 'linkedin'
+              linkedinConnected: provider === 'linkedin',
+              timezone: process.env.DEFAULT_TIMEZONE || 'UTC'
             }
           });
         } else {
