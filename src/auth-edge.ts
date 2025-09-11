@@ -4,6 +4,10 @@ import NextAuth from 'next-auth';
 export const { auth } = NextAuth({
   session: { strategy: 'jwt' },
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'dev-secret',
+    // No providers are used in middleware auth, but an empty array is
+  // required so NextAuth's env helper doesn't attempt to iterate over
+  // `undefined`.
+  providers: [],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
