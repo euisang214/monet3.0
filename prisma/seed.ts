@@ -311,7 +311,6 @@ async function createBookings(candidates: any[], professionals: any[]) {
         status: BookingStatus.accepted,
         startAt: start,
         endAt: new Date(start.getTime() + 30 * 60 * 1000),
-        priceUSD: professionals[spec.professionalIdx].priceUSD,
         zoomMeetingId: spec.meetingId,
         zoomJoinUrl: spec.joinUrl,
       },
