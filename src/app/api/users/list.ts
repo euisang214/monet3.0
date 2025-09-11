@@ -1,10 +1,7 @@
 import { prisma } from "../../../../lib/db";
 import { Role } from "@prisma/client";
-import {
-  ActiveFilters,
-  FilterConfig,
-  buildFilterWhere,
-} from "../filterOptions";
+import type { ActiveFilters, FilterConfig } from "@/lib/filters";
+import { buildFilterWhere } from "@/lib/filters";
 
 export async function listUsers(
   roles: Role[] = [Role.PROFESSIONAL],
