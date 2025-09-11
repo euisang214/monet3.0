@@ -10,7 +10,8 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
     redirect("/login");
   }
 
-  const res = await fetch(`/api/feedback/${params.bookingId}`, {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const res = await fetch(`${baseUrl}/api/feedback/${params.bookingId}`, {
     cache: "no-store",
     headers: {
       cookie: cookies().toString(),
