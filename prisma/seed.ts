@@ -150,8 +150,10 @@ async function createCandidates() {
   // additional mock candidates
   for (let i = 1; i <= 9; i++) {
     const { firstName, lastName } = randomName();
-    const user = await prisma.user.create({
-      data: {
+    const user = await prisma.user.upsert({
+      where: { id: `candidate-${i}` },
+      update: {},
+      create: {
         id: `candidate-${i}`,
         email: `candidate${i}@example.com`,
         role: Role.CANDIDATE,
@@ -161,8 +163,10 @@ async function createCandidates() {
         timezone: process.env.DEFAULT_TIMEZONE || 'UTC',
       },
     });
-    await prisma.candidateProfile.create({
-      data: {
+    await prisma.candidateProfile.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: {
         userId: user.id,
         interests: [pick(candidateInterests), pick(candidateInterests)],
         activities: [pick(candidateActivities)],
@@ -216,8 +220,10 @@ async function createProfessionals() {
   // additional mock professionals
   for (let i = 1; i <= 9; i++) {
     const { firstName, lastName } = randomName();
-    const user = await prisma.user.create({
-      data: {
+    const user = await prisma.user.upsert({
+      where: { id: `professional-${i}` },
+      update: {},
+      create: {
         id: `professional-${i}`,
         email: `pro${i}@example.com`,
         role: Role.PROFESSIONAL,
@@ -228,8 +234,10 @@ async function createProfessionals() {
       },
     });
     const employer = pick(firms);
-    await prisma.professionalProfile.create({
-      data: {
+    await prisma.professionalProfile.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: {
         userId: user.id,
         employer,
         title: pick(jobTitles),
