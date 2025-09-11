@@ -128,7 +128,7 @@ export default async function CallsPage({
       ),
       feedback: hasFeedback
         ? { label: "View Feedback", href: `/candidate/history/${b.id}` }
-        : { label: "View Feedback", variant: "muted", disabled: true },
+        : { label: "View Feedback", variant: "muted" as const, disabled: true },
     };
   });
 
