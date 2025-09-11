@@ -11,7 +11,7 @@
     "dev:queue": "tsx scripts/dev-queue.ts",
     "test": "vitest run",
     "test:e2e": "vitest run tests/e2e/*.test.ts",
-    "clean": "rm -rf .next && rm -rf node_modules/.cache && rm -rf .next/cache && rm -f next-env.d.ts && rm -f tsconfig.tsbuildinfo && npx prisma generate"
+    "clean": "rm -rf .next && rm -rf node_modules/.cache && rm -rf .next/cache && rm -f next-env.d.ts && rm -f tsconfig.tsbuildinfo && npm run build && npx prisma generate"
   },
   "dependencies": {
     "@aws-sdk/s3-request-presigner": "^3.876.0",
