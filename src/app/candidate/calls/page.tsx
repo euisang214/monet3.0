@@ -1,10 +1,7 @@
 import { auth } from "@/auth";
 import DashboardClient from "../../../components/DashboardClient";
-import {
-  getFilterOptions,
-  FilterConfig,
-  ActiveFilters,
-} from "../../../app/api/filterOptions";
+import { getFilterOptions } from "../../../app/api/filterOptions";
+import type { FilterConfig, ActiveFilters } from "@/lib/filters";
 import { prisma } from "../../../../lib/db";
 import { BookingStatus } from "@prisma/client";
 import type { CSSProperties } from "react";

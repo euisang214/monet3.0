@@ -1,9 +1,6 @@
 import { auth } from "@/auth";
-import {
-  getFilterOptions,
-  FilterConfig,
-  ActiveFilters,
-} from "../../../app/api/filterOptions";
+import { getFilterOptions } from "../../../app/api/filterOptions";
+import type { FilterConfig, ActiveFilters } from "@/lib/filters";
 import { listUsers } from "../../../app/api/users/list";
 import { Role } from "@prisma/client";
 import DashboardClient from "../../../components/DashboardClient";

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { signOutAction } from '../actions';
+import { signOut } from 'next-auth/react';
 
 type ShellProps = { children: React.ReactNode; session?: any };
 
@@ -23,9 +23,12 @@ export function PublicShell({ children, session }: ShellProps) {
           </div>
           <div className="row" style={{ gap: 8 }}>
             {session?.user ? (
-              <form action={signOutAction}>
-                <button className="btn btn-danger">Sign Out</button>
-              </form>
+              <button
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="btn btn-danger"
+              >
+                Sign Out
+              </button>
             ) : (
               <>
                 <Link href="/signup" className="btn btn-primary">
@@ -65,9 +68,12 @@ export function CandidateShell({ children }: ShellProps) {
 
           <div className="row" style={{ gap: 8 }}>
             <Link href="/candidate/settings">Settings</Link>
-            <form action={signOutAction}>
-              <button className="btn btn-danger">Sign Out</button>
-            </form>
+            <button
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="btn btn-danger"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </header>
@@ -97,9 +103,12 @@ export function ProfessionalShell({ children }: ShellProps) {
 
           <div className="row" style={{ gap: 8 }}>
             <Link href="/professional/settings">Settings</Link>
-            <form action={signOutAction}>
-              <button className="btn btn-danger">Sign Out</button>
-            </form>
+            <button
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="btn btn-danger"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </header>
@@ -133,9 +142,12 @@ export function AdminShell({ children }: ShellProps) {
 
           <div className="row" style={{ gap: 8 }}>
             <Link href="/admin/settings">Settings</Link>
-            <form action={signOutAction}>
-              <button className="btn btn-danger">Sign Out</button>
-            </form>
+            <button
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="btn btn-danger"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </header>

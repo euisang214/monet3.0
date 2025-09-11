@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import FilterDropdown from './FilterDropdown';
 import { Card, Button, DataTable, Input } from './ui';
 import Pagination from './Pagination';
-import { ActiveFilters } from '../app/api/filterOptions';
+import type { ActiveFilters } from '@/lib/filters';
 
 interface LinkValue {
   label: string;
