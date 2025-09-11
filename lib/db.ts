@@ -15,12 +15,13 @@ function toZoned(date: Date) {
   return Temporal.Instant.from(date.toISOString()).toZonedDateTimeISO(tz);
 }
 
-export const prisma = (
-  globalForPrisma.prisma ||
+const client =
+  globalForPrisma.prisma ??
   new PrismaClient({
     datasourceUrl: process.env.DATABASE_URL,
-  })
-).$extends({
+  });
+
+export const prisma = client.$extends({
   result: {
     $allModels: {
       $allFields: {
@@ -33,5 +34,5 @@ export const prisma = (
 });
 
 if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
+  globalForPrisma.prisma = client;
 }
