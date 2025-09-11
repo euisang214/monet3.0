@@ -24,7 +24,7 @@ export const prisma = (
   result: {
     $allModels: {
       $allFields: {
-        compute(value) {
+        compute(value: unknown) {
           return value instanceof Date ? toZoned(value) : value;
         },
       },
