@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/db';
-import { mailer } from '../../../../../lib/email';
+import { sendEmail } from '../../../../../lib/email';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
 
@@ -30,13 +30,15 @@ export async function POST(req: Request) {
     'http://localhost:3000';
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
   try {
-    await mailer.sendMail({
+    await sendEmail({
       to: email,
       subject: 'Reset your password',
       text: `Click the following link to reset your password: ${resetUrl}`,
     });
-  } catch {
-    // ignore mail errors
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : 'Failed to send email';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }
