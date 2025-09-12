@@ -15,6 +15,7 @@
     "reset-packages": "rm -rf .next node_modules package-lock.json"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.888.0",
     "@aws-sdk/s3-request-presigner": "^3.876.0",
     "@prisma/client": "^6.14.0",
     "@prisma/extension-accelerate": "^2.0.2",
