@@ -5,6 +5,7 @@ import LinkedIn from 'next-auth/providers/linkedin';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/db';
 import { z } from 'zod';
+import { timezones } from '../lib/timezones';
 
 declare module 'next-auth'{
   interface Session extends DefaultSession{
@@ -40,10 +41,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     })
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, req }) {
       if (account && (account.provider === 'google' || account.provider === 'linkedin')) {
         if (!user.email) return false;
         const provider = account.provider;
+        const tzParam = req?.nextUrl?.searchParams.get('timezone') || undefined;
+        const timezone = tzParam && timezones.includes(tzParam) ? tzParam : (process.env.DEFAULT_TIMEZONE || 'UTC');
         let dbUser = await prisma.user.findUnique({ where: { email: user.email } });
         if (!dbUser) {
           dbUser = await prisma.user.create({
@@ -51,7 +54,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               email: user.email,
               role: 'CANDIDATE',
               googleCalendarConnected: provider === 'google',
-              linkedinConnected: provider === 'linkedin'
+              linkedinConnected: provider === 'linkedin',
+              timezone,
             }
           });
         } else {
@@ -59,7 +63,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: { id: dbUser.id },
             data: {
               googleCalendarConnected: provider === 'google' ? true : dbUser.googleCalendarConnected,
-              linkedinConnected: provider === 'linkedin' ? true : dbUser.linkedinConnected
+              linkedinConnected: provider === 'linkedin' ? true : dbUser.linkedinConnected,
+              ...(tzParam ? { timezone } : {}),
             }
           });
         }

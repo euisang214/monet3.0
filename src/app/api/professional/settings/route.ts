@@ -8,8 +8,7 @@ async function fetchSettings(userId: string) {
     include: { professionalProfile: true },
   });
   if (!user) return null;
-  const flags: any = user.flags || {};
-  const timezone = flags.timezone || '';
+  const timezone = user.timezone;
   const verified =
     user.corporateEmailVerified || !!user.professionalProfile?.verifiedAt;
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
@@ -29,14 +28,9 @@ export async function PUT(req: Request) {
   const { name = '', email = '', timezone = '' } = await req.json();
   const [firstName, ...rest] = name.split(' ');
   const lastName = rest.join(' ');
-  const existing = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { flags: true },
-  });
-  const flags = { ...(existing?.flags as any || {}), timezone };
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { firstName, lastName, email, flags },
+    data: { firstName, lastName, email, timezone },
   });
   const data = await fetchSettings(session.user.id);
   return NextResponse.json(data);

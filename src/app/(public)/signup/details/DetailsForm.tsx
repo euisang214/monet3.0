@@ -2,12 +2,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input, Button, Select } from '../../../../components/ui';
+import { timezones } from '../../../../../lib/timezones';
 import BusyTimes, { BusyRange } from '../../../candidate/settings/BusyTimes';
 
 export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' | 'PROFESSIONAL' }) {
   const [role, setRole] = useState<'CANDIDATE' | 'PROFESSIONAL'>(initialRole);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [timezone, setTimezone] = useState('');
   const [corporateEmail, setCorporateEmail] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
@@ -90,6 +92,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
       role,
       firstName,
       lastName,
+      timezone,
       interests: interests.map((s) => s.trim()),
       activities: activities.map((s) => s.trim()),
       experience: experience.map((e) => ({
@@ -179,6 +182,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
   const baseValid =
     firstName &&
     lastName &&
+    timezone &&
     interestsValid &&
     activitiesValid &&
     experienceValid &&
@@ -218,6 +222,17 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
         value={lastName}
         onChange={(e) => setLastName(e.target.value)}
       />
+      <Select
+        name="timezone"
+        value={timezone}
+        onChange={(e) => setTimezone(e.target.value)}
+        required
+      >
+        <option value="" disabled>Select timezone</option>
+        {timezones.map((tz) => (
+          <option key={tz} value={tz}>{tz}</option>
+        ))}
+      </Select>
 
       {role === 'CANDIDATE' ? (
         <Input

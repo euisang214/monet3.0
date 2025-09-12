@@ -30,7 +30,8 @@ async function fetchSettings(userId: string) {
   };
   const defaultBusy = flags.defaultBusy || [];
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
-  return { name: fullName, email: user.email, resumeUrl, notifications, defaultBusy };
+  const timezone = user.timezone;
+  return { name: fullName, email: user.email, resumeUrl, notifications, defaultBusy, timezone };
 }
 
 export async function GET() {
@@ -48,6 +49,7 @@ export async function PUT(req: Request) {
   const email = (form.get('email') as string) || '';
   const notifications = JSON.parse((form.get('notifications') as string) || '{}');
   const defaultBusy = JSON.parse((form.get('defaultBusy') as string) || '[]');
+  const timezone = (form.get('timezone') as string) || '';
   const file = form.get('resume') as File | null;
 
   const [firstName, ...rest] = name.split(' ');
@@ -61,7 +63,7 @@ export async function PUT(req: Request) {
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { firstName, lastName, email, flags },
+    data: { firstName, lastName, email, flags, timezone },
   });
 
   if (file && file.size > 0 && process.env.AWS_S3_BUCKET) {

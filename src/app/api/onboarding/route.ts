@@ -7,6 +7,7 @@ import {
   createAccountOnboardingLink,
 } from '../../../../lib/payments/stripe';
 import { z } from 'zod';
+import { timezones } from '../../../../lib/timezones';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -18,12 +19,13 @@ export async function POST(req: NextRequest) {
     role: z.enum(['CANDIDATE', 'PROFESSIONAL']),
     firstName: z.string(),
     lastName: z.string(),
+    timezone: z.string().refine((tz) => timezones.includes(tz)),
   });
   const parsedBase = base.safeParse(body);
   if (!parsedBase.success) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
   }
-  const { role, firstName, lastName } = parsedBase.data;
+  const { role, firstName, lastName, timezone } = parsedBase.data;
   if (role === 'CANDIDATE') {
     const schema = base.extend({
       resumeUrl: z.string().url().optional(),
@@ -71,7 +73,7 @@ export async function POST(req: NextRequest) {
     const flags = { ...(existing?.flags as any || {}), ...(defaultBusy ? { defaultBusy } : {}) };
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { role, firstName, lastName, flags },
+      data: { role, firstName, lastName, timezone, flags },
     });
     await prisma.candidateProfile.upsert({
       where: { userId: session.user.id },
@@ -183,7 +185,7 @@ export async function POST(req: NextRequest) {
     }
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { role, firstName, lastName },
+      data: { role, firstName, lastName, timezone },
     });
     await prisma.professionalProfile.upsert({
       where: { userId: session.user.id },

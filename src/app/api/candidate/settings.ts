@@ -27,5 +27,6 @@ export async function getCandidateSettings(userId: string) {
   return {
     email: user.email,
     resumeUrl,
+    timezone: user.timezone,
   };
 }
