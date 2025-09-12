@@ -71,7 +71,7 @@ export default function SignUpForm() {
         onChange={(e) => setPassword(e.target.value)}
       />
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <Button type="submit" 
+      <Button type="submit"
         variant={role ? 'primary' : 'muted'}
         disabled={loading || !role || !email || !password}>
         Create Account

@@ -7,7 +7,7 @@ export async function getProfessionalSettings(userId: string) {
       email: true,
       firstName: true,
       lastName: true,
-      flags: true,
+      timezone: true,
       corporateEmailVerified: true,
       professionalProfile: { select: { verifiedAt: true } },
     },
@@ -15,8 +15,7 @@ export async function getProfessionalSettings(userId: string) {
   if (!user) return null;
 
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ");
-  const flags = (user.flags as any) || {};
-  const timezone = flags.timezone || "";
+  const timezone = user.timezone;
   const verified =
     user.corporateEmailVerified || !!user.professionalProfile?.verifiedAt;
 

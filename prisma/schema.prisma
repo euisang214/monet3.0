@@ -59,6 +59,7 @@ model User {
   stripeAccountId         String?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
+  timezone                String   @default(env("DEFAULT_TIMEZONE"))
 
   professionalProfile    ProfessionalProfile?
   candidateProfile       CandidateProfile?
@@ -84,6 +85,7 @@ model OAuthAccount {
   scope             String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+  timezone          String    @default(env("DEFAULT_TIMEZONE"))
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -95,6 +97,7 @@ model PasswordResetToken {
   userId    String
   token     String   @unique
   expiresAt DateTime
+  timezone  String   @default(env("DEFAULT_TIMEZONE"))
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
@@ -108,6 +111,7 @@ model ProfessionalProfile {
   priceUSD          Int
   availabilityPrefs Json         @default("{}")
   verifiedAt        DateTime?
+  timezone          String      @default(env("DEFAULT_TIMEZONE"))
   corporateEmail    String
   experience        Experience[] @relation("ProfessionalExperience")
   education         Education[]  @relation("ProfessionalEducation")
@@ -137,6 +141,7 @@ model Experience {
   title          String
   startDate      DateTime
   endDate        DateTime
+  timezone       String   @default(env("DEFAULT_TIMEZONE"))
   professional   ProfessionalProfile? @relation("ProfessionalExperience", fields: [professionalId], references: [userId], onDelete: Cascade)
   professionalId String?
   candidate      CandidateProfile?    @relation("CandidateExperience", fields: [candidateId], references: [userId], onDelete: Cascade)
@@ -149,6 +154,7 @@ model Education {
   title          String
   startDate      DateTime
   endDate        DateTime
+  timezone       String   @default(env("DEFAULT_TIMEZONE"))
   professional   ProfessionalProfile? @relation("ProfessionalEducation", fields: [professionalId], references: [userId], onDelete: Cascade)
   professionalId String?
   candidate      CandidateProfile?    @relation("CandidateEducation", fields: [candidateId], references: [userId], onDelete: Cascade)
@@ -162,6 +168,7 @@ model Booking {
   status           BookingStatus
   startAt          DateTime
   endAt            DateTime
+  timezone         String      @default(env("DEFAULT_TIMEZONE"))
   priceUSD         Int?
   zoomMeetingId    String?
   zoomJoinUrl      String?
@@ -192,6 +199,7 @@ model Payment {
   status       PaymentStatus
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  timezone     String        @default(env("DEFAULT_TIMEZONE"))
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
@@ -206,6 +214,7 @@ model Feedback {
   actions              String[]
   text                 String
   submittedAt          DateTime
+  timezone             String   @default(env("DEFAULT_TIMEZONE"))
   qcStatus             QCStatus
   qcReport             Json     @default("{}")
 
@@ -217,6 +226,7 @@ model ProfessionalReview {
   rating      Int
   text        String
   submittedAt DateTime @default(now())
+  timezone    String   @default(env("DEFAULT_TIMEZONE"))
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
@@ -230,6 +240,7 @@ model Payout {
   reason             String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
+  timezone           String       @default(env("DEFAULT_TIMEZONE"))
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
@@ -244,6 +255,7 @@ model SuccessFeeInvoice {
   status              String // 'draft'|'sent'|'paid'|'void'
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  timezone            String   @default(env("DEFAULT_TIMEZONE"))
 }
 
 model Verification {
@@ -253,6 +265,7 @@ model Verification {
   token          String
   verifiedAt     DateTime?
   createdAt      DateTime  @default(now())
+  timezone       String    @default(env("DEFAULT_TIMEZONE"))
 }
 
 model Notification {
@@ -262,6 +275,7 @@ model Notification {
   payload      Json      @default("{}")
   scheduledFor DateTime
   sentAt       DateTime?
+  timezone     String    @default(env("DEFAULT_TIMEZONE"))
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -274,6 +288,7 @@ model Availability {
   start  DateTime
   end    DateTime
   busy   Boolean  @default(false)
+  timezone String   @default(env("DEFAULT_TIMEZONE"))
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -288,6 +303,7 @@ model AuditLog {
   action      String
   metadata    Json     @default("{}")
   createdAt   DateTime @default(now())
+  timezone    String   @default(env("DEFAULT_TIMEZONE"))
 
   actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: Cascade)
 }
