@@ -103,10 +103,8 @@ async function createCandidates() {
 
   // tester account
   const tzEuisang = pick(timezones);
-  const euisang = await prisma.user.upsert({
-    where: { email: 'euisang214@gmail.com' },
-    update: { timezone: tzEuisang },
-    create: {
+  const euisang = await prisma.user.create({
+    data: {
       id: 'candidate-euisang',
       email: 'euisang214@gmail.com',
       role: Role.CANDIDATE,
@@ -116,10 +114,8 @@ async function createCandidates() {
       timezone: tzEuisang,
     },
   });
-  await prisma.candidateProfile.upsert({
-    where: { userId: euisang.id },
-    update: {},
-    create: {
+  await prisma.candidateProfile.create({
+    data: {
       userId: euisang.id,
       interests: [pick(candidateInterests), pick(candidateInterests)],
       activities: [pick(candidateActivities)],
@@ -131,10 +127,8 @@ async function createCandidates() {
 
   // tester account
   const tzVictoria = pick(timezones);
-  const victoria = await prisma.user.upsert({
-    where: { email: 'victoriagehh@gmail.com' },
-    update: { timezone: tzVictoria },
-    create: {
+  const victoria = await prisma.user.create({
+    data: {
       id: 'candidate-victoria',
       email: 'victoriagehh@gmail.com',
       role: Role.CANDIDATE,
@@ -144,10 +138,8 @@ async function createCandidates() {
       timezone: tzVictoria,
     },
   });
-  await prisma.candidateProfile.upsert({
-    where: { userId: victoria.id },
-    update: {},
-    create: {
+  await prisma.candidateProfile.create({
+    data: {
       userId: victoria.id,
       interests: [pick(candidateInterests), pick(candidateInterests)],
       activities: [pick(candidateActivities)],
@@ -192,10 +184,8 @@ async function createProfessionals() {
 
   // tester professional account
   const tzEuisangss = pick(timezones);
-  const euisangss = await prisma.user.upsert({
-    where: { email: 'euisangss@gmail.com' },
-    update: { timezone: tzEuisangss },
-    create: {
+  const euisangss = await prisma.user.create({
+    data: {
       id: 'professional-euisangss',
       email: 'euisangss@gmail.com',
       role: Role.PROFESSIONAL,
@@ -206,10 +196,8 @@ async function createProfessionals() {
     },
   });
   const euisangEmployer = pick(firms);
-  await prisma.professionalProfile.upsert({
-    where: { userId: euisangss.id },
-    update: {},
-    create: {
+  await prisma.professionalProfile.create({
+    data: {
       userId: euisangss.id,
       employer: euisangEmployer,
       title: pick(jobTitles),
@@ -668,10 +656,8 @@ async function seedChatHistory(
 
 async function main() {
   // admin account for testing
-  await prisma.user.upsert({
-    where: { email: 'admin@monet.local' },
-    update: { timezone: defaultTimezone },
-    create: {
+  await prisma.user.create({
+    data: {
       email: 'admin@monet.local',
       role: Role.ADMIN,
       hashedPassword: await bcrypt.hash('admin123!', 10),
