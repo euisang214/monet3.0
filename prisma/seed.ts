@@ -1,8 +1,16 @@
-import { PrismaClient, Role, BookingStatus, PaymentStatus, QCStatus } from '@prisma/client';
+import {
+  PrismaClient,
+  Role,
+  BookingStatus,
+  PaymentStatus,
+  QCStatus,
+} from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { SCHOOLS, JOB_TITLES, DEGREE_TITLES } from '../lib/profileOptions';
+import { timezones } from '../lib/timezones';
 
 const prisma = new PrismaClient();
+const defaultTimezone = process.env.DEFAULT_TIMEZONE || 'UTC';
 
 // helper to pick a random item
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -94,9 +102,10 @@ async function createCandidates() {
   const out = [];
 
   // tester account
+  const tzEuisang = pick(timezones);
   const euisang = await prisma.user.upsert({
     where: { email: 'euisang214@gmail.com' },
-    update: {},
+    update: { timezone: tzEuisang },
     create: {
       id: 'candidate-euisang',
       email: 'euisang214@gmail.com',
@@ -104,6 +113,7 @@ async function createCandidates() {
       hashedPassword: await bcrypt.hash('candidate123!', 10),
       firstName: 'Euisang',
       lastName: 'Kim',
+      timezone: tzEuisang,
     },
   });
   await prisma.candidateProfile.upsert({
@@ -113,16 +123,17 @@ async function createCandidates() {
       userId: euisang.id,
       interests: [pick(candidateInterests), pick(candidateInterests)],
       activities: [pick(candidateActivities)],
-      experience: { create: [randomExperience()] },
-      education: { create: [randomEducation()] },
+      experience: { create: [{ ...randomExperience(), timezone: tzEuisang }] },
+      education: { create: [{ ...randomEducation(), timezone: tzEuisang }] },
     },
   });
-  out.push(euisang);
+  out.push({ ...euisang, timezone: tzEuisang });
 
   // tester account
+  const tzVictoria = pick(timezones);
   const victoria = await prisma.user.upsert({
     where: { email: 'victoriagehh@gmail.com' },
-    update: {},
+    update: { timezone: tzVictoria },
     create: {
       id: 'candidate-victoria',
       email: 'victoriagehh@gmail.com',
@@ -130,6 +141,7 @@ async function createCandidates() {
       hashedPassword: await bcrypt.hash('professional123!', 10),
       firstName: 'Victoria',
       lastName: 'Geh',
+      timezone: tzVictoria,
     },
   });
   await prisma.candidateProfile.upsert({
@@ -139,15 +151,16 @@ async function createCandidates() {
       userId: victoria.id,
       interests: [pick(candidateInterests), pick(candidateInterests)],
       activities: [pick(candidateActivities)],
-      experience: { create: [randomExperience()] },
-      education: { create: [randomEducation()] },
+      experience: { create: [{ ...randomExperience(), timezone: tzVictoria }] },
+      education: { create: [{ ...randomEducation(), timezone: tzVictoria }] },
     },
   });
-  out.push(victoria);
+  out.push({ ...victoria, timezone: tzVictoria });
 
   // additional mock candidates
   for (let i = 1; i <= 9; i++) {
     const { firstName, lastName } = randomName();
+    const timezone = pick(timezones);
     const user = await prisma.user.create({
       data: {
         id: `candidate-${i}`,
@@ -156,6 +169,7 @@ async function createCandidates() {
         hashedPassword: await bcrypt.hash('candidate123!', 10),
         firstName,
         lastName,
+        timezone,
       },
     });
     await prisma.candidateProfile.create({
@@ -163,11 +177,11 @@ async function createCandidates() {
         userId: user.id,
         interests: [pick(candidateInterests), pick(candidateInterests)],
         activities: [pick(candidateActivities)],
-        experience: { create: [randomExperience()] },
-        education: { create: [randomEducation()] },
+        experience: { create: [{ ...randomExperience(), timezone }] },
+        education: { create: [{ ...randomEducation(), timezone }] },
       },
     });
-    out.push(user);
+    out.push({ ...user, timezone });
   }
 
   return out;
@@ -177,9 +191,10 @@ async function createProfessionals() {
   const out = [];
 
   // tester professional account
+  const tzEuisangss = pick(timezones);
   const euisangss = await prisma.user.upsert({
     where: { email: 'euisangss@gmail.com' },
-    update: {},
+    update: { timezone: tzEuisangss },
     create: {
       id: 'professional-euisangss',
       email: 'euisangss@gmail.com',
@@ -187,6 +202,7 @@ async function createProfessionals() {
       hashedPassword: await bcrypt.hash('professional123!', 10),
       firstName: 'Euisang',
       lastName: 'Seo',
+      timezone: tzEuisangss,
     },
   });
   const euisangEmployer = pick(firms);
@@ -200,18 +216,27 @@ async function createProfessionals() {
       bio: 'Experienced finance professional with transaction and coverage background.',
       priceUSD: 100,
       availabilityPrefs: {},
+      timezone: tzEuisangss,
       interests: [pick(professionalInterests), pick(professionalInterests)],
       activities: [pick(professionalActivities)],
-      experience: { create: [randomExperience(), randomExperience()] },
-      education: { create: [randomEducation()] },
+      experience: {
+        create: [
+          { ...randomExperience(), timezone: tzEuisangss },
+          { ...randomExperience(), timezone: tzEuisangss },
+        ],
+      },
+      education: {
+        create: [{ ...randomEducation(), timezone: tzEuisangss }],
+      },
       corporateEmail: corporateEmailFor('Euisang', 'Seo', euisangEmployer),
     },
   });
-  out.push({ ...euisangss, priceUSD: 100 });
+  out.push({ ...euisangss, priceUSD: 100, timezone: tzEuisangss });
 
   // additional mock professionals
   for (let i = 1; i <= 9; i++) {
     const { firstName, lastName } = randomName();
+    const timezone = pick(timezones);
     const user = await prisma.user.create({
       data: {
         id: `professional-${i}`,
@@ -220,6 +245,7 @@ async function createProfessionals() {
         hashedPassword: await bcrypt.hash('professional123!', 10),
         firstName,
         lastName,
+        timezone,
       },
     });
     const employer = pick(firms);
@@ -231,14 +257,20 @@ async function createProfessionals() {
         bio: 'Experienced finance professional with transaction and coverage background.',
         priceUSD: 80 + i,
         availabilityPrefs: {},
+        timezone,
         interests: [pick(professionalInterests), pick(professionalInterests)],
         activities: [pick(professionalActivities)],
-        experience: { create: [randomExperience(), randomExperience()] },
-        education: { create: [randomEducation()] },
+        experience: {
+          create: [
+            { ...randomExperience(), timezone },
+            { ...randomExperience(), timezone },
+          ],
+        },
+        education: { create: [{ ...randomEducation(), timezone }] },
         corporateEmail: corporateEmailFor(firstName, lastName, employer),
       },
     });
-    out.push({ ...user, priceUSD: 80 + i });
+    out.push({ ...user, priceUSD: 80 + i, timezone });
   }
 
   return out;
@@ -295,6 +327,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
 
   // schedule upcoming calls at least 30 days in the future
   for (const spec of upcomingSpecs) {
+    const timezone = candidates[spec.candidateIdx].timezone || defaultTimezone;
     const start = new Date(
       Date.now() + (spec.daysFromNow + 30) * 24 * 60 * 60 * 1000,
     );
@@ -308,6 +341,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
         endAt: new Date(start.getTime() + 30 * 60 * 1000),
         zoomMeetingId: spec.meetingId,
         zoomJoinUrl: spec.joinUrl,
+        timezone,
       },
     });
     bookings.push(booking);
@@ -384,6 +418,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
   ];
 
   for (const spec of pastSpecs) {
+    const timezone = candidates[spec.candidateIdx].timezone || defaultTimezone;
     const start = new Date(Date.now() - spec.daysAgo * 24 * 60 * 60 * 1000);
     const booking = await prisma.booking.create({
       data: {
@@ -393,6 +428,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
         status: BookingStatus.completed,
         startAt: start,
         endAt: new Date(start.getTime() + 30 * 60 * 1000),
+        timezone,
       },
     });
     bookings.push(booking);
@@ -404,6 +440,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
         platformFee: spec.platformFee,
         escrowHoldId: spec.escrowHoldId,
         status: PaymentStatus.released,
+        timezone,
       },
     });
 
@@ -420,6 +457,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
         submittedAt: new Date(),
         qcStatus: QCStatus.passed,
         qcReport: {},
+        timezone,
       },
     });
 
@@ -428,6 +466,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
         bookingId: booking.id,
         rating: spec.reviewRating,
         text: spec.reviewText,
+        timezone,
       },
     });
   }
@@ -436,6 +475,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
   for (let i = 0; i < 18; i++) {
     const cand = pick(candidates);
     const pro = pick(professionals);
+    const timezone = cand.timezone || defaultTimezone;
     const start = new Date(Date.now() - (i + 1) * 24 * 60 * 60 * 1000);
     const completed = i % 2 === 0;
     const booking = await prisma.booking.create({
@@ -446,6 +486,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
         status: completed ? BookingStatus.completed : BookingStatus.requested,
         startAt: start,
         endAt: new Date(start.getTime() + 30 * 60 * 1000),
+        timezone,
       },
     });
     bookings.push(booking);
@@ -458,6 +499,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
           platformFee: 1500,
           escrowHoldId: `pi_mock_${i}`,
           status: PaymentStatus.held,
+          timezone,
         },
       });
 
@@ -474,6 +516,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
           submittedAt: new Date(),
           qcStatus: QCStatus.passed,
           qcReport: {},
+          timezone,
         },
       });
 
@@ -482,6 +525,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
           bookingId: booking.id,
           rating: 4,
           text: 'Promising candidate who is eager to learn.',
+          timezone,
         },
       });
     }
@@ -495,6 +539,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
     // bookings with provided feedback
     for (let i = 0; i < 10; i++) {
       const cand = pick(candidates);
+      const timezone = cand.timezone || defaultTimezone;
       const start = new Date(Date.now() - (i + 40) * 24 * 60 * 60 * 1000);
       const booking = await prisma.booking.create({
         data: {
@@ -504,6 +549,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
           status: BookingStatus.completed,
           startAt: start,
           endAt: new Date(start.getTime() + 30 * 60 * 1000),
+          timezone,
         },
       });
       bookings.push(booking);
@@ -515,6 +561,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
           platformFee: 2000,
           escrowHoldId: `pi_provided_${i}`,
           status: PaymentStatus.released,
+          timezone,
         },
       });
 
@@ -531,6 +578,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
           submittedAt: new Date(),
           qcStatus: QCStatus.passed,
           qcReport: {},
+          timezone,
         },
       });
     }
@@ -538,6 +586,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
     // bookings pending feedback
     for (let i = 0; i < 10; i++) {
       const cand = pick(candidates);
+      const timezone = cand.timezone || defaultTimezone;
       const start = new Date(Date.now() - (i + 1) * 24 * 60 * 60 * 1000);
       const booking = await prisma.booking.create({
         data: {
@@ -547,6 +596,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
           status: BookingStatus.completed_pending_feedback,
           startAt: start,
           endAt: new Date(start.getTime() + 30 * 60 * 1000),
+          timezone,
         },
       });
       bookings.push(booking);
@@ -558,6 +608,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
           platformFee: 2000,
           escrowHoldId: `pi_pending_${i}`,
           status: PaymentStatus.released,
+          timezone,
         },
       });
     }
@@ -565,6 +616,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
     // incoming call requests scheduled at least 30 days out
     for (let i = 0; i < 10; i++) {
       const cand = pick(candidates);
+      const timezone = cand.timezone || defaultTimezone;
       const start = new Date(
         Date.now() + (i + 1 + 30) * 24 * 60 * 60 * 1000,
       );
@@ -576,6 +628,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
           status: BookingStatus.requested,
           startAt: start,
           endAt: new Date(start.getTime() + 30 * 60 * 1000),
+          timezone,
         },
       });
       bookings.push(booking);
@@ -585,7 +638,11 @@ async function createBookings(candidates: any[], professionals: any[]) {
   return bookings;
 }
 
-async function seedChatHistory(candidateId: string, professionalId: string) {
+async function seedChatHistory(
+  candidateId: string,
+  professionalId: string,
+  timezone: string,
+) {
   const convoId = `${candidateId}_${professionalId}`;
   await prisma.auditLog.createMany({
     data: [
@@ -595,6 +652,7 @@ async function seedChatHistory(candidateId: string, professionalId: string) {
         entityId: convoId,
         action: 'message',
         metadata: { text: 'Hi Victoria, excited to learn from you!' },
+        timezone,
       },
       {
         actorUserId: professionalId,
@@ -602,6 +660,7 @@ async function seedChatHistory(candidateId: string, professionalId: string) {
         entityId: convoId,
         action: 'message',
         metadata: { text: 'Hi Euisang, looking forward to our session.' },
+        timezone,
       },
     ],
   });
@@ -611,13 +670,14 @@ async function main() {
   // admin account for testing
   await prisma.user.upsert({
     where: { email: 'admin@monet.local' },
-    update: {},
+    update: { timezone: defaultTimezone },
     create: {
       email: 'admin@monet.local',
       role: Role.ADMIN,
       hashedPassword: await bcrypt.hash('admin123!', 10),
       firstName: 'Admin',
       lastName: 'User',
+      timezone: defaultTimezone,
     },
   });
 
@@ -627,7 +687,11 @@ async function main() {
   await createBookings(candidates, professionals);
 
   // chat history between tester accounts
-  await seedChatHistory(candidates[0].id, professionals[0].id);
+  await seedChatHistory(
+    candidates[0].id,
+    professionals[0].id,
+    candidates[0].timezone || defaultTimezone,
+  );
 
   console.log('Seed complete');
 }
