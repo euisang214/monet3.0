@@ -306,7 +306,6 @@ async function createBookings(candidates: any[], professionals: any[]) {
         status: BookingStatus.accepted,
         startAt: start,
         endAt: new Date(start.getTime() + 30 * 60 * 1000),
-        priceUSD: professionals[spec.professionalIdx].priceUSD,
         zoomMeetingId: spec.meetingId,
         zoomJoinUrl: spec.joinUrl,
       },
@@ -394,7 +393,6 @@ async function createBookings(candidates: any[], professionals: any[]) {
         status: BookingStatus.completed,
         startAt: start,
         endAt: new Date(start.getTime() + 30 * 60 * 1000),
-        priceUSD: professionals[spec.professionalIdx].priceUSD,
       },
     });
     bookings.push(booking);
@@ -448,7 +446,6 @@ async function createBookings(candidates: any[], professionals: any[]) {
         status: completed ? BookingStatus.completed : BookingStatus.requested,
         startAt: start,
         endAt: new Date(start.getTime() + 30 * 60 * 1000),
-        priceUSD: pro.priceUSD,
       },
     });
     bookings.push(booking);
