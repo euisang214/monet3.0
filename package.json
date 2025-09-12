@@ -10,7 +10,9 @@
     "postinstall": "prisma generate",
     "dev:queue": "tsx scripts/dev-queue.ts",
     "test": "vitest run",
-    "test:e2e": "vitest run tests/e2e/*.test.ts"
+    "test:e2e": "vitest run tests/e2e/*.test.ts",
+    "clean": "npm cache clean --force && rm -rf .next && rm -rf node_modules/.cache && rm -rf .next/cache && rm -f next-env.d.ts && rm -f tsconfig.tsbuildinfo && npx prisma generate",
+    "reset-packages": "rm -rf .next node_modules package-lock.json"
   },
   "dependencies": {
     "@aws-sdk/s3-request-presigner": "^3.876.0",
@@ -24,6 +26,7 @@
     "client-s3": "github:aws-sdk/client-s3",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "es-errors": "^1.3.0",
     "googleapis": "^131.0.0",
     "ioredis": "^5.4.1",
     "json2csv": "^5.0.7",
