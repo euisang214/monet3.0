@@ -50,13 +50,11 @@ export async function GET(
 
   const reviews = await prisma.professionalReview.findMany({
     where: { booking: { professionalId: params.id } },
-    include: { booking: { include: { candidate: true } } },
     orderBy: { submittedAt: 'desc' },
   });
   payload.reviews = reviews.map((r) => ({
     rating: r.rating,
     text: r.text,
-    candidate: r.booking.candidate.email,
     submittedAt: r.submittedAt,
   }));
 

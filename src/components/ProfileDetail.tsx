@@ -146,7 +146,7 @@ export default function ProfileDetail({
             profile.reviews.map((r, idx) => (
               <div key={idx} className="col" style={{ gap: 4 }}>
                 <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong>{r.candidate}</strong>
+                  <strong>{`Candidate ${idx + 1}`}</strong>
                   <span>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
                 </div>
                 <p>{r.text}</p>

@@ -24,7 +24,6 @@ export interface ProfileResponse {
   reviews?: {
     rating: number;
     text: string;
-    candidate: string;
     submittedAt: string;
   }[];
 }
