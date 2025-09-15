@@ -37,18 +37,12 @@ export async function POST(req: NextRequest, { params }:{params:{id:string}}){
   )}\nDTSTART:${formatICS(start)}\nDTEND:${formatICS(end)}\nSUMMARY:Mentorship Call\nDESCRIPTION:Join Zoom meeting at ${zoom.join_url}\nURL:${zoom.join_url}\nEND:VEVENT\nEND:VCALENDAR`;
   const recipients = [proEmail, candEmail].filter(Boolean).join(',');
   if (recipients) {
-    try {
-      await sendEmail({
-        to: recipients,
-        subject: 'Call Confirmed',
-        text: `Join Zoom meeting: ${zoom.join_url}`,
-        icalEvent: { method: 'REQUEST', filename: 'invite.ics', content: ics },
-      });
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to send email';
-      return NextResponse.json({ error: message }, { status: 500 });
-    }
+    await sendEmail({
+      to: recipients,
+      subject: 'Call Confirmed',
+      text: `Join Zoom meeting: ${zoom.join_url}`,
+      icalEvent: { method: 'REQUEST', filename: 'invite.ics', content: ics },
+    });
   }
 
   return NextResponse.json({ id: updated.id, startAt: updated.startAt, endAt: updated.endAt, status: updated.status });

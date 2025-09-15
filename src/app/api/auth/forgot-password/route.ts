@@ -29,16 +29,10 @@ export async function POST(req: Request) {
     process.env.NEXTAUTH_URL ||
     'http://localhost:3000';
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
-  try {
-    await sendEmail({
-      to: email,
-      subject: 'Reset your password',
-      text: `Click the following link to reset your password: ${resetUrl}`,
-    });
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Failed to send email';
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  await sendEmail({
+    to: email,
+    subject: 'Reset your password',
+    text: `Click the following link to reset your password: ${resetUrl}`,
+  });
   return NextResponse.json({ ok: true });
 }

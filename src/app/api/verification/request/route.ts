@@ -11,16 +11,10 @@ export async function POST(req: NextRequest){
   await prisma.verification.create({
     data: { userId: session.user.id, corporateEmail, token },
   });
-  try {
-    await sendEmail({
-      to: corporateEmail,
-      subject: 'Verify your corporate email',
-      text: `Click: ${process.env.APP_URL}/api/verification/confirm?token=${token}`,
-    });
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Failed to send email';
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  await sendEmail({
+    to: corporateEmail,
+    subject: 'Verify your corporate email',
+    text: `Click: ${process.env.APP_URL}/api/verification/confirm?token=${token}`,
+  });
   return NextResponse.json({ ok: true });
 }
