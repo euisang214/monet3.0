@@ -10,8 +10,8 @@ const mailer = nodemailer.createTransport({
 });
 
 /**
- * Sends an email using the configured SMTP transport. Errors are logged and
- * rethrown so callers can surface failures to users.
+ * Sends an email using the configured SMTP transport. Errors are logged but
+ * execution continues so that failures to send mail don't halt the caller.
  */
 export async function sendEmail(options: Mail.Options) {
   if (!process.env.SMTP_HOST) return;
@@ -19,6 +19,6 @@ export async function sendEmail(options: Mail.Options) {
     await mailer.sendMail(options);
   } catch (err) {
     console.error('Failed to send email', err);
-    throw err;
+    // Swallow the error to avoid interrupting caller execution
   }
 }

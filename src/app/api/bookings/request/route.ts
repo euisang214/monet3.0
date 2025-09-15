@@ -29,17 +29,11 @@ export async function POST(req: NextRequest){
     select: { email: true },
   });
   if (proUser?.email) {
-    try {
-      await sendEmail({
-        to: proUser.email,
-        subject: 'New booking request',
-        text: `You have a new booking request from ${session.user.email}.`,
-      });
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to send email';
-      return NextResponse.json({ error: message }, { status: 500 });
-    }
+    await sendEmail({
+      to: proUser.email,
+      subject: 'New booking request',
+      text: `You have a new booking request from ${session.user.email}.`,
+    });
   }
   return NextResponse.json({ id: booking.id, status: booking.status, priceUSD: booking.priceUSD });
 }
