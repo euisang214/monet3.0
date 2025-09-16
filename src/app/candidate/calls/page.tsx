@@ -116,14 +116,15 @@ export default async function CallsPage({
     const daysSince = Math.floor(
       (Date.now() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24)
     );
-    const callDate = new Date(b.startAt);
+    const callDateLabel =
+      b.status === BookingStatus.requested ? "" : formatDateTime(b.startAt);
     const hasFeedback = Boolean(b.feedback);
     return {
       name,
       firm: b.professional.professionalProfile?.employer ?? "",
       title: b.professional.professionalProfile?.title ?? "",
       days: String(daysSince),
-      date: { label: formatDateTime(callDate) },
+      date: { label: callDateLabel },
       status: (
         <span className="badge" style={statusStyle(b.status)}>
           {cleanStatus(b.status)}
