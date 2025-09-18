@@ -50,14 +50,13 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     if (isEdit) {
       const end = addDays(new Date(), weeks * 7);
       const filtered = events.filter(e => new Date(e.start) < end);
+      await fetch('/api/candidate/availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ events: filtered, busy: [...busyEvents, ...defaultBusy] }),
+      });
       if (onConfirm) {
         await onConfirm(filtered);
-      } else {
-        await fetch('/api/candidate/availability', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ events: filtered, busy: [...busyEvents, ...defaultBusy] }),
-        });
       }
     } else if (onConfirm && selected) {
       await onConfirm([selected]);
