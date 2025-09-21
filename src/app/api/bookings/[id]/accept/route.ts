@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/db';
-import { mergedAvailability } from '../../../../../../lib/calendar/google';
+import {
+  createTimeSlotFromDates,
+  convertTimeSlotsTimezone,
+  resolveTimezone,
+} from '../../../../../../lib/availability';
 import { auth } from '@/auth';
 
 export async function POST(_req: NextRequest, { params }:{params:{id:string}}){
@@ -8,6 +12,25 @@ export async function POST(_req: NextRequest, { params }:{params:{id:string}}){
   if(!session?.user) return NextResponse.json({error:'unauthorized'}, {status:401});
   const booking = await prisma.booking.findUnique({ where: { id: params.id } });
   if(!booking || booking.professionalId !== session.user.id) return NextResponse.json({error:'forbidden'}, {status:403});
-  const av = await mergedAvailability(booking.professionalId, booking.candidateId);
-  return NextResponse.json({ availability: av });
+
+  const [candidateAvailability, professional] = await Promise.all([
+    prisma.availability.findMany({
+      where: { userId: booking.candidateId, busy: false },
+      orderBy: { start: 'asc' },
+    }),
+    prisma.user.findUnique({
+      where: { id: booking.professionalId },
+      select: { timezone: true },
+    }),
+  ]);
+
+  const targetTimezone = resolveTimezone(professional?.timezone);
+  const availability = convertTimeSlotsTimezone(
+    candidateAvailability.map((row) =>
+      createTimeSlotFromDates(row.start, row.end, row.timezone),
+    ),
+    targetTimezone,
+  );
+
+  return NextResponse.json({ availability });
 }

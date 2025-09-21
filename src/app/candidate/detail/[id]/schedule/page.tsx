@@ -3,12 +3,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AvailabilityCalendar from "../../../../../components/AvailabilityCalendar";
 import { Card, Input } from "../../../../../components/ui";
+import { TimeSlot } from "../../../../../lib/availability";
 
 export default function Schedule({ params }: { params: { id: string } }) {
   const [weeks, setWeeks] = useState(2);
   const router = useRouter();
 
-  const handleConfirm = (slots: any[]) => {
+  const handleConfirm = (slots: TimeSlot[]) => {
     const qs = new URLSearchParams({
       slots: JSON.stringify(slots),
       weeks: String(weeks),

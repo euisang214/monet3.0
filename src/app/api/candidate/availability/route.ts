@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '../../../../../lib/db';
-import { mergeSlots, splitIntoSlots } from '../../../../../lib/availability';
+import {
+  TimeSlot,
+  mergeSlots,
+  splitIntoSlots,
+  createTimeSlotFromDates,
+  convertTimeSlotsTimezone,
+  toUtcDateRange,
+  resolveTimezone,
+  normalizeSlots,
+} from '../../../../../lib/availability';
 
 export async function POST(req: Request){
   const session = await auth();
@@ -9,16 +18,31 @@ export async function POST(req: Request){
 
   const { events = [], busy = [] } = await req.json();
   const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { timezone: true } });
-  const timezone = user?.timezone || process.env.DEFAULT_TIMEZONE || 'UTC';
+  const fallbackTimezone = resolveTimezone(user?.timezone);
 
-  const mergedEvents = mergeSlots(events);
-  const mergedBusy = mergeSlots(busy);
+  let mergedEvents: TimeSlot[] = [];
+  let mergedBusy: TimeSlot[] = [];
+  try {
+    mergedEvents = mergeSlots(normalizeSlots(events, fallbackTimezone));
+    mergedBusy = mergeSlots(normalizeSlots(busy, fallbackTimezone));
+  } catch (err) {
+    return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
+  }
 
   await prisma.availability.deleteMany({ where: { userId: session.user.id } });
-  const data = [
-    ...mergedEvents.map((e: any) => ({ userId: session.user.id, start: e.start, end: e.end, busy: false, timezone })),
-    ...mergedBusy.map((e: any) => ({ userId: session.user.id, start: e.start, end: e.end, busy: true, timezone })),
-  ];
+  const toRows = (slots: TimeSlot[], busyFlag: boolean) =>
+    slots.map((slot) => {
+      const { start, end } = toUtcDateRange(slot);
+      return {
+        userId: session.user.id,
+        start,
+        end,
+        busy: busyFlag,
+        timezone: slot.timezone,
+      };
+    });
+
+  const data = [...toRows(mergedEvents, false), ...toRows(mergedBusy, true)];
   if(data.length) await prisma.availability.createMany({ data });
   return NextResponse.json({ ok: true });
 }
@@ -26,15 +50,27 @@ export async function POST(req: Request){
 export async function GET(){
   const session = await auth();
   if(!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { timezone: true } });
+  const timezone = resolveTimezone(user?.timezone);
   const rows = await prisma.availability.findMany({
     where: { userId: session.user.id },
     orderBy: { start: 'asc' },
   });
+  const availability = rows.map((row) => ({
+    slot: createTimeSlotFromDates(row.start, row.end, row.timezone),
+    busy: row.busy,
+  }));
   const events = splitIntoSlots(
-    rows.filter(r => !r.busy).map(r => ({ start: r.start.toISOString(), end: r.end.toISOString() }))
+    convertTimeSlotsTimezone(
+      availability.filter((r) => !r.busy).map((r) => r.slot),
+      timezone,
+    ),
   );
   const busy = splitIntoSlots(
-    rows.filter(r => r.busy).map(r => ({ start: r.start.toISOString(), end: r.end.toISOString() }))
+    convertTimeSlotsTimezone(
+      availability.filter((r) => r.busy).map((r) => r.slot),
+      timezone,
+    ),
   );
   return NextResponse.json({ events, busy });
 }

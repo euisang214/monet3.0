@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -11,6 +11,12 @@ import {
 } from "@stripe/react-stripe-js";
 import { Card, Button } from "../../../../../../components/ui";
 import { ProfileResponse } from "../../../../../../types/profile";
+import {
+  TimeSlot,
+  normalizeSlots,
+  convertTimeSlotsTimezone,
+  getDefaultTimezone,
+} from "../../../../../../lib/availability";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
@@ -20,10 +26,12 @@ function CheckoutForm({
   professionalId,
   slots,
   weeks,
+  candidateTimezone,
 }: {
   professionalId: string;
-  slots: any[];
+  slots: TimeSlot[];
   weeks: number;
+  candidateTimezone: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -42,10 +50,11 @@ function CheckoutForm({
       return;
     }
     if (paymentIntent?.status === "succeeded") {
+      const normalizedSlots = convertTimeSlotsTimezone(slots, candidateTimezone);
       const res = await fetch("/api/bookings/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ professionalId, slots, weeks }),
+        body: JSON.stringify({ professionalId, slots: normalizedSlots, weeks }),
       });
       if (res.ok) {
         window.alert("Your booking request has been sent.");
@@ -66,7 +75,19 @@ function CheckoutForm({
 
 export default function CheckoutPage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
-  const slots = JSON.parse(searchParams.get("slots") || "[]");
+  const fallbackTimezone = useMemo(() => getDefaultTimezone(), []);
+
+  const slotsParam = searchParams.get("slots");
+  const slots: TimeSlot[] = useMemo(() => {
+    if (!slotsParam) return [];
+    try {
+      const parsed = JSON.parse(slotsParam);
+      if (!Array.isArray(parsed)) return [];
+      return normalizeSlots(parsed, fallbackTimezone);
+    } catch {
+      return [];
+    }
+  }, [slotsParam, fallbackTimezone]);
   const weeks = parseInt(searchParams.get("weeks") || "2");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [pro, setPro] = useState<ProfileResponse | null>(null);
@@ -107,6 +128,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
           professionalId={params.id}
           slots={slots}
           weeks={weeks}
+          candidateTimezone={fallbackTimezone}
         />
       </div>
     </Elements>
