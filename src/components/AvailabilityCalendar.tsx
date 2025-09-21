@@ -56,6 +56,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const formatInTimezone = (date: Date, pattern: string) =>
     formatDateInTimezone(date, timezone, pattern);
 
+  useEffect(() => {
     try {
       setWeekStart(startOfWeekInTimezone(new Date(), timezone));
     } catch {
