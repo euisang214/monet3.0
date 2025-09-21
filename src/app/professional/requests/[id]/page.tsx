@@ -1,30 +1,32 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AvailabilityCalendar, { Slot } from "../../../../components/AvailabilityCalendar";
+import AvailabilityCalendar from "../../../../components/AvailabilityCalendar";
+import { TimeSlot, toUtcDateRange, resolveTimezone } from "../../../../lib/availability";
 
 export default function RequestSchedule({ params }: { params: { id: string } }) {
-  const [slots, setSlots] = useState<Slot[]>([]);
+  const [slots, setSlots] = useState<TimeSlot[]>([]);
   const router = useRouter();
 
   useEffect(() => {
     fetch(`/api/bookings/${params.id}/accept`, { method: "POST" })
       .then((res) => res.json())
       .then((data) => {
-        const availability: Slot[] = (data.availability || []).map((s: any) => ({
-          start: s.startAt,
-          end: s.endAt,
+        const availability: TimeSlot[] = (data.availability || []).map((s: any) => ({
+          start: s.start,
+          end: s.end,
+          timezone: resolveTimezone(typeof s.timezone === "string" ? s.timezone : undefined),
         }));
         setSlots(availability);
       });
   }, [params.id]);
 
-  const handleConfirm = async (selected: Slot[]) => {
+  const handleConfirm = async (selected: TimeSlot[]) => {
     if (!selected[0]) return;
     await fetch(`/api/bookings/${params.id}/schedule`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startAt: selected[0].start }),
+      body: JSON.stringify({ startAt: toUtcDateRange(selected[0]).start.toISOString() }),
     });
     router.push("/professional/requests");
   };
