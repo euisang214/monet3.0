@@ -36,38 +36,56 @@ function CheckoutForm({
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
 
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      redirect: "if_required",
-    });
-    if (error) {
-      window.alert(error.message || "Payment failed");
+    const paymentElement = elements.getElement(PaymentElement);
+    if (!paymentElement) {
+      window.alert("Payment form is not ready. Please try again in a moment.");
       return;
     }
-    if (paymentIntent?.status === "succeeded") {
-      const normalizedSlots = convertTimeSlotsTimezone(slots, candidateTimezone);
-      const res = await fetch("/api/bookings/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ professionalId, slots: normalizedSlots, weeks }),
+
+    setIsSubmitting(true);
+
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        redirect: "if_required",
       });
-      if (res.ok) {
-        window.alert("Your booking request has been sent.");
-        router.push("/candidate/dashboard");
+
+      if (error) {
+        window.alert(error.message || "Payment failed");
+        return;
       }
+      if (paymentIntent?.status === "succeeded") {
+        const normalizedSlots = convertTimeSlotsTimezone(slots, candidateTimezone);
+        const res = await fetch("/api/bookings/request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ professionalId, slots: normalizedSlots, weeks }),
+        });
+        if (res.ok) {
+          window.alert("Your booking request has been sent.");
+          router.push("/candidate/dashboard");
+        }
+      }
+    } catch (err) {
+      window.alert("An unexpected error occurred while processing the payment.");
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="col" style={{ gap: 16 }}>
-      <PaymentElement />
-      <Button type="submit" disabled={!stripe}>
-        Pay
+      <PaymentElement onReady={() => setIsPaymentElementReady(true)} />
+      <Button type="submit" disabled={!stripe || !isPaymentElementReady || isSubmitting}>
+        {isSubmitting ? "Processing..." : "Pay"}
       </Button>
     </form>
   );
