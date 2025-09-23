@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '../../../../../lib/db';
+import type { TimeSlot } from '../../../../../lib/availability';
 import {
-  TimeSlot,
   mergeSlots,
   splitIntoSlots,
   createTimeSlotFromDates,
