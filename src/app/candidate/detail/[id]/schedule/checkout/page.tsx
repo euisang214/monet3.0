@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import CheckoutClient from "./CheckoutClient";
 import {
@@ -51,16 +51,23 @@ type CheckoutData = {
 async function loadCheckoutData(professionalId: string): Promise<CheckoutData> {
   const cookieHeader = cookies().toString();
   const sharedHeaders = cookieHeader ? { cookie: cookieHeader } : undefined;
+  const headersList = headers();
+  const protocol = headersList.get("x-forwarded-proto") ?? "http";
+  const host =
+  headersList.get("x-forwarded-host") ??
+  headersList.get("host") ??
+  "localhost:3000";
+  const baseUrl = `${protocol}://${host}`;
 
   try {
     const [professionalRes, intentRes] = await Promise.all([
-      fetch(`/api/professionals/${professionalId}`, {
+      fetch(`/${baseUrl}/api/professionals/${professionalId}`, {
         cache: "no-store",
         headers: {
           ...(sharedHeaders ?? {}),
         },
       }),
-      fetch(`/api/stripe/intent`, {
+      fetch(`${baseUrl}/api/stripe/intent`, {
         method: "POST",
         cache: "no-store",
         headers: {
