@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AvailabilityCalendar from "../../../../../components/AvailabilityCalendar";
 import { Card, Input } from "../../../../../components/ui";
-import { TimeSlot } from "../../../../../lib/availability";
+import type { TimeSlot } from "../../../../../lib/availability";
 
 export default function Schedule({ params }: { params: { id: string } }) {
   const [weeks, setWeeks] = useState(2);

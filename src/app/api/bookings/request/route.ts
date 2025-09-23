@@ -3,7 +3,8 @@ import { prisma } from '../../../../../lib/db';
 import { rateLimit } from '../../../../../lib/rate-limit';
 import { auth } from '@/auth';
 import { sendEmail } from '../../../../../lib/email';
-import { TimeSlot, toUtcDateRange, resolveTimezone, normalizeSlots } from '../../../../../lib/availability';
+import type { TimeSlot } from '../../../../../lib/availability';
+import { toUtcDateRange, resolveTimezone, normalizeSlots } from '../../../../../lib/availability';
 
 export async function POST(req: NextRequest) {
   const session = await auth();

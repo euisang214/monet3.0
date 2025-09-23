@@ -1,8 +1,7 @@
 import { startOfWeek } from 'date-fns';
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
+import type { DateTime, TimeSlot } from './time-slot';
 import {
-  DateTime,
-  TimeSlot,
   createTimeSlotFromDates as createTimeSlotFromDatesInternal,
   ensureTimezone as ensureTimezoneInternal,
   toUtcDateRange as toUtcDateRangeInternal,
@@ -133,4 +132,5 @@ export function splitIntoSlots(ranges: Slot[], minutes = 30): Slot[] {
   return result;
 }
 
-export { DateTime, TimeSlot, ISO_LOCAL_FORMAT };
+export type { DateTime, TimeSlot };
+export { ISO_LOCAL_FORMAT };
