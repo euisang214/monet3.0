@@ -11,7 +11,6 @@ export async function GET(
     where: { userId: params.id },
     include: { experience: true, education: true },
   });
-  console.log(pro);
   if (!pro) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
   let reveal = false;

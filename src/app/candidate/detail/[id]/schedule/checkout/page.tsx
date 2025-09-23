@@ -61,7 +61,7 @@ async function loadCheckoutData(professionalId: string): Promise<CheckoutData> {
 
   try {
     const [professionalRes, intentRes] = await Promise.all([
-      fetch(`/${baseUrl}/api/professionals/${professionalId}`, {
+      fetch(`${baseUrl}/api/professionals/${professionalId}`, {
         cache: "no-store",
         headers: {
           ...(sharedHeaders ?? {}),
