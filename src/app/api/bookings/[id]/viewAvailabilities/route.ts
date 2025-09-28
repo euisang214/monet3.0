@@ -33,7 +33,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (!booking || booking.professionalId !== session.user.id) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
-
   const targetTimezone = resolveTimezone(booking.professional?.timezone);
   const candidateAvailability = booking.candidate?.availabilities ?? [];
 
