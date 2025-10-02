@@ -28,10 +28,17 @@ async function fetchSettings(userId: string) {
     feedbackReceived: true,
     chatScheduled: true,
   };
-  const defaultBusy = flags.defaultBusy || [];
+  const defaultAvailability = flags.defaultAvailability || flags.defaultBusy || [];
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
   const timezone = user.timezone;
-  return { name: fullName, email: user.email, resumeUrl, notifications, defaultBusy, timezone };
+  return {
+    name: fullName,
+    email: user.email,
+    resumeUrl,
+    notifications,
+    defaultAvailability,
+    timezone,
+  };
 }
 
 export async function GET() {
@@ -48,7 +55,9 @@ export async function PUT(req: Request) {
   const name = (form.get('name') as string) || '';
   const email = (form.get('email') as string) || '';
   const notifications = JSON.parse((form.get('notifications') as string) || '{}');
-  const defaultBusy = JSON.parse((form.get('defaultBusy') as string) || '[]');
+  const defaultAvailabilityRaw =
+    (form.get('defaultAvailability') as string) || (form.get('defaultBusy') as string) || '[]';
+  const defaultAvailability = JSON.parse(defaultAvailabilityRaw);
   const timezone = (form.get('timezone') as string) || '';
   const file = form.get('resume') as File | null;
 
@@ -59,7 +68,12 @@ export async function PUT(req: Request) {
     where: { id: session.user.id },
     select: { flags: true },
   });
-  const flags = { ...(existing?.flags as any || {}), notifications, defaultBusy };
+  const flags = {
+    ...(existing?.flags as any || {}),
+    notifications,
+    defaultAvailability,
+    defaultBusy: defaultAvailability,
+  };
 
   await prisma.user.update({
     where: { id: session.user.id },

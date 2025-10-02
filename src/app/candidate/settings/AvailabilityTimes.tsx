@@ -1,7 +1,7 @@
 'use client';
 import { Input, Button } from '../../../components/ui';
 
-export interface BusyRange {
+export interface AvailabilityRange {
   day: number;
   start: string;
   end: string;
@@ -9,16 +9,16 @@ export interface BusyRange {
 
 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-export default function BusyTimes({
+export default function AvailabilityTimes({
   ranges,
   onChange,
 }: {
-  ranges: BusyRange[];
-  onChange: (ranges: BusyRange[]) => void;
+  ranges: AvailabilityRange[];
+  onChange: (ranges: AvailabilityRange[]) => void;
 }) {
   const addRange = () => onChange([...ranges, { day: 0, start: '09:00', end: '17:00' }]);
 
-  const updateRange = (index: number, field: keyof BusyRange, value: any) => {
+  const updateRange = (index: number, field: keyof AvailabilityRange, value: any) => {
     const next = [...ranges];
     (next[index] as any)[field] = value;
     onChange(next);
@@ -28,7 +28,7 @@ export default function BusyTimes({
 
   return (
     <div className="col" style={{ gap: 8 }}>
-      <h3>Default Busy Times</h3>
+      <h3>Default Availability</h3>
       {ranges.map((r, idx) => (
         <div key={idx} className="row" style={{ gap: 8, alignItems: 'center' }}>
           <select value={r.day} onChange={e => updateRange(idx, 'day', parseInt(e.target.value))}>

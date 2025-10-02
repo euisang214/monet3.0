@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input, Button, Select } from '../../../../components/ui';
 import { timezones } from '../../../../../lib/timezones';
-import BusyTimes, { BusyRange } from '../../../candidate/settings/BusyTimes';
+import AvailabilityTimes, { AvailabilityRange } from '../../../candidate/settings/AvailabilityTimes';
 
 export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' | 'PROFESSIONAL' }) {
   const [role, setRole] = useState<'CANDIDATE' | 'PROFESSIONAL'>(initialRole);
@@ -31,7 +31,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
   const [education, setEducation] = useState<
     { school: string; title: string; startDate: string; endDate: string }[]
   >([{ school: '', title: '', startDate: '', endDate: '' }]);
-  const [busyRanges, setBusyRanges] = useState<BusyRange[]>([]);
+  const [availabilityRanges, setAvailabilityRanges] = useState<AvailabilityRange[]>([]);
   const router = useRouter();
 
   const addInterest = () => setInterests([...interests, '']);
@@ -110,7 +110,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
     };
     if (role === 'CANDIDATE') {
       body.resumeUrl = resumeUrl || undefined;
-      if (busyRanges.length > 0) body.defaultBusy = busyRanges;
+      if (availabilityRanges.length > 0) body.defaultAvailability = availabilityRanges;
     } else {
       body.employer = employer;
       body.title = title;
@@ -431,7 +431,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
       </Button>
 
       {role === 'CANDIDATE' && (
-        <BusyTimes ranges={busyRanges} onChange={setBusyRanges} />
+      <AvailabilityTimes ranges={availabilityRanges} onChange={setAvailabilityRanges} />
       )}
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
