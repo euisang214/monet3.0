@@ -22,8 +22,8 @@ export default function SettingsForm() {
   const [form, setForm] = useState<SettingsData>({ name: '', email: '', resumeUrl: null, timezone: '' });
   const [initialForm, setInitialForm] = useState<SettingsData>({ name: '', email: '', resumeUrl: null, timezone: '' });
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [availabilityRanges, setAvailabilityRanges] = useState<AvailabilityRange[]>([]);
-  const [initialAvailability, setInitialAvailability] = useState<AvailabilityRange[]>([]);
+  const [busyRanges, setBusyRanges] = useState<AvailabilityRange[]>([]);
+  const [initialBusyRanges, setInitialBusyRanges] = useState<AvailabilityRange[]>([]);
   const [notifications, setNotifications] = useState<Notifications>({
     feedbackReceived: true,
     chatScheduled: true,
@@ -40,9 +40,9 @@ export default function SettingsForm() {
         const data = await res.json();
         setForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl, timezone: data.timezone });
         setInitialForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl, timezone: data.timezone });
-        const defaults = data.defaultAvailability || data.defaultBusy || [];
-        setAvailabilityRanges(defaults);
-        setInitialAvailability(defaults);
+        const defaults = data.defaultBusy || [];
+        setBusyRanges(defaults);
+        setInitialBusyRanges(defaults);
         setNotifications(data.notifications || { feedbackReceived: true, chatScheduled: true });
         setInitialNotifications(data.notifications || { feedbackReceived: true, chatScheduled: true });
       }
@@ -60,16 +60,16 @@ export default function SettingsForm() {
     fd.append('email', form.email);
     fd.append('timezone', form.timezone);
     fd.append('notifications', JSON.stringify(notifications));
-    fd.append('defaultAvailability', JSON.stringify(availabilityRanges));
+    fd.append('defaultBusy', JSON.stringify(busyRanges));
     if (resumeFile) fd.append('resume', resumeFile);
     const res = await fetch('/api/candidate/settings', { method: 'PUT', body: fd });
     if (res.ok) {
       const data = await res.json();
       setForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl, timezone: data.timezone });
       setInitialForm({ name: data.name, email: data.email, resumeUrl: data.resumeUrl, timezone: data.timezone });
-      const defaults = data.defaultAvailability || data.defaultBusy || [];
-      setAvailabilityRanges(defaults);
-      setInitialAvailability(defaults);
+      const defaults = data.defaultBusy || [];
+      setBusyRanges(defaults);
+      setInitialBusyRanges(defaults);
       setNotifications(data.notifications || { feedbackReceived: true, chatScheduled: true });
       setInitialNotifications(data.notifications || { feedbackReceived: true, chatScheduled: true });
       alert('Settings saved');
@@ -80,7 +80,7 @@ export default function SettingsForm() {
 
   const handleCancel = () => {
     setForm(initialForm);
-    setAvailabilityRanges(initialAvailability);
+    setBusyRanges(initialBusyRanges);
     setNotifications(initialNotifications);
     setResumeFile(null);
   };
@@ -157,7 +157,7 @@ export default function SettingsForm() {
         </div>
       </Card>
       <Card className="col" style={{ padding: 16 }}>
-        <AvailabilityTimes ranges={availabilityRanges} onChange={setAvailabilityRanges} />
+        <AvailabilityTimes ranges={busyRanges} onChange={setBusyRanges} />
       </Card>
     </div>
   );

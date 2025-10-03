@@ -28,7 +28,7 @@ export default function AvailabilityTimes({
 
   return (
     <div className="col" style={{ gap: 8 }}>
-      <h3>Default Availability</h3>
+      <h3>Default Busy Times</h3>
       {ranges.map((r, idx) => (
         <div key={idx} className="row" style={{ gap: 8, alignItems: 'center' }}>
           <select value={r.day} onChange={e => updateRange(idx, 'day', parseInt(e.target.value))}>

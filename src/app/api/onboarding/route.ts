@@ -51,15 +51,6 @@ export async function POST(req: NextRequest) {
           }),
         )
         .min(1),
-      defaultAvailability: z
-        .array(
-          z.object({
-            day: z.number().min(0).max(6),
-            start: z.string(),
-            end: z.string(),
-          }),
-        )
-        .optional(),
       defaultBusy: z
         .array(
           z.object({
@@ -80,19 +71,16 @@ export async function POST(req: NextRequest) {
       activities,
       experience,
       education,
-      defaultAvailability,
       defaultBusy,
     } = parsed.data;
-    const availabilityDefaults = defaultAvailability || defaultBusy || [];
+    const availabilityDefaults = defaultBusy || [];
     const existing = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { flags: true },
     });
     const flags = {
       ...(existing?.flags as any || {}),
-      ...(availabilityDefaults
-        ? { defaultAvailability: availabilityDefaults, defaultBusy: availabilityDefaults }
-        : {}),
+      ...(availabilityDefaults ? { defaultBusy: availabilityDefaults } : {}),
     };
     await prisma.user.update({
       where: { id: session.user.id },
