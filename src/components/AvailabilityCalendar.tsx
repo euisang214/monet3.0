@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Button } from './ui';
 import { addDays, addMinutes } from 'date-fns';
@@ -43,8 +43,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const [timezone, setTimezone] = useState<string>(() => resolveTimezone(null));
   const [events, setEvents] = useState<TimeSlot[]>([]);
   const [syncedAvailability, setSyncedAvailability] = useState<CalendarSlot[]>([]);
-  const [defaultAvailability, setDefaultAvailability] = useState<CalendarSlot[]>([]);
-  const [defaultAvailabilityRanges, setDefaultAvailabilityRanges] = useState<{
+  const [defaultBusySlots, setDefaultBusySlots] = useState<CalendarSlot[]>([]);
+  const [defaultBusyRanges, setDefaultBusyRanges] = useState<{
     day: number;
     start: string;
     end: string;
@@ -76,7 +76,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         sourceTimezone: slot.sourceTimezone,
       })),
     );
-    setDefaultAvailability((prev) =>
+    setDefaultBusySlots((prev) =>
       prev.map((slot) => ({
         ...convertTimeSlotTimezone(slot, timezone),
         sourceTimezone: slot.sourceTimezone,
@@ -94,22 +94,18 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         const res = await fetch('/api/candidate/settings');
         if (res.ok) {
           const data = await res.json();
-          const defaultRanges = Array.isArray(data.defaultAvailability)
-            ? data.defaultAvailability
-            : Array.isArray(data.defaultBusy)
-            ? data.defaultBusy
-            : [];
+          const defaultRanges = Array.isArray(data.defaultBusy) ? data.defaultBusy : [];
           if (defaultRanges.length) {
-            setDefaultAvailabilityRanges(defaultRanges);
+            setDefaultBusyRanges(defaultRanges);
           } else {
-            setDefaultAvailabilityRanges([]);
+            setDefaultBusyRanges([]);
           }
           if (typeof data.timezone === 'string') {
             setTimezone(resolveTimezone(data.timezone));
           }
         }
       } catch {
-        setDefaultAvailabilityRanges([]);
+        setDefaultBusyRanges([]);
       }
     }
     loadDefaults();
@@ -203,22 +199,36 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           return [];
         }
       });
-      setSyncedAvailability(converted);
+      setSyncedAvailability(applyDefaultBusy(converted));
     } catch {
       // ignore sync errors
     }
   };
 
+  const applyDefaultBusy = useCallback(
+    (slots: CalendarSlot[]) => {
+      if (!defaultBusySlots.length) return slots;
+      const busyKeys = new Set(defaultBusySlots.map(slot => toUtcDateRange(slot).start.getTime()));
+      return slots.filter(slot => !busyKeys.has(toUtcDateRange(slot).start.getTime()));
+    },
+    [defaultBusySlots],
+  );
+
   useEffect(() => {
     if (!isEdit) return;
     handleSync();
-  }, [isEdit, timezone]);
+  }, [isEdit, timezone, applyDefaultBusy]);
+
+  useEffect(() => {
+    if (!isEdit) return;
+    setSyncedAvailability(prev => applyDefaultBusy(prev));
+  }, [applyDefaultBusy, isEdit]);
 
   useEffect(() => {
     if (!isEdit) return;
     const slots: CalendarSlot[] = [];
     for (let w = 0; w < weeks; w++) {
-      defaultAvailabilityRanges.forEach(r => {
+      defaultBusyRanges.forEach(r => {
         const dayStartUtc = addDays(weekStart, r.day + w * 7);
         const [sh, sm] = r.start.split(':').map(Number);
         const [eh, em] = r.end.split(':').map(Number);
@@ -231,8 +241,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         }
       });
     }
-    setDefaultAvailability(slots);
-  }, [weekStart, weeks, defaultAvailabilityRanges, isEdit, timezone]);
+    setDefaultBusySlots(slots);
+  }, [weekStart, weeks, defaultBusyRanges, isEdit, timezone]);
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -257,17 +267,17 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     [syncedAvailability],
   );
 
-  const defaultKeys = useMemo(
-    () => new Set(defaultAvailability.map(slot => toUtcDateRange(slot).start.getTime())),
-    [defaultAvailability],
+  const defaultBusyKeys = useMemo(
+    () => new Set(defaultBusySlots.map(slot => toUtcDateRange(slot).start.getTime())),
+    [defaultBusySlots],
   );
 
   const selectedKey = useMemo(() => (selected ? toUtcDateRange(selected).start.getTime() : null), [selected]);
 
   const isSyncedSlot = (date: Date) => syncedKeys.has(date.getTime());
-  const isDefaultSlot = (date: Date) => defaultKeys.has(date.getTime());
+  const isDefaultBusySlot = (date: Date) => defaultBusyKeys.has(date.getTime());
   const isManualSlot = (date: Date) => manualKeys.has(date.getTime());
-  const isAvailableSlot = (date: Date) => isSyncedSlot(date) || isDefaultSlot(date) || isManualSlot(date);
+  const isAvailableSlot = (date: Date) => isManualSlot(date) || isSyncedSlot(date);
 
   const toggleSlot = (dateUtc: Date) => {
     if (!isEdit) return;
@@ -277,13 +287,13 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     const newSlot = createTimeSlotFromDates(slotStart, slotEnd, timezone);
     const manual = isManualSlot(slotStart);
     const synced = isSyncedSlot(slotStart);
-    const isDefault = isDefaultSlot(slotStart);
-
-    if (isDefault) {
-      return;
-    }
+    const isDefaultBusy = isDefaultBusySlot(slotStart);
 
     flushSync(() => {
+      if (isDefaultBusy && !manual && !synced) {
+        setEvents(prev => [...prev, newSlot]);
+        return;
+      }
       if (synced) {
         setSyncedAvailability(prev => prev.filter(s => toUtcDateRange(s).start.getTime() !== slotKey));
         return;
@@ -311,28 +321,49 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const handleConfirm = async () => {
     if (isEdit) {
       const endLimit = addDays(new Date(), weeks * 7);
-      const allSlots: CalendarSlot[] = [
+      const allAvailable: CalendarSlot[] = [
         ...events.map(slot => ({ ...slot })),
         ...syncedAvailability,
-        ...defaultAvailability,
       ];
-      const unique = new Map<number, CalendarSlot>();
-      allSlots.forEach(slot => {
+
+      const uniqueAvailable = new Map<number, CalendarSlot>();
+      allAvailable.forEach(slot => {
         const key = toUtcDateRange(slot).start.getTime();
-        if (!unique.has(key)) {
-          unique.set(key, slot);
+        if (!uniqueAvailable.has(key)) {
+          uniqueAvailable.set(key, slot);
         }
       });
-      const filtered = Array.from(unique.values())
-        .map(normalizeForSubmit)
-        .filter(slot => toUtcDateRange(slot).start < endLimit);
+
+      const availableWithinRange = Array.from(uniqueAvailable.values()).filter(
+        slot => toUtcDateRange(slot).start < endLimit,
+      );
+      const availableKeys = new Set(
+        availableWithinRange.map(slot => toUtcDateRange(slot).start.getTime()),
+      );
+      const availablePayload = availableWithinRange.map(normalizeForSubmit);
+
+      const uniqueBusy = new Map<number, CalendarSlot>();
+      defaultBusySlots.forEach(slot => {
+        const key = toUtcDateRange(slot).start.getTime();
+        if (!uniqueBusy.has(key)) {
+          uniqueBusy.set(key, slot);
+        }
+      });
+
+      const busyPayload = Array.from(uniqueBusy.values())
+        .filter(slot => {
+          const start = toUtcDateRange(slot).start;
+          return start < endLimit && !availableKeys.has(start.getTime());
+        })
+        .map(normalizeForSubmit);
+
       if (onConfirm) {
-        await onConfirm(filtered);
+        await onConfirm(availablePayload);
       } else {
         await fetch('/api/candidate/availability', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ events: filtered, busy: [] }),
+          body: JSON.stringify({ events: availablePayload, busy: busyPayload }),
         });
       }
     } else if (onConfirm && selected) {
@@ -395,15 +426,14 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               const key = slotStartUtc.getTime();
               const manual = isManualSlot(slotStartUtc);
               const synced = isSyncedSlot(slotStartUtc);
-              const defaultSlot = isDefaultSlot(slotStartUtc);
-              const available = manual || synced || defaultSlot;
+              const defaultBusy = isDefaultBusySlot(slotStartUtc);
+              const available = manual || synced;
               const isSelected = selectedKey === key;
-              const canEditSlot = isEdit && !defaultSlot;
               return (
                 <div
                   key={`${col}-${row}`}
                   onMouseDown={() => {
-                    if (canEditSlot) {
+                    if (isEdit) {
                       toggleSlot(slotStartUtc);
                       setIsDragging(true);
                       draggedSlots.current = new Set([key]);
@@ -423,13 +453,11 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         for (let t = previous + dir; dir > 0 ? t <= current : t >= current; t += dir) {
                           if (!draggedSlots.current.has(t)) {
                             const targetDate = new Date(t);
-                            if (!isDefaultSlot(targetDate)) {
-                              toggleSlot(targetDate);
-                              draggedSlots.current.add(t);
-                            }
+                            toggleSlot(targetDate);
+                            draggedSlots.current.add(t);
                           }
                         }
-                      } else if (!draggedSlots.current.has(current) && !defaultSlot) {
+                      } else if (!draggedSlots.current.has(current)) {
                         toggleSlot(slotStartUtc);
                         draggedSlots.current.add(current);
                       }
@@ -440,22 +468,22 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     borderTop: '1px solid var(--border)',
                     borderLeft: '1px solid var(--border)',
                     background: isEdit
-                      ? available
-                        ? defaultSlot
-                          ? '#bbf7d0'
-                          : synced
-                          ? '#86efac'
-                          : '#4ade80'
+                      ? manual
+                        ? '#4ade80'
+                        : synced
+                        ? '#86efac'
+                        : defaultBusy
+                        ? '#fecaca'
                         : 'transparent'
                       : isSelected
                       ? '#22c55e'
                       : available
                       ? '#bbf7d0'
+                      : defaultBusy
+                      ? '#fecaca'
                       : 'transparent',
                     cursor: isEdit
-                      ? canEditSlot
-                        ? 'pointer'
-                        : 'not-allowed'
+                      ? 'pointer'
                       : available
                       ? 'pointer'
                       : 'default',

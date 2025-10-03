@@ -28,7 +28,7 @@ async function fetchSettings(userId: string) {
     feedbackReceived: true,
     chatScheduled: true,
   };
-  const defaultAvailability = flags.defaultAvailability || flags.defaultBusy || [];
+  const defaultBusy = flags.defaultBusy || [];
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
   const timezone = user.timezone;
   return {
@@ -36,7 +36,7 @@ async function fetchSettings(userId: string) {
     email: user.email,
     resumeUrl,
     notifications,
-    defaultAvailability,
+    defaultBusy,
     timezone,
   };
 }
@@ -55,9 +55,8 @@ export async function PUT(req: Request) {
   const name = (form.get('name') as string) || '';
   const email = (form.get('email') as string) || '';
   const notifications = JSON.parse((form.get('notifications') as string) || '{}');
-  const defaultAvailabilityRaw =
-    (form.get('defaultAvailability') as string) || (form.get('defaultBusy') as string) || '[]';
-  const defaultAvailability = JSON.parse(defaultAvailabilityRaw);
+  const defaultBusyRaw = (form.get('defaultBusy') as string) || '[]';
+  const defaultBusy = JSON.parse(defaultBusyRaw);
   const timezone = (form.get('timezone') as string) || '';
   const file = form.get('resume') as File | null;
 
@@ -71,8 +70,7 @@ export async function PUT(req: Request) {
   const flags = {
     ...(existing?.flags as any || {}),
     notifications,
-    defaultAvailability,
-    defaultBusy: defaultAvailability,
+    defaultBusy,
   };
 
   await prisma.user.update({

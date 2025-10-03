@@ -31,7 +31,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
   const [education, setEducation] = useState<
     { school: string; title: string; startDate: string; endDate: string }[]
   >([{ school: '', title: '', startDate: '', endDate: '' }]);
-  const [availabilityRanges, setAvailabilityRanges] = useState<AvailabilityRange[]>([]);
+  const [busyRanges, setBusyRanges] = useState<AvailabilityRange[]>([]);
   const router = useRouter();
 
   const addInterest = () => setInterests([...interests, '']);
@@ -110,7 +110,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
     };
     if (role === 'CANDIDATE') {
       body.resumeUrl = resumeUrl || undefined;
-      if (availabilityRanges.length > 0) body.defaultAvailability = availabilityRanges;
+      if (busyRanges.length > 0) body.defaultBusy = busyRanges;
     } else {
       body.employer = employer;
       body.title = title;
@@ -431,7 +431,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
       </Button>
 
       {role === 'CANDIDATE' && (
-      <AvailabilityTimes ranges={availabilityRanges} onChange={setAvailabilityRanges} />
+        <AvailabilityTimes ranges={busyRanges} onChange={setBusyRanges} />
       )}
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
