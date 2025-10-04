@@ -106,7 +106,7 @@ function StatusPopup({status}:{status:StatusState | null}){
       zIndex:1000
     }}>
       {status.state === 'processing' && <div className="status-spinner" />}
-      <span>{status.message}</span>
+      <span>{status.state === 'error' ? 'Error' : status.message}</span>
     </div>
   );
 }
