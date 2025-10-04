@@ -14,6 +14,7 @@ import {
   formatDateInTimezone,
   startOfWeekInTimezone,
   resolveTimezone,
+  mergeSlots,
 } from '../../lib/availability';
 
 type CalendarSlot = TimeSlot & { sourceTimezone?: string };
@@ -341,6 +342,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         availableWithinRange.map(slot => toUtcDateRange(slot).start.getTime()),
       );
       const availablePayload = availableWithinRange.map(normalizeForSubmit);
+      const mergedAvailablePayload = mergeSlots(availablePayload);
 
       const uniqueBusy = new Map<number, CalendarSlot>();
       defaultBusySlots.forEach(slot => {
@@ -356,14 +358,15 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           return start < endLimit && !availableKeys.has(start.getTime());
         })
         .map(normalizeForSubmit);
+      const mergedBusyPayload = mergeSlots(busyPayload);
 
       if (onConfirm) {
-        await onConfirm(availablePayload);
+        await onConfirm(mergedAvailablePayload);
       } else {
         await fetch('/api/candidate/availability', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ events: availablePayload, busy: busyPayload }),
+          body: JSON.stringify({ events: mergedAvailablePayload, busy: mergedBusyPayload }),
         });
       }
     } else if (onConfirm && selected) {
