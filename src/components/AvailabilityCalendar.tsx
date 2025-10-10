@@ -1,12 +1,11 @@
 'use client';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Button } from './ui';
 import { addDays, addMinutes } from 'date-fns';
 import { signIn } from 'next-auth/react';
 import {
   TimeSlot,
-  splitIntoSlots,
   convertTimeSlotTimezone,
   convertTimeSlotsTimezone,
   createTimeSlotFromDates,
@@ -43,7 +42,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const isEdit = mode === 'edit';
   const [timezone, setTimezone] = useState<string>(() => resolveTimezone(null));
   const [events, setEvents] = useState<TimeSlot[]>([]);
-  const [syncedAvailability, setSyncedAvailability] = useState<CalendarSlot[]>([]);
+  const [persistedBusySlots, setPersistedBusySlots] = useState<CalendarSlot[]>([]);
   const [defaultBusySlots, setDefaultBusySlots] = useState<CalendarSlot[]>([]);
   const [defaultBusyRanges, setDefaultBusyRanges] = useState<{
     day: number;
@@ -71,13 +70,13 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
   useEffect(() => {
     setEvents((prev) => convertTimeSlotsTimezone(prev, timezone));
-    setSyncedAvailability((prev) =>
+    setDefaultBusySlots((prev) =>
       prev.map((slot) => ({
         ...convertTimeSlotTimezone(slot, timezone),
         sourceTimezone: slot.sourceTimezone,
       })),
     );
-    setDefaultBusySlots((prev) =>
+    setPersistedBusySlots((prev) =>
       prev.map((slot) => ({
         ...convertTimeSlotTimezone(slot, timezone),
         sourceTimezone: slot.sourceTimezone,
@@ -145,7 +144,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 return { start: slot.start, end: slot.end, timezone: tz } as TimeSlot;
               });
             setEvents(convertTimeSlotsTimezone(normalized, timezone));
-            setSyncedAvailability([]);
+            setPersistedBusySlots([]);
             return;
           }
         } catch {
@@ -157,8 +156,11 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         if (res.ok) {
           const data = await res.json();
           const eventsData: TimeSlot[] = Array.isArray(data.events) ? data.events : [];
+          const busyData: TimeSlot[] = Array.isArray(data.busy) ? data.busy : [];
           setEvents(convertTimeSlotsTimezone(eventsData, timezone));
-          setSyncedAvailability([]);
+          setPersistedBusySlots(
+            convertTimeSlotsTimezone(busyData, timezone).map((slot) => ({ ...slot })),
+          );
         }
       } catch {
         // ignore load errors
@@ -191,39 +193,21 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     if (!res.ok) return;
     try {
       const data = await res.json();
-      const freeSlots: TimeSlot[] = Array.isArray(data.free) ? data.free : [];
-      const converted = freeSlots.flatMap(slot => {
-        try {
-          const displaySlot = convertTimeSlotTimezone(slot, timezone);
-          return splitIntoSlots([displaySlot]).map(s => ({ ...s, sourceTimezone: slot.timezone }));
-        } catch {
-          return [];
-        }
-      });
-      setSyncedAvailability(applyDefaultBusy(converted));
+      const eventsData: TimeSlot[] = Array.isArray(data.events) ? data.events : [];
+      const busyData: TimeSlot[] = Array.isArray(data.busy) ? data.busy : [];
+      setEvents(convertTimeSlotsTimezone(eventsData, timezone));
+      setPersistedBusySlots(
+        convertTimeSlotsTimezone(busyData, timezone).map(slot => ({ ...slot })),
+      );
     } catch {
       // ignore sync errors
     }
   };
 
-  const applyDefaultBusy = useCallback(
-    (slots: CalendarSlot[]) => {
-      if (!defaultBusySlots.length) return slots;
-      const busyKeys = new Set(defaultBusySlots.map(slot => toUtcDateRange(slot).start.getTime()));
-      return slots.filter(slot => !busyKeys.has(toUtcDateRange(slot).start.getTime()));
-    },
-    [defaultBusySlots],
-  );
-
   useEffect(() => {
     if (!isEdit) return;
     handleSync();
-  }, [isEdit, timezone, applyDefaultBusy]);
-
-  useEffect(() => {
-    if (!isEdit) return;
-    setSyncedAvailability(prev => applyDefaultBusy(prev));
-  }, [applyDefaultBusy, isEdit]);
+  }, [isEdit, timezone]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -263,22 +247,25 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     [events],
   );
 
-  const syncedKeys = useMemo(
-    () => new Set(syncedAvailability.map(slot => toUtcDateRange(slot).start.getTime())),
-    [syncedAvailability],
-  );
-
   const defaultBusyKeys = useMemo(
     () => new Set(defaultBusySlots.map(slot => toUtcDateRange(slot).start.getTime())),
     [defaultBusySlots],
   );
 
+  const persistedBusyKeys = useMemo(
+    () =>
+      new Set(
+        persistedBusySlots.map((slot) => toUtcDateRange(slot).start.getTime()),
+      ),
+    [persistedBusySlots],
+  );
+
   const selectedKey = useMemo(() => (selected ? toUtcDateRange(selected).start.getTime() : null), [selected]);
 
-  const isSyncedSlot = (date: Date) => syncedKeys.has(date.getTime());
   const isDefaultBusySlot = (date: Date) => defaultBusyKeys.has(date.getTime());
+  const isPersistedBusySlot = (date: Date) => persistedBusyKeys.has(date.getTime());
   const isManualSlot = (date: Date) => manualKeys.has(date.getTime());
-  const isAvailableSlot = (date: Date) => isManualSlot(date) || isSyncedSlot(date);
+  const isAvailableSlot = (date: Date) => isManualSlot(date);
 
   const toggleSlot = (dateUtc: Date) => {
     if (!isEdit) return;
@@ -287,16 +274,15 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     const slotKey = slotStart.getTime();
     const newSlot = createTimeSlotFromDates(slotStart, slotEnd, timezone);
     const manual = isManualSlot(slotStart);
-    const synced = isSyncedSlot(slotStart);
     const isDefaultBusy = isDefaultBusySlot(slotStart);
+    const isPersistedBusy = isPersistedBusySlot(slotStart);
 
     flushSync(() => {
-      if (isDefaultBusy && !manual && !synced) {
-        setEvents(prev => [...prev, newSlot]);
+      if (isPersistedBusy && !manual) {
         return;
       }
-      if (synced) {
-        setSyncedAvailability(prev => prev.filter(s => toUtcDateRange(s).start.getTime() !== slotKey));
+      if (isDefaultBusy && !manual) {
+        setEvents(prev => [...prev, newSlot]);
         return;
       }
 
@@ -322,10 +308,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const handleConfirm = async () => {
     if (isEdit) {
       const endLimit = addDays(new Date(), weeks * 7);
-      const allAvailable: CalendarSlot[] = [
-        ...events.map(slot => ({ ...slot })),
-        ...syncedAvailability,
-      ];
+      const allAvailable: CalendarSlot[] = events.map(slot => ({ ...slot }));
 
       const uniqueAvailable = new Map<number, CalendarSlot>();
       allAvailable.forEach(slot => {
@@ -428,9 +411,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               const slotEndUtc = addMinutes(slotStartUtc, 30);
               const key = slotStartUtc.getTime();
               const manual = isManualSlot(slotStartUtc);
-              const synced = isSyncedSlot(slotStartUtc);
+              const persistedBusy = isPersistedBusySlot(slotStartUtc);
               const defaultBusy = isDefaultBusySlot(slotStartUtc);
-              const available = manual || synced;
+              const available = manual;
               const isSelected = selectedKey === key;
               return (
                 <div
@@ -473,16 +456,14 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     background: isEdit
                       ? manual
                         ? '#4ade80'
-                        : synced
-                        ? '#86efac'
-                        : defaultBusy
+                        : persistedBusy || defaultBusy
                         ? '#fecaca'
                         : 'transparent'
                       : isSelected
                       ? '#22c55e'
                       : available
                       ? '#bbf7d0'
-                      : defaultBusy
+                      : persistedBusy || defaultBusy
                       ? '#fecaca'
                       : 'transparent',
                     cursor: isEdit
