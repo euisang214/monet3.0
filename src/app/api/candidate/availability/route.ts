@@ -29,7 +29,27 @@ export async function POST(req: Request){
     return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
   }
 
-  await prisma.availability.deleteMany({ where: { userId: session.user.id } });
+  const existing = await prisma.availability.findMany({
+    where: { userId: session.user.id },
+    orderBy: { start: 'asc' },
+  });
+
+  const toSlot = (row: { start: Date; end: Date; timezone: string }) =>
+    createTimeSlotFromDates(row.start, row.end, row.timezone);
+
+  const existingBusy = existing.filter((row) => row.busy).map(toSlot);
+  const existingBusySlots = splitIntoSlots(existingBusy);
+  const incomingBusySlots = splitIntoSlots(mergedBusy);
+  const collectKey = (slot: TimeSlot) => toUtcDateRange(slot).start.getTime();
+
+  const finalBusy = mergeSlots([...existingBusySlots, ...incomingBusySlots]);
+  const finalBusyKeys = new Set<number>(splitIntoSlots(finalBusy).map((slot) => collectKey(slot)));
+
+  const filteredEventSlots = splitIntoSlots(mergedEvents).filter(
+    (slot) => !finalBusyKeys.has(collectKey(slot)),
+  );
+  const finalEvents = mergeSlots(filteredEventSlots);
+
   const toRows = (slots: TimeSlot[], busyFlag: boolean) =>
     slots.map((slot) => {
       const { start, end } = toUtcDateRange(slot);
@@ -42,8 +62,17 @@ export async function POST(req: Request){
       };
     });
 
-  const data = [...toRows(mergedEvents, false), ...toRows(mergedBusy, true)];
-  if(data.length) await prisma.availability.createMany({ data });
+  await prisma.availability.deleteMany({ where: { userId: session.user.id, busy: false } });
+  const availableRows = toRows(finalEvents, false);
+  if (availableRows.length) {
+    await prisma.availability.createMany({ data: availableRows });
+  }
+
+  await prisma.availability.deleteMany({ where: { userId: session.user.id, busy: true } });
+  const busyRows = toRows(finalBusy, true);
+  if (busyRows.length) {
+    await prisma.availability.createMany({ data: busyRows });
+  }
   return NextResponse.json({ ok: true });
 }
 
