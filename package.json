@@ -10,7 +10,11 @@
     "postinstall": "prisma generate",
     "dev:queue": "tsx scripts/dev-queue.ts",
     "test": "vitest run",
-    "test:e2e": "vitest run tests/e2e/*.test.ts",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "clean": "npm cache clean --force && rm -rf .next && rm -rf node_modules/.cache && rm -rf .next/cache && rm -f next-env.d.ts && rm -f tsconfig.tsbuildinfo && npx prisma generate",
     "reset-packages": "rm -rf .next node_modules package-lock.json"
   },
