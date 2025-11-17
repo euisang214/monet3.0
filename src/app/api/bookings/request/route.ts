@@ -17,10 +17,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_professional' }, { status: 400 });
   }
 
-  const candidate = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { timezone: true },
-  });
+  // Parallelize database queries for better performance
+  const [candidate, pro, proUser] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { timezone: true },
+    }),
+    prisma.professionalProfile.findUnique({
+      where: { userId: professionalId },
+      select: { priceUSD: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: professionalId },
+      select: { email: true },
+    }),
+  ]);
+
   const fallbackTimezone = resolveTimezone(candidate?.timezone);
   const rawSlots = Array.isArray(body.slots) ? body.slots : [];
   let slots: TimeSlot[];
@@ -34,11 +46,6 @@ export async function POST(req: NextRequest) {
     .map((slot) => ({ slot, range: toUtcDateRange(slot) }))
     .sort((a, b) => a.range.start.getTime() - b.range.start.getTime());
 
-  const pro = await prisma.professionalProfile.findUnique({
-    where: { userId: professionalId },
-    select: { priceUSD: true },
-  });
-
   const firstRange = slotRanges[0];
 
   const booking = await prisma.booking.create({
@@ -51,11 +58,6 @@ export async function POST(req: NextRequest) {
       timezone: firstRange ? firstRange.slot.timezone : fallbackTimezone,
       priceUSD: pro?.priceUSD ?? 0,
     },
-  });
-
-  const proUser = await prisma.user.findUnique({
-    where: { id: professionalId },
-    select: { email: true },
   });
   if (proUser?.email) {
     await sendEmail({

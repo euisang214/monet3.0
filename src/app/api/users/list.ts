@@ -23,9 +23,20 @@ export async function listUsers(
       where,
       include: {
         professionalProfile: true,
+        // Only load upcoming/recent bookings to reduce data transfer and improve performance
+        // This provides sufficient data for availability categorization without loading entire history
         bookingsAsProfessional: {
           select: {
             startAt: true,
+          },
+          where: {
+            startAt: {
+              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+            },
+          },
+          take: 50, // Limit to 50 bookings max per professional
+          orderBy: {
+            startAt: 'desc',
           },
         },
       },
