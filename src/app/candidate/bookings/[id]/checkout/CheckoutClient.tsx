@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
@@ -13,47 +13,21 @@ import {
 import type { Stripe } from "@stripe/stripe-js";
 
 import { Card, Button } from "@/components/ui/ui";
-import type { ProfileResponse } from "../../../../../../types/profile";
-import type { TimeSlot } from "@/lib/shared/availability";
-import { convertTimeSlotsTimezone } from "@/lib/shared/availability";
 
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
 const STRIPE_MISSING_KEY_MESSAGE =
   "Stripe is not configured for this environment. Please contact support.";
 
 type CheckoutFormProps = {
-  professionalId: string;
-  slots: TimeSlot[];
-  weeks: number;
-  candidateTimezone: string;
+  bookingId: string;
 };
 
-function CheckoutForm({
-  professionalId,
-  slots,
-  weeks,
-  candidateTimezone,
-}: CheckoutFormProps) {
+function CheckoutForm({ bookingId }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
-
-  const normalizedSlots = useMemo(
-    () => convertTimeSlotsTimezone(slots, candidateTimezone),
-    [slots, candidateTimezone]
-  );
-
-  useEffect(() => {
-    if (slots.length === 0) {
-      console.debug("[CheckoutForm] No slots selected when initializing checkout form.");
-    } else {
-      console.debug("[CheckoutForm] Normalized slots computed for checkout form.", {
-        slotsCount: normalizedSlots.length,
-      });
-    }
-  }, [normalizedSlots, slots.length]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -85,23 +59,25 @@ function CheckoutForm({
         status: paymentIntent?.status,
         id: paymentIntent?.id,
       });
+
       if (paymentIntent?.status === "succeeded") {
-        const res = await fetch("/api/candidate/bookings/request", {
+        // Confirm payment on backend
+        const res = await fetch("/api/shared/payments/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ professionalId, slots: normalizedSlots, weeks }),
+          body: JSON.stringify({ paymentIntentId: paymentIntent.id }),
         });
 
         if (res.ok) {
-          console.debug("[CheckoutForm] Booking request created successfully.");
-          window.alert("Your booking request has been sent.");
+          console.debug("[CheckoutForm] Payment confirmed successfully.");
+          window.alert("Payment successful! Your booking is confirmed.");
           router.push("/candidate/dashboard");
         } else {
-          console.error("[CheckoutForm] Booking request failed after successful payment.", {
+          console.error("[CheckoutForm] Payment confirmation failed on backend.", {
             status: res.status,
             statusText: res.statusText,
           });
-          window.alert("Payment succeeded but we were unable to request the booking. Please contact support.");
+          window.alert("Payment succeeded but we were unable to confirm your booking. Please contact support.");
         }
       }
     } catch (err) {
@@ -134,40 +110,31 @@ function CheckoutForm({
 }
 
 type CheckoutClientProps = {
-  professionalId: string;
+  bookingId: string;
   clientSecret: string | null;
-  professional: ProfileResponse | null;
-  slots: TimeSlot[];
-  weeks: number;
-  candidateTimezone: string;
+  booking: any | null;
   errorMessage?: string | null;
 };
 
 export default function CheckoutClient({
-  professionalId,
+  bookingId,
   clientSecret,
-  professional,
-  slots,
-  weeks,
-  candidateTimezone,
+  booking,
   errorMessage,
 }: CheckoutClientProps) {
   const [stripe, setStripe] = useState<Stripe | null>(null);
   const [stripeError, setStripeError] = useState<string | null>(null);
   const [isLoadingStripe, setIsLoadingStripe] = useState(false);
 
-  const hasProfessional = Boolean(professional);
-  const slotsCount = slots.length;
+  const hasBooking = Boolean(booking);
 
   useEffect(() => {
     console.debug("[CheckoutClient] Rendering with props", {
-      hasProfessional,
+      hasBooking,
       clientSecretPresent: Boolean(clientSecret),
-      slotsCount,
-      weeks,
-      candidateTimezone,
+      bookingId,
     });
-  }, [hasProfessional, clientSecret, slotsCount, weeks, candidateTimezone]);
+  }, [hasBooking, clientSecret, bookingId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -240,12 +207,26 @@ export default function CheckoutClient({
     }
   }, [stripe]);
 
-  const summaryCard = professional ? (
+  const summaryCard = booking ? (
     <Card className="col" style={{ padding: 16, gap: 8 }}>
+      <h3>Booking Summary</h3>
       <p>
-        You are booking a 30 minute chat with {professional.title} at {professional.employer}.
+        Your call has been scheduled for{" "}
+        {new Date(booking.startAt).toLocaleString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          timeZoneName: "short",
+        })}
       </p>
-      <p>The professional will only be paid once they provide feedback.</p>
+      <p>Duration: 30 minutes</p>
+      <p>Price: ${booking.priceUSD?.toFixed(2)}</p>
+      <p className="text-muted">
+        The professional will only be paid once they provide feedback after the call.
+      </p>
     </Card>
   ) : null;
 
@@ -282,14 +263,7 @@ export default function CheckoutClient({
 
   return (
     <Elements stripe={stripe} options={{ clientSecret }}>
-      {renderLayout(
-        <CheckoutForm
-          professionalId={professionalId}
-          slots={slots}
-          weeks={weeks}
-          candidateTimezone={candidateTimezone}
-        />
-      )}
+      {renderLayout(<CheckoutForm bookingId={bookingId} />)}
     </Elements>
   );
 }

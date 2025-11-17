@@ -430,10 +430,9 @@ model Booking {
   candidateId      String
   professionalId   String
   status           BookingStatus // draft | requested | accepted | cancelled | completed | completed_pending_feedback | refunded
-  price            Float
-  platformFee      Float
-  callDate         DateTime?
-  callDuration     Int           @default(30)
+  priceUSD         Float?
+  startAt          DateTime
+  endAt            DateTime
   zoomMeetingId    String?
   zoomJoinUrl      String?
   timezone         String        @default("UTC")
@@ -496,6 +495,49 @@ enum QCStatus {
 }
 ```
 
+#### ProfessionalReview
+```prisma
+model ProfessionalReview {
+  bookingId   String   @id
+  rating      Int      // 1-5 stars
+  text        String   // Min 50 characters
+  submittedAt DateTime @default(now())
+  timezone    String   @default("UTC")
+  // Relation to booking
+}
+```
+
+**Usage**: Allows candidates to submit reviews/ratings for professionals after completed calls. Separate from QC feedback (which professionals submit).
+
+#### Verification
+```prisma
+model Verification {
+  id             String    @id @default(cuid())
+  userId         String
+  corporateEmail String
+  token          String
+  verifiedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  timezone       String    @default("UTC")
+}
+```
+
+**Usage**: Corporate email verification for professionals. Stores verification tokens and tracks verification status.
+
+#### PasswordResetToken
+```prisma
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  timezone  String   @default("UTC")
+}
+```
+
+**Usage**: Password reset functionality. Tokens expire and are single-use.
+
 ### SQL Views
 
 **ListingCardView**: Optimized view for professional listings
@@ -530,17 +572,21 @@ Shared authentication endpoints (kept at root for NextAuth compatibility):
 Professional-specific endpoints:
 
 **Bookings**:
-- `POST /api/professional/bookings/[id]/accept` - Accept booking request
+- `GET /api/professional/bookings/[id]/schedule` - View candidate's available times
+- `POST /api/professional/bookings/[id]/schedule` - Accept booking and schedule by picking a time
+  - Creates Zoom meeting, sends calendar invites, changes status to 'accepted'
+  - By selecting a time, the professional confirms/accepts the booking
 - `POST /api/professional/bookings/[id]/decline` - Decline booking request
-- `POST /api/professional/bookings/[id]/schedule` - Schedule call after accepting
-- `GET /api/professional/bookings/[id]/view-availabilities` - View candidate's available times
 
 **Feedback**:
 - `POST /api/professional/feedback/[bookingId]` - Submit feedback after call
+- `GET /api/professional/feedback/[bookingId]` - Retrieve historical feedback
 - `POST /api/professional/feedback/validate` - Validate feedback (QC check)
 
-**Settings & Onboarding**:
+**Settings & Account**:
+- `GET /api/professional/settings` - Get professional settings
 - `PUT /api/professional/settings` - Update professional settings
+- `DELETE /api/professional/settings` - Delete professional account
 - `POST /api/professional/onboarding` - Stripe Connect onboarding
 
 ### Candidate Portal (`/api/candidate/*`)
@@ -548,19 +594,27 @@ Professional-specific endpoints:
 Candidate-specific endpoints:
 
 **Bookings**:
-- `POST /api/candidate/bookings/request` - Request a booking with a professional
-- `POST /api/candidate/bookings/[id]/checkout` - Initiate payment for booking
+- `POST /api/candidate/bookings/request` - Request a booking with available times (no payment yet)
+  - Body: `{ professionalId, slots, weeks }`
+  - Creates booking with status 'requested'
+- `POST /api/candidate/bookings/[id]/checkout` - Pay for accepted booking
+  - Creates Stripe PaymentIntent and Payment record
+  - Returns clientSecret for Stripe Elements
 
 **Professional Discovery**:
 - `GET /api/candidate/professionals/search` - Search/browse professionals (anonymized)
 - `GET /api/candidate/professionals/[id]` - View professional profile details
+  - Shows redacted profile if no booking history, reveals identity after first booking
 - `GET /api/candidate/professionals/[id]/reviews` - View professional reviews
 
 **Profile & Settings**:
 - `GET /api/candidate/profile/[id]` - Get candidate profile
 - `POST /api/candidate/availability` - Set availability preferences
 - `GET /api/candidate/busy` - Get busy times from Google Calendar
-- `PUT /api/candidate/settings` - Update candidate settings
+  - Fetches 30 days of busy times, merges with manual availability
+- `GET /api/candidate/settings` - Get candidate settings
+- `PUT /api/candidate/settings` - Update candidate settings (includes resume upload to S3)
+- `DELETE /api/candidate/settings` - Delete candidate account
 
 ### Shared/Common Endpoints (`/api/shared/*`)
 
@@ -571,9 +625,10 @@ Endpoints used by both roles or system-level operations:
 
 **Payments & Stripe**:
 - `POST /api/shared/payments/confirm` - Confirm payment after Stripe checkout
-- `POST /api/shared/payments/payout` - Release payment to professional
-- `POST /api/shared/payments/refund` - Refund payment to candidate
-- `POST /api/shared/stripe/intent` - Create Stripe PaymentIntent
+  - Body: `{ paymentIntentId }`
+  - Validates payment succeeded
+- `POST /api/shared/payments/payout` - Release payment to professional (admin only)
+- `POST /api/shared/payments/refund` - Refund payment to candidate (admin only)
 - `GET /api/shared/stripe/account` - Get Stripe account info
 - `POST /api/shared/stripe/webhook` - Stripe webhook handler
 
@@ -583,19 +638,27 @@ Endpoints used by both roles or system-level operations:
 - `GET /api/shared/verification/status` - Check verification status
 
 **QC & Reviews**:
-- `POST /api/shared/qc/[bookingId]/recheck` - Recheck QC status
-- `GET /api/shared/reviews` - Get reviews (shared endpoint)
+- `POST /api/shared/qc/[bookingId]/recheck` - Recheck QC status (triggers new QC validation)
+- `POST /api/shared/reviews` - Submit candidate review of professional
+  - Body: `{ bookingId, rating (1-5), text (min 50 chars), timezone }`
+  - Only accessible after booking completed
+  - Prevents duplicate reviews
+- `GET /api/shared/reviews` - Get reviews (used for displaying professional reviews)
 
 ### Admin Portal (`/api/admin/*`)
 
-Admin-only CSV export endpoints:
+**Feedback Management**:
+- `PUT /api/admin/feedback/[bookingId]/qc-status` - Manually update QC status (passed/revise/failed/missing)
+  - When status set to 'failed', automatically triggers refund and blocks payout
+  - Requires admin role
+
+**CSV Export Endpoints**:
 - `GET /api/admin/users/export` - Export users
 - `GET /api/admin/bookings/export` - Export bookings
 - `GET /api/admin/payments/export` - Export payments
 - `GET /api/admin/payouts/export` - Export payouts
 - `GET /api/admin/feedback/export` - Export feedback
 - `GET /api/admin/disputes/export` - Export disputes
-- `GET /api/admin/invoices/export` - Export invoices
 - `GET /api/admin/audit-logs/export` - Export audit logs
 
 ### API Conventions
@@ -724,67 +787,74 @@ export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
 ```
 1. DISCOVERY
    Candidate browses professionals
-   → GET /api/professionals/search
+   → GET /api/candidate/professionals/search
    → Shows anonymized listings
 
 2. REQUEST
-   Candidate requests booking
-   → POST /api/bookings/request { professionalId, message }
+   Candidate requests booking with available times
+   → POST /api/candidate/bookings/request { professionalId, slots, weeks }
    → Creates booking with status: "requested"
+   → Sends email notification to professional
 
-3. ACCEPT
-   Professional accepts request
-   → POST /api/bookings/[id]/accept
-   → Returns available time slots (merged from Google Calendar)
-   → Status changes to "accepted"
-
-4. SCHEDULE
-   Candidate picks time slot
-   → POST /api/bookings/[id]/schedule { timeSlot }
-   → Sets callDate and timezone
-
-5. CHECKOUT
-   Candidate enters payment info
-   → POST /api/bookings/[id]/checkout
-   → Creates Stripe PaymentIntent (status: "held")
+3. ACCEPT & SCHEDULE
+   Professional views candidate's available times and picks one
+   → GET /api/professional/bookings/[id]/schedule (view candidate availability)
+   → POST /api/professional/bookings/[id]/schedule { startAt }
    → Creates Zoom meeting
+   → Sends calendar invites to both parties
+   → Status changes to "accepted"
+   → By selecting a time, the professional confirms/accepts the booking
+
+4. CHECKOUT
+   Candidate pays for the accepted booking
+   → POST /api/candidate/bookings/[id]/checkout
+   → Creates Stripe PaymentIntent (status: "held")
+   → Creates Payment database record
    → Returns client secret for Stripe Elements
 
-6. CONFIRM
+5. CONFIRM
    After Stripe confirms payment on client
-   → POST /api/payments/confirm { paymentIntentId }
-   → Finalizes booking
-   → Status: "completed_pending_feedback"
+   → POST /api/shared/payments/confirm { paymentIntentId }
+   → Validates payment succeeded
+   → Payment record status remains "held" until after call
 
-7. CALL
+6. CALL
    Candidate and Professional join Zoom
    → Join tracking via database
+   → Status changes to "completed_pending_feedback" after both join
 
-8. FEEDBACK
+7. FEEDBACK
    Professional submits feedback
-   → POST /api/feedback/[bookingId] { summary, actions, ratings }
+   → POST /api/professional/feedback/[bookingId] { summary, actions, ratings }
    → Triggers QC job (500ms delay)
-   → Status: "completed"
+   → Status changes to "completed"
 
-9. QC & PAYOUT
+8. QC & PAYOUT
    Background job validates feedback
-   → If passed: Payout status → "pending"
-   → If revise: Sends nudges at +24h, +48h, +72h
-   → If failed: Auto-refund
+   → If passed: Payout status → "pending", professional can withdraw funds
+   → If revise: Nudge emails queued at +24h, +48h, +72h, professional can resubmit
+   → If failed (manual admin action only): Auto-refund, PaymentStatus: "refunded", Payout.status: "blocked"
 ```
 
 ### Cancellation Flow
 
 ```
-BEFORE 3-HOUR WINDOW
-  → POST /api/bookings/[id]/cancel
-  → Full refund
+PROFESSIONAL CANCELLATION (anytime)
+  → POST /api/shared/bookings/[id]/cancel
+  → Full refund processed immediately
   → Status: "cancelled"
   → PaymentStatus: "refunded"
 
-AFTER 3-HOUR WINDOW
-  → POST /api/bookings/[id]/cancel
-  → Returns error: "Cannot cancel within 3 hours"
+CANDIDATE CANCELLATION (>= 3 hours before call)
+  → POST /api/shared/bookings/[id]/cancel
+  → Full refund processed immediately
+  → Status: "cancelled"
+  → PaymentStatus: "refunded"
+
+CANDIDATE LATE CANCELLATION (< 3 hours before call)
+  → POST /api/shared/bookings/[id]/cancel
+  → Returns error 400: "Cannot cancel within 3 hours of scheduled call time"
+  → No refund, booking remains active
 ```
 
 ### QC Validation Flow
@@ -798,20 +868,23 @@ AFTER 3-HOUR WINDOW
 2. QC Job queued (500ms delay)
    → BullMQ "qc" queue
 
-3. QC Job runs
+3. QC Job runs (automatic)
    → Checks feedback quality
-   → Sets qcStatus: "passed" | "revise" | "failed"
+   → Sets qcStatus: "passed" | "revise"
+   → Note: Automatic QC never sets "failed"
 
 4. If PASSED
    → Payout.status = "pending"
    → Professional can withdraw funds
 
 5. If REVISE
-   → Nudge emails at +24h, +48h, +72h
-   → Professional can resubmit
+   → Nudge emails enqueued at +24h, +48h, +72h
+   → Professional can resubmit feedback
+   → Each resubmission triggers new QC check
 
-6. If FAILED
-   → Auto-refund to candidate
+6. If FAILED (manual admin action only)
+   → Admin sets qcStatus to "failed" via PUT /api/admin/feedback/[bookingId]/qc-status
+   → Auto-refund processed to candidate
    → PaymentStatus: "refunded"
    → Payout.status: "blocked"
 ```

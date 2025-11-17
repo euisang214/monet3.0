@@ -2,27 +2,50 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AvailabilityCalendar from "@/components/bookings/AvailabilityCalendar";
-import { Card, Input } from "@/components/ui/ui";
+import { Card, Input, Button } from "@/components/ui/ui";
 import type { TimeSlot } from "@/lib/shared/availability";
 
 export default function Schedule({ params }: { params: { id: string } }) {
   const [weeks, setWeeks] = useState(2);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  const handleConfirm = (slots: TimeSlot[]) => {
-    const qs = new URLSearchParams({
-      slots: JSON.stringify(slots),
-      weeks: String(weeks),
-    });
-    router.push(`/candidate/detail/${params.id}/schedule/checkout?${qs.toString()}`);
+  const handleConfirm = async (slots: TimeSlot[]) => {
+    if (slots.length === 0) {
+      window.alert("Please select at least one available time slot.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/candidate/bookings/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ professionalId: params.id, slots, weeks }),
+      });
+
+      if (res.ok) {
+        window.alert("Your booking request has been sent! The professional will review your availability and confirm a time.");
+        router.push("/candidate/dashboard");
+      } else {
+        const error = await res.json();
+        window.alert(`Failed to send booking request: ${error.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error("Failed to create booking request:", err);
+      window.alert("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="col" style={{ gap: 16 }}>
       <Card className="col" style={{ padding: 16, gap: 8 }}>
         <p>
-          We will share your selected availability for the next two weeks with this professional by
-          default.
+          Select your availability for the next few weeks. We'll share these times with the professional,
+          who will pick one that works for them. You'll only be charged after they confirm the time.
         </p>
         <div className="row" style={{ gap: 8, alignItems: 'center' }}>
           <label htmlFor="weeks">Weeks to share:</label>
@@ -36,7 +59,7 @@ export default function Schedule({ params }: { params: { id: string } }) {
           />
         </div>
       </Card>
-      <AvailabilityCalendar weeks={weeks} onConfirm={handleConfirm} />
+      <AvailabilityCalendar weeks={weeks} onConfirm={handleConfirm} disabled={isSubmitting} />
     </div>
   );
 }
