@@ -1,4 +1,4 @@
-import DashboardClient from "../../../components/DashboardClient";
+import DashboardClient from "@/components/dashboard/DashboardClient";
 import { Badge } from "@/components/ui/ui";
 import RequestActions from "@/components/bookings/RequestActions";
 import { auth } from "@/auth";

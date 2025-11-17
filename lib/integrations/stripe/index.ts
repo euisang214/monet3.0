@@ -26,7 +26,7 @@ export async function createCheckoutIntent(
   if (priceUSD == null) {
     const booking = await prisma.booking.findUnique({ where: { id: bookingId }, select: { priceUSD: true } });
     if (!booking) throw new Error('booking not found');
-    priceUSD = booking.priceUSD;
+    priceUSD = booking.priceUSD ?? undefined;
   }
 
   if (priceUSD == null) throw new Error('booking price not set');

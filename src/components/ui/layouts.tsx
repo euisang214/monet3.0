@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { signOutAction } from '../actions';
+import { signOutAction } from '@/actions';
 
 type ShellProps = { children: React.ReactNode; session?: any };
 

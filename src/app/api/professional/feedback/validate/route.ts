@@ -143,9 +143,9 @@ SUGGESTIONS: [If NEEDS_IMPROVEMENT, provide 2-3 bullet points with specific sugg
       const suggestionsText = suggestionsMatch?.[1] || '';
       const suggestions = suggestionsText
         .split('\n')
-        .map(s => s.trim())
-        .filter(s => s && (s.startsWith('-') || s.startsWith('•') || s.match(/^\d+\./)))
-        .map(s => s.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, ''))
+        .map((s: string) => s.trim())
+        .filter((s: string) => s && (s.startsWith('-') || s.startsWith('•') || s.match(/^\d+\./)))
+        .map((s: string) => s.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, ''))
         .slice(0, 3); // Limit to 3 suggestions
 
       return NextResponse.json({

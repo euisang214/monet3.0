@@ -6,10 +6,8 @@ export type ExportType =
   | 'bookings'
   | 'payments'
   | 'payouts'
-  | 'disputes'
   | 'feedback'
-  | 'audit-logs'
-  | 'invoices';
+  | 'audit-logs';
 
 /**
  * Get export data for a specific entity type
@@ -39,10 +37,9 @@ export async function getExportData(type: ExportType): Promise<any[]> {
           candidateId: true,
           professionalId: true,
           status: true,
-          price: true,
-          platformFee: true,
-          callDate: true,
-          callDuration: true,
+          priceUSD: true,
+          startAt: true,
+          endAt: true,
           timezone: true,
           createdAt: true,
         },
@@ -53,9 +50,10 @@ export async function getExportData(type: ExportType): Promise<any[]> {
         select: {
           id: true,
           bookingId: true,
-          stripePaymentIntentId: true,
+          escrowHoldId: true,
           status: true,
-          amount: true,
+          amountGross: true,
+          platformFee: true,
           createdAt: true,
         },
       });
@@ -65,20 +63,9 @@ export async function getExportData(type: ExportType): Promise<any[]> {
         select: {
           id: true,
           bookingId: true,
-          professionalId: true,
+          proStripeAccountId: true,
           status: true,
-          amount: true,
-          createdAt: true,
-        },
-      });
-
-    case 'disputes':
-      return prisma.dispute.findMany({
-        select: {
-          id: true,
-          bookingId: true,
-          reason: true,
-          status: true,
+          amountNet: true,
           createdAt: true,
         },
       });
@@ -86,13 +73,15 @@ export async function getExportData(type: ExportType): Promise<any[]> {
     case 'feedback':
       return prisma.feedback.findMany({
         select: {
-          id: true,
           bookingId: true,
-          professionalId: true,
-          summary: true,
+          text: true,
+          actions: true,
           qcStatus: true,
           wordCount: true,
-          createdAt: true,
+          starsCategory1: true,
+          starsCategory2: true,
+          starsCategory3: true,
+          submittedAt: true,
         },
       });
 
@@ -100,7 +89,7 @@ export async function getExportData(type: ExportType): Promise<any[]> {
       return prisma.auditLog.findMany({
         select: {
           id: true,
-          userId: true,
+          actorUserId: true,
           action: true,
           entity: true,
           entityId: true,

@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { PublicShell } from "../../components/layouts";
+import { PublicShell } from "@/components/ui/layouts";
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();

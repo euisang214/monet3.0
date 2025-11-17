@@ -55,7 +55,7 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
     create: { bookingId: params.bookingId, starsCategory1, starsCategory2, starsCategory3, actions, text, wordCount, extraCategoryRatings, submittedAt: new Date(), qcStatus: 'revise' },
   });
   // Enqueue QC
-  const { enqueueFeedbackQC } = await import('../../../../../lib/queues');
+  const { enqueueFeedbackQC } = await import('@/lib/queues');
   await enqueueFeedbackQC(params.bookingId);
   return NextResponse.json({ ok: true, feedback: fb });
 });

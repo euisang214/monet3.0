@@ -37,5 +37,4 @@ export const DELETE = withAuth(async (session) => {
   return NextResponse.json({ ok: true });
 });
 
-export { fetchSettings as getProfessionalSettings };
 

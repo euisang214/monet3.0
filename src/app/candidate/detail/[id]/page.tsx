@@ -1,4 +1,4 @@
-import ProfileDetail from '../../../../components/ProfileDetail';
+import ProfileDetail from '@/components/profile/ProfileDetail';
 import { ProfileResponse } from '../../../../types/profile';
 
 export default async function Detail({ params }: { params: { id: string } }) {

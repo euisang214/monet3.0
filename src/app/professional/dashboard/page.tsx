@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/ui";
-import DashboardClient from "../../../components/DashboardClient";
+import DashboardClient from "@/components/dashboard/DashboardClient";
 import { auth } from "@/auth";
 import { getProfessionalDashboardData } from "@/lib/professional/dashboard";
 import { format } from "date-fns";
