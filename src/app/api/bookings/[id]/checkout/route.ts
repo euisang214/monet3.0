@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/db';
 import { createCheckoutIntent, ensureCustomer } from '../../../../../../lib/payments/stripe';
-import { createZoomMeeting } from '../../../../../../lib/zoom';
 import { auth } from '@/auth';
 
 export async function POST(req: NextRequest, { params }:{params:{id:string}}){
@@ -41,9 +40,6 @@ export async function POST(req: NextRequest, { params }:{params:{id:string}}){
   const meeting = await createZoomMeeting('Monet Call', booking.startAt.toISOString());
 
   const updated = await prisma.booking.update({ where: { id: booking.id }, data: {
-    status: 'accepted',
-    zoomMeetingId: String(meeting.id),
-    zoomJoinUrl: meeting.join_url,
     priceUSD,
   }});
 
@@ -51,6 +47,5 @@ export async function POST(req: NextRequest, { params }:{params:{id:string}}){
     clientSecret: (pi as any).client_secret,
     paymentIntentId: pi.id,
     booking: updated,
-    zoom: meeting,
   });
 }
