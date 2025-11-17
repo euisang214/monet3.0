@@ -86,7 +86,7 @@ function CheckoutForm({
         id: paymentIntent?.id,
       });
       if (paymentIntent?.status === "succeeded") {
-        const res = await fetch("/api/bookings/request", {
+        const res = await fetch("/api/candidate/bookings/request", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ professionalId, slots: normalizedSlots, weeks }),

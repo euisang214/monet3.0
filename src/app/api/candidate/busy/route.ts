@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getBusyTimes } from '../../../../../lib/calendar/google';
+import { getBusyTimes } from '@/lib/integrations/calendar/google';
 import { prisma } from "@/lib/core/db";
 import {
   convertTimeSlotsTimezone,
@@ -10,7 +10,7 @@ import {
   splitIntoSlots,
   toUtcDateRange,
   TimeSlot,
-} from '../../../../../lib/availability';
+} from '@/lib/shared/availability';
 
 export async function GET(){
   const session = await auth();

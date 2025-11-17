@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../../lib/db';
-import { CALL_DURATION_MINUTES } from '../../../../../../lib/flags';
+import { prisma } from '@/lib/core/db';
+import { CALL_DURATION_MINUTES } from '@/lib/core/flags';
 import { auth } from '@/auth';
-import { createZoomMeeting, generateZoomCalendarInvite } from '../../../../../../lib/zoom';
-import { sendEmail } from '../../../../../../lib/email';
+import { createZoomMeeting, generateZoomCalendarInvite } from '@/lib/integrations/zoom';
+import { sendEmail } from '@/lib/integrations/email';
 
 export async function POST(req: NextRequest, { params }:{params:{id:string}}){
   const session = await auth();

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/core/db";
-import { rateLimit } from '../../../../../lib/rate-limit';
+import { rateLimit } from '@/lib/core/rate-limit';
 import { auth } from '@/auth';
-import { sendEmail } from '../../../../../lib/email';
-import type { TimeSlot } from '../../../../../lib/availability';
-import { toUtcDateRange, resolveTimezone, normalizeSlots } from '../../../../../lib/availability';
+import { sendEmail } from '@/lib/integrations/email';
+import type { TimeSlot } from '@/lib/shared/availability';
+import { toUtcDateRange, resolveTimezone, normalizeSlots } from '@/lib/shared/availability';
 
 export async function POST(req: NextRequest) {
   const session = await auth();

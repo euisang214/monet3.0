@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../../lib/db';
-import { createCheckoutIntent, ensureCustomer } from '../../../../../../lib/payments/stripe';
+import { prisma } from '@/lib/core/db';
+import { createCheckoutIntent, ensureCustomer } from '@/lib/integrations/stripe';
 import { auth } from '@/auth';
 
 export async function POST(req: NextRequest, { params }:{params:{id:string}}){

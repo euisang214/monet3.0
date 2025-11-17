@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../../lib/db';
+import { prisma } from '@/lib/core/db';
 import { differenceInMinutes } from 'date-fns';
 import { auth } from '@/auth';
 

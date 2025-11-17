@@ -10,7 +10,7 @@ export default function RequestActions({ bookingId, candidateId }: { bookingId: 
 
   const decline = async () => {
     setLoading(true);
-    await fetch(`/api/bookings/${bookingId}/decline`, { method: 'POST' });
+    await fetch(`/api/professional/bookings/${bookingId}/decline`, { method: 'POST' });
     setLoading(false);
     router.refresh();
   };

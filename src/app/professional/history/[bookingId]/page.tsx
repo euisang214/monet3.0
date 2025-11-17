@@ -14,7 +14,7 @@ export default async function ProfessionalHistoryPage({
     redirect("/login");
   }
 
-  const res = await fetch(`/api/feedback/${params.bookingId}`, {
+  const res = await fetch(`/api/professional/feedback/${params.bookingId}`, {
     cache: "no-store",
     headers: {
       cookie: cookies().toString(),

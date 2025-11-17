@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
 import { refundPayment } from '@/lib/integrations/stripe';
-import { requireRole } from '@/lib/auth/rbac';
+import { requireRole } from '@/lib/core/api-helpers';
 import { z } from 'zod';
 
 const refundSchema = z.object({

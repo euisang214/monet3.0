@@ -514,71 +514,89 @@ enum QCStatus {
 
 ### Structure
 
-All API routes are in `/src/app/api/` and follow Next.js App Router conventions.
+All API routes are in `/src/app/api/` and follow Next.js App Router conventions. **APIs are now organized by user role** for better clarity and maintainability.
 
 ### Authentication (`/api/auth/*`)
 
+Shared authentication endpoints (kept at root for NextAuth compatibility):
 - `POST /api/auth/signup` - User registration
 - `POST /api/auth/forgot-password` - Request password reset
 - `POST /api/auth/reset-password` - Reset password with token
 - `GET /api/auth/role` - Get current user's role
 - `/api/auth/[...nextauth]` - NextAuth handlers
 
-### Bookings (`/api/bookings/*`)
-
-- `POST /api/bookings/request` - Create booking request
-- `POST /api/bookings/[id]/accept` - Professional accepts booking
-- `POST /api/bookings/[id]/decline` - Professional declines booking
-- `POST /api/bookings/[id]/schedule` - Schedule time slot
-- `POST /api/bookings/[id]/checkout` - Create payment intent
-- `POST /api/bookings/[id]/cancel` - Cancel booking (respects 3hr window)
-- `GET /api/bookings/[id]/viewAvailabilities` - View professional availability
-- `GET /api/bookings/history` - Get booking history
-- `GET /api/bookings/upcoming` - Get upcoming bookings
-
-### Professionals (`/api/professionals/*`)
-
-- `GET /api/professionals/search` - Search professionals (anonymized)
-- `GET /api/professionals/[id]` - Get professional details
-
 ### Professional Portal (`/api/professional/*`)
 
-- `GET /api/professional/dashboard` - Dashboard data
-- `GET /api/professional/requests` - View booking requests
-- `GET /api/professional/earnings` - Earnings data
-- `GET /api/professional/feedback` - Feedback data
-- `PUT /api/professional/settings` - Update settings
+Professional-specific endpoints:
+
+**Bookings**:
+- `POST /api/professional/bookings/[id]/accept` - Accept booking request
+- `POST /api/professional/bookings/[id]/decline` - Decline booking request
+- `POST /api/professional/bookings/[id]/schedule` - Schedule call after accepting
+- `GET /api/professional/bookings/[id]/view-availabilities` - View candidate's available times
+
+**Feedback**:
+- `POST /api/professional/feedback/[bookingId]` - Submit feedback after call
+- `POST /api/professional/feedback/validate` - Validate feedback (QC check)
+
+**Settings & Onboarding**:
+- `PUT /api/professional/settings` - Update professional settings
+- `POST /api/professional/onboarding` - Stripe Connect onboarding
 
 ### Candidate Portal (`/api/candidate/*`)
 
-- `GET /api/candidate/[id]` - Get candidate details
+Candidate-specific endpoints:
+
+**Bookings**:
+- `POST /api/candidate/bookings/request` - Request a booking with a professional
+- `POST /api/candidate/bookings/[id]/checkout` - Initiate payment for booking
+
+**Professional Discovery**:
+- `GET /api/candidate/professionals/search` - Search/browse professionals (anonymized)
+- `GET /api/candidate/professionals/[id]` - View professional profile details
+- `GET /api/candidate/professionals/[id]/reviews` - View professional reviews
+
+**Profile & Settings**:
+- `GET /api/candidate/profile/[id]` - Get candidate profile
 - `POST /api/candidate/availability` - Set availability preferences
 - `GET /api/candidate/busy` - Get busy times from Google Calendar
-- `PUT /api/candidate/settings` - Update settings
+- `PUT /api/candidate/settings` - Update candidate settings
 
-### Payments & Stripe (`/api/payments/*`, `/api/stripe/*`)
+### Shared/Common Endpoints (`/api/shared/*`)
 
-- `POST /api/payments/confirm` - Confirm payment after Stripe checkout
-- `POST /api/stripe/intent` - Create PaymentIntent
-- `GET /api/stripe/account` - Get Stripe account info
-- `POST /api/stripe/webhook` - Stripe webhook handler
+Endpoints used by both roles or system-level operations:
 
-### Feedback & QC (`/api/feedback/*`, `/api/qc/*`)
+**Bookings**:
+- `POST /api/shared/bookings/[id]/cancel` - Cancel booking (either party, respects 3hr window)
 
-- `POST /api/feedback/[bookingId]` - Submit professional feedback
-- `POST /api/qc/[bookingId]/recheck` - Recheck QC status
+**Payments & Stripe**:
+- `POST /api/shared/payments/confirm` - Confirm payment after Stripe checkout
+- `POST /api/shared/payments/payout` - Release payment to professional
+- `POST /api/shared/payments/refund` - Refund payment to candidate
+- `POST /api/shared/stripe/intent` - Create Stripe PaymentIntent
+- `GET /api/shared/stripe/account` - Get Stripe account info
+- `POST /api/shared/stripe/webhook` - Stripe webhook handler
 
-### Admin (`/api/admin/*`)
+**Verification**:
+- `POST /api/shared/verification/request` - Request email verification
+- `POST /api/shared/verification/confirm` - Confirm email verification
+- `GET /api/shared/verification/status` - Check verification status
 
-- CSV Export endpoints:
-  - `GET /api/admin/users/export`
-  - `GET /api/admin/bookings/export`
-  - `GET /api/admin/payments/export`
-  - `GET /api/admin/payouts/export`
-  - `GET /api/admin/feedback/export`
-  - `GET /api/admin/disputes/export`
-  - `GET /api/admin/invoices/export`
-  - `GET /api/admin/audit-logs/export`
+**QC & Reviews**:
+- `POST /api/shared/qc/[bookingId]/recheck` - Recheck QC status
+- `GET /api/shared/reviews` - Get reviews (shared endpoint)
+
+### Admin Portal (`/api/admin/*`)
+
+Admin-only CSV export endpoints:
+- `GET /api/admin/users/export` - Export users
+- `GET /api/admin/bookings/export` - Export bookings
+- `GET /api/admin/payments/export` - Export payments
+- `GET /api/admin/payouts/export` - Export payouts
+- `GET /api/admin/feedback/export` - Export feedback
+- `GET /api/admin/disputes/export` - Export disputes
+- `GET /api/admin/invoices/export` - Export invoices
+- `GET /api/admin/audit-logs/export` - Export audit logs
 
 ### API Conventions
 
@@ -1509,6 +1527,18 @@ git push -u origin <branch-name>
 ---
 
 ## Changelog
+
+### 2025-11-17 - API Routes Reorganization
+- Reorganized `/src/app/api` directory by user role:
+  - `api/professional/` - Professional-specific endpoints (bookings actions, feedback submission, Stripe onboarding)
+  - `api/candidate/` - Candidate-specific endpoints (booking requests, professional discovery, checkout)
+  - `api/shared/` - Shared/common endpoints (payments, Stripe, verification, QC, reviews)
+  - `api/auth/` - Authentication endpoints (kept at root for NextAuth compatibility)
+  - `api/admin/` - Admin endpoints (unchanged)
+- Moved 25+ API route files to new organized structure
+- Updated all frontend fetch() calls to new API paths
+- Updated all relative imports in API routes to use @/lib aliases
+- Improved API discoverability and role-based access clarity
 
 ### 2025-11-17 - Folder Structure Reorganization
 - Reorganized `/lib` directory by role and responsibility:

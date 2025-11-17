@@ -23,7 +23,7 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
   async function validateFeedback(payload: any) {
     setIsValidating(true);
     try {
-      const res = await fetch('/api/feedback/validate', {
+      const res = await fetch('/api/professional/feedback/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -56,7 +56,7 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
   }
 
   async function submitFeedback(payload: any) {
-    const res = await fetch(`/api/feedback/${bookingId}`, {
+    const res = await fetch(`/api/professional/feedback/${bookingId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
