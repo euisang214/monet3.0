@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/db';
 import { CALL_DURATION_MINUTES } from '../../../../../../lib/flags';
 import { auth } from '@/auth';
-import { createZoomMeeting } from '../../../../../../lib/zoom';
+import { createZoomMeeting, generateZoomCalendarInvite } from '../../../../../../lib/zoom';
 import { sendEmail } from '../../../../../../lib/email';
 
 export async function POST(req: NextRequest, { params }:{params:{id:string}}){
@@ -26,21 +26,53 @@ export async function POST(req: NextRequest, { params }:{params:{id:string}}){
   });
   const users = await prisma.user.findMany({
     where: { id: { in: [booking.professionalId, booking.candidateId] } },
-    select: { id: true, email: true },
+    select: { id: true, email: true, firstName: true, lastName: true },
   });
-  const proEmail = users.find((u) => u.id === booking.professionalId)?.email;
-  const candEmail = users.find((u) => u.id === booking.candidateId)?.email;
-  const formatICS = (d: Date) =>
-    d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:${updated.id}\nDTSTAMP:${formatICS(
-    new Date()
-  )}\nDTSTART:${formatICS(start)}\nDTEND:${formatICS(end)}\nSUMMARY:Mentorship Call\nDESCRIPTION:Join Zoom meeting at ${zoom.join_url}\nURL:${zoom.join_url}\nEND:VEVENT\nEND:VCALENDAR`;
+  const professional = users.find((u) => u.id === booking.professionalId);
+  const candidate = users.find((u) => u.id === booking.candidateId);
+
+  const proEmail = professional?.email;
+  const candEmail = candidate?.email;
+  const proName = professional ? `${professional.firstName || ''} ${professional.lastName || ''}`.trim() : undefined;
+  const candName = candidate ? `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() : undefined;
+
+  // Generate enhanced calendar invite with Zoom details
+  const ics = generateZoomCalendarInvite(
+    zoom,
+    start,
+    end,
+    updated.id,
+    candName,
+    proName
+  );
+
   const recipients = [proEmail, candEmail].filter(Boolean).join(',');
   if (recipients) {
+    const emailBody = `Your mentorship call has been scheduled!
+
+Join Zoom Meeting: ${zoom.join_url}
+
+Meeting ID: ${zoom.id}
+Passcode: ${zoom.passcode}
+
+Time: ${start.toLocaleString('en-US', {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZoneName: 'short'
+})}
+
+Duration: ${CALL_DURATION_MINUTES} minutes
+
+A calendar invite with dial-in details has been attached to this email.`;
+
     await sendEmail({
       to: recipients,
-      subject: 'Call Confirmed',
-      text: `Join Zoom meeting: ${zoom.join_url}`,
+      subject: 'Monet Mentorship Call - Confirmed',
+      text: emailBody,
       icalEvent: { method: 'REQUEST', filename: 'invite.ics', content: ics },
     });
   }
