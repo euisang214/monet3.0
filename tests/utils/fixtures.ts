@@ -8,7 +8,7 @@ import { v4 as uuid } from 'uuid';
 export const createMockUser = (overrides: any = {}) => ({
   id: uuid(),
   email: 'test@example.com',
-  hashedPassword: '$2a$10$test.hashed.password',
+  hashedPassword: '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
   role: Role.CANDIDATE,
   googleCalendarConnected: false,
   linkedinConnected: false,

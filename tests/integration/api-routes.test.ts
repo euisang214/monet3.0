@@ -10,7 +10,7 @@ import {
   createMockSession,
   createMockPrismaClient,
 } from '../utils/fixtures';
-import { createMockRequest, parseJsonResponse } from '../utils/helpers';
+import { createMockRequest, parseJsonResponse, generateValidFeedbackSummary } from '../utils/helpers';
 
 /**
  * API Route Integration Tests
@@ -255,7 +255,7 @@ describe('API Routes - Professional Bookings', () => {
   describe('POST /api/professional/feedback/[bookingId]', () => {
     it('should submit feedback with valid data', async () => {
       const feedbackData = {
-        summary: 'Great call with the candidate. We discussed their career goals and I provided specific advice on how to advance. The candidate was engaged and asked thoughtful questions. I recommended updating their resume to highlight quantifiable achievements and scheduling informational interviews. They should also research target companies more thoroughly. Overall a productive session that should help them in their job search. I believe they have strong potential with the right strategy.',
+        summary: generateValidFeedbackSummary(),
         actions: [
           'Update resume to highlight quantifiable achievements',
           'Research target companies and their tech stacks',
