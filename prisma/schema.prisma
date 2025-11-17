@@ -202,6 +202,9 @@ model Payment {
   timezone     String        @default("UTC")
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([escrowHoldId])
+  @@index([status])
 }
 
 model Feedback {
