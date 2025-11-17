@@ -1,6 +1,6 @@
 import DashboardClient from "../../../components/DashboardClient";
 import { auth } from "@/auth";
-import { getProvidedFeedback, getPendingFeedback } from "../../api/professional/feedback";
+import { getProvidedFeedback, getPendingFeedback } from "@/lib/professional-feedback";
 import { format } from "date-fns";
 
 export default async function FeedbackPage({

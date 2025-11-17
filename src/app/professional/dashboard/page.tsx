@@ -1,7 +1,7 @@
 import { Card } from "../../../components/ui";
 import DashboardClient from "../../../components/DashboardClient";
 import { auth } from "@/auth";
-import { getProfessionalDashboardData } from "../../api/professional/dashboard";
+import { getProfessionalDashboardData } from "@/lib/professional-dashboard";
 import { format } from "date-fns";
 
 export default async function ProDashboard({
