@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { refundPayment } from '@/lib/payments/stripe';
+import { prisma } from '@/lib/core/db';
+import { refundPayment } from '@/lib/integrations/stripe';
 import { requireRole } from '@/lib/auth/rbac';
 import { z } from 'zod';
 

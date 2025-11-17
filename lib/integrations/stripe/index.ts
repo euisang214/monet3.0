@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { prisma } from '../db';
+import { prisma } from '@/lib/core/db';
 
 const secret = process.env.STRIPE_SECRET_KEY;
 if (!secret) throw new Error('STRIPE_SECRET_KEY env var is required');

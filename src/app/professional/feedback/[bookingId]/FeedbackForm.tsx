@@ -1,6 +1,6 @@
 "use client";
 
-import { Input, Button } from "../../../../components/ui";
+import { Input, Button } from "@/components/ui/ui";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { FeedbackValidationModal, type ValidationResult } from "./FeedbackValidationModal";

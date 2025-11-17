@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getBusyTimes } from '../../../../../lib/calendar/google';
-import { prisma } from '../../../../../lib/db';
+import { prisma } from "@/lib/core/db";
 import {
   convertTimeSlotsTimezone,
   createTimeSlotFromDates,

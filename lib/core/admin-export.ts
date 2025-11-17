@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/core/db';
 import { Parser } from 'json2csv';
 
 export type ExportType =

@@ -1,5 +1,5 @@
 import { BookingStatus } from '@prisma/client';
-import { prisma } from './db';
+import { prisma } from '@/lib/core/db';
 
 interface ZoomMeetingResponse {
   id: number;

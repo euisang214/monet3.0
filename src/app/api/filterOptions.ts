@@ -1,4 +1,4 @@
-import { prisma } from "../../../lib/db";
+import { prisma } from "@/lib/core/db";
 import { PrismaClient } from "@prisma/client";
 
 export interface FilterOption {

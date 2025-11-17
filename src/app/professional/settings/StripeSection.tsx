@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '../../../components/ui';
+import { Button } from "@/components/ui/ui";
 
 export default function StripeSection() {
   const [status, setStatus] = useState('loading');

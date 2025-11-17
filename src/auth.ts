@@ -3,9 +3,9 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import LinkedIn from 'next-auth/providers/linkedin';
 import bcrypt from 'bcryptjs';
-import { prisma } from '../lib/db';
+import { prisma } from "@/lib/core/db";
 import { z } from 'zod';
-import { timezones } from '../lib/timezones';
+import { timezones } from '@/lib/utils/timezones';
 
 declare module 'next-auth'{
   interface Session extends DefaultSession{

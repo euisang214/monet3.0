@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { prisma } from '../../../../lib/db';
+import { prisma } from "@/lib/core/db";
 import {
   ensureCustomer,
   ensureConnectedAccount,
   createAccountOnboardingLink,
-} from '../../../../lib/payments/stripe';
+} from "@/lib/integrations/stripe";
 import { z } from 'zod';
 import { timezones } from '../../../../lib/timezones';
 

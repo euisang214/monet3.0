@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { Input, Button, Select } from '../../../components/ui';
+import { Input, Button, Select } from "@/components/ui/ui";
 
 export default function SignUpForm() {
   const [error, setError] = useState<string | null>(null);

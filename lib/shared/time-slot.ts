@@ -1,5 +1,5 @@
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
-import { timezones } from './timezones';
+import { timezones } from '@/lib/utils/timezones';
 
 export type DateTime = string;
 

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Input, Button } from '../../../components/ui';
+import { Input, Button } from "@/components/ui/ui";
 
 export default function ResetPasswordForm() {
   const params = useSearchParams();

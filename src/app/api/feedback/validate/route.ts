@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { flags } from '@/lib/flags';
+import { flags } from '@/lib/core/flags';
 import { z } from 'zod';
 
 const validateSchema = z.object({

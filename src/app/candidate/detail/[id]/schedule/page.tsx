@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AvailabilityCalendar from "../../../../../components/AvailabilityCalendar";
-import { Card, Input } from "../../../../../components/ui";
+import { Card, Input } from "@/components/ui/ui";
 import type { TimeSlot } from "../../../../../lib/availability";
 
 export default function Schedule({ params }: { params: { id: string } }) {

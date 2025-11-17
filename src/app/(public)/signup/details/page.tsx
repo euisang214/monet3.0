@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { prisma } from '../../../../../lib/db';
-import { Card } from '../../../../components/ui';
+import { prisma } from "@/lib/core/db";
+import { Card } from "@/components/ui/ui";
 import DetailsForm from './DetailsForm';
 
 export default async function SignUpDetailsPage({

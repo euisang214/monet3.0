@@ -1,7 +1,7 @@
-import { Card } from "../../../components/ui";
+import { Card } from "@/components/ui/ui";
 import DashboardClient from "../../../components/DashboardClient";
 import { auth } from "@/auth";
-import { getProfessionalEarnings } from "@/lib/professional-earnings";
+import { getProfessionalEarnings } from "@/lib/professional/earnings";
 import { format } from "date-fns";
 
 export default async function Earnings({

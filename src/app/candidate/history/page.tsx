@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import DashboardClient from "../../../components/DashboardClient";
-import { getPastCalls } from "@/lib/bookings-history";
+import { getPastCalls } from "@/lib/shared/bookings/history";
 import { formatDateTime } from "../../../../lib/date";
 
 export default async function History({

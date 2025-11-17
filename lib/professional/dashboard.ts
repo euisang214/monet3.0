@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { prisma } from "@/lib/core/db";
 import { PaymentStatus } from "@prisma/client";
 
 export async function getProfessionalDashboardData(

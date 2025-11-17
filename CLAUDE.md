@@ -174,21 +174,51 @@ monet3.0/
 │   │       ├── feedback/
 │   │       ├── qc/
 │   │       └── verification/
-│   ├── components/                  # Shared React components (13 files)
+│   ├── components/                  # Shared React components (organized by domain)
+│   │   ├── bookings/               # Booking-related components
+│   │   ├── feedback/               # Feedback components
+│   │   ├── profile/                # Profile components
+│   │   ├── dashboard/              # Dashboard components
+│   │   └── ui/                     # Shared UI primitives
 │   ├── types/                       # TypeScript type definitions
 │   ├── auth.ts                      # NextAuth configuration
 │   └── middleware.ts                # Auth middleware
-├── lib/                             # Server-side utilities
-│   ├── calendar/                    # Google Calendar integration
-│   ├── payments/                    # Stripe utilities
-│   ├── queues/                      # BullMQ workers
-│   ├── api-helpers.ts               # API auth and helpers
-│   ├── admin-export.ts              # Admin CSV export utilities
-│   ├── db.ts                        # Prisma client singleton
-│   ├── flags.ts                     # Feature flags
-│   ├── professional-*.ts            # Professional portal utilities
-│   ├── bookings-*.ts                # Bookings utilities
-│   └── timezones.ts                 # Timezone utilities
+├── lib/                             # Server-side utilities (organized by role)
+│   ├── professional/                # Professional-specific business logic
+│   │   ├── dashboard.ts
+│   │   ├── earnings.ts
+│   │   ├── feedback.ts
+│   │   └── requests.ts
+│   ├── candidate/                   # Candidate-specific business logic (reserved)
+│   ├── shared/                      # Shared business logic
+│   │   ├── bookings/
+│   │   │   ├── history.ts
+│   │   │   └── upcoming.ts
+│   │   ├── availability.ts
+│   │   ├── qc.ts
+│   │   ├── audit.ts
+│   │   └── time-slot.ts
+│   ├── integrations/                # Third-party service integrations
+│   │   ├── stripe/
+│   │   │   ├── index.ts
+│   │   │   └── confirm.ts
+│   │   ├── calendar/
+│   │   │   └── google.ts
+│   │   ├── zoom.ts
+│   │   ├── email.ts
+│   │   └── s3.ts
+│   ├── core/                        # Core infrastructure
+│   │   ├── db.ts                    # Prisma client singleton
+│   │   ├── api-helpers.ts           # API auth and helpers
+│   │   ├── flags.ts                 # Feature flags
+│   │   ├── rate-limit.ts            # Rate limiting
+│   │   └── admin-export.ts          # Admin CSV exports
+│   ├── utils/                       # Pure utilities
+│   │   ├── date.ts
+│   │   ├── timezones.ts
+│   │   └── profileOptions.ts
+│   └── queues/                      # BullMQ workers
+│       └── index.ts
 ├── prisma/
 │   ├── schema.prisma                # Database schema
 │   ├── migrations/                  # Migration history
@@ -220,7 +250,7 @@ monet3.0/
 
 - `@/*` maps to `./src/*` (defined in `tsconfig.json`)
 
-**Usage**: `import { prisma } from '@/lib/db'` instead of `import { prisma } from '../../../lib/db'`
+**Usage**: `import { prisma } from '@/lib/core/db'` instead of `import { prisma } from '../../../lib/db'`
 
 ---
 
@@ -638,12 +668,12 @@ export const config = {
 
 ### RBAC (Role-Based Access Control)
 
-**File**: `/lib/api-helpers.ts`
+**File**: `/lib/core/api-helpers.ts`
 
 **Helper Functions**: `requireAuth()`, `requireRole()`, `withAuth()`, `withRole()`
 
 ```typescript
-import { requireAuth, requireRole, withRole } from '@/lib/api-helpers';
+import { requireAuth, requireRole, withRole } from '@/lib/core/api-helpers';
 
 // Option 1: Using requireRole directly
 export async function GET() {
@@ -848,7 +878,7 @@ Tests mock:
 
 ### Singleton Pattern (Prisma Client)
 
-**File**: `/lib/db.ts`
+**File**: `/lib/core/db.ts`
 
 ```typescript
 import { PrismaClient } from '@prisma/client';
@@ -868,7 +898,7 @@ if (process.env.NODE_ENV !== 'production')
 
 Business logic is isolated in `/lib/*` utilities, not in API routes.
 
-**Example**: Payment processing logic in `/lib/payments/stripe.ts`
+**Example**: Payment processing logic in `/lib/integrations/stripe/index.ts`
 
 ```typescript
 // ❌ BAD: Logic in API route
@@ -880,7 +910,7 @@ export async function POST(req: Request) {
 }
 
 // ✅ GOOD: Logic in service layer
-// /lib/payments/stripe.ts
+// /lib/integrations/stripe/index.ts
 export async function createPaymentIntent(bookingId: string) {
   const booking = await prisma.booking.findUnique({...});
   const fee = booking.price * 0.2;
@@ -937,7 +967,7 @@ type TimeSlot = {
 };
 ```
 
-**Conversion utilities** in `/lib/timezones.ts`:
+**Conversion utilities** in `/lib/utils/timezones.ts`:
 
 ```typescript
 import { formatInTimeZone } from 'date-fns-tz';
@@ -949,7 +979,7 @@ export function convertToUserTimezone(date: Date, timezone: string) {
 
 ### Feature Flag Pattern
 
-**File**: `/lib/flags.ts`
+**File**: `/lib/core/flags.ts`
 
 ```typescript
 export const flags = {
@@ -962,7 +992,7 @@ export const flags = {
 **Usage in code**:
 
 ```typescript
-import { flags } from '@/lib/flags';
+import { flags } from '@/lib/core/flags';
 
 if (flags.FEATURE_SUCCESS_FEE) {
   // Apply success fee logic
@@ -1050,7 +1080,7 @@ export function checkRateLimit(identifier: string, limit: number = 10) {
 5. Fetch data in Server Component:
    ```typescript
    import { auth } from '@/auth';
-   import { prisma } from '@/lib/db';
+   import { prisma } from '@/lib/core/db';
 
    export default async function YourPage() {
      const session = await auth();
@@ -1088,7 +1118,7 @@ export function checkRateLimit(identifier: string, limit: number = 10) {
    ```
    FEATURE_YOUR_FLAG=true
    ```
-2. Add to `/lib/flags.ts`:
+2. Add to `/lib/core/flags.ts`:
    ```typescript
    export const flags = {
      // ... existing flags
@@ -1097,7 +1127,7 @@ export function checkRateLimit(identifier: string, limit: number = 10) {
    ```
 3. Use in code:
    ```typescript
-   import { flags } from '@/lib/flags';
+   import { flags } from '@/lib/core/flags';
 
    if (flags.FEATURE_YOUR_FLAG) {
      // New feature code
@@ -1342,15 +1372,15 @@ npm run build
 ### Authentication
 - `/src/auth.ts` - NextAuth configuration
 - `/src/middleware.ts` - Auth middleware
-- `/lib/api-helpers.ts` - API authentication and authorization helpers
+- `/lib/core/api-helpers.ts` - API authentication and authorization helpers
 
 ### Database
-- `/lib/db.ts` - Prisma client singleton
+- `/lib/core/db.ts` - Prisma client singleton
 - `/prisma/schema.prisma` - Database schema
 - `/prisma/seed.ts` - Seed data
 
 ### Payments
-- `/lib/payments/stripe.ts` - Stripe utilities
+- `/lib/integrations/stripe/index.ts` - Stripe utilities
 - `/api/stripe/webhook/route.ts` - Stripe webhook handler
 
 ### Background Jobs
@@ -1358,11 +1388,11 @@ npm run build
 - `/scripts/dev-queue.ts` - Queue worker entry point
 
 ### Calendar Integration
-- `/lib/calendar/google.ts` - Google Calendar API
-- `/lib/timezones.ts` - Timezone utilities
+- `/lib/integrations/calendar/google.ts` - Google Calendar API
+- `/lib/utils/timezones.ts` - Timezone utilities
 
 ### Configuration
-- `/lib/flags.ts` - Feature flags
+- `/lib/core/flags.ts` - Feature flags
 - `/.env` - Environment variables (gitignored)
 - `/.env.example` - Environment template
 
@@ -1479,6 +1509,23 @@ git push -u origin <branch-name>
 ---
 
 ## Changelog
+
+### 2025-11-17 - Folder Structure Reorganization
+- Reorganized `/lib` directory by role and responsibility:
+  - `lib/professional/` - Professional-specific business logic
+  - `lib/candidate/` - Candidate-specific business logic (reserved for future use)
+  - `lib/shared/` - Shared business logic (bookings, availability, QC, audit)
+  - `lib/integrations/` - Third-party service integrations (Stripe, Zoom, Google Calendar, Email, S3)
+  - `lib/core/` - Core infrastructure (db, api-helpers, flags, rate-limit, admin-export)
+  - `lib/utils/` - Pure utilities (date, timezones, profileOptions)
+- Reorganized `/src/components` by domain:
+  - `components/bookings/` - Booking-related components
+  - `components/feedback/` - Feedback components
+  - `components/profile/` - Profile components
+  - `components/dashboard/` - Dashboard components
+  - `components/ui/` - Shared UI primitives
+- Updated all import paths across the codebase
+- Improved code discoverability and maintainability
 
 ### 2025-11-17 - Initial Version
 - Created comprehensive CLAUDE.md

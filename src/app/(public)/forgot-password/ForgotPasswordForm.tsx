@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Input, Button } from '../../../components/ui';
+import { Input, Button } from "@/components/ui/ui";
 
 export default function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);

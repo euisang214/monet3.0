@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../lib/db';
+import { prisma } from "@/lib/core/db";
 
 export async function GET(req: NextRequest){
   const token = req.nextUrl.searchParams.get('token') || '';

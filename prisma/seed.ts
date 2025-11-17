@@ -6,8 +6,8 @@ import {
   QCStatus,
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { SCHOOLS, JOB_TITLES, DEGREE_TITLES } from '../lib/profileOptions';
-import { timezones } from '../lib/timezones';
+import { SCHOOLS, JOB_TITLES, DEGREE_TITLES } from '../lib/utils/profileOptions';
+import { timezones } from '../lib/utils/timezones';
 
 const prisma = new PrismaClient();
 const defaultTimezone = process.env.DEFAULT_TIMEZONE || 'UTC';

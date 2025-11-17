@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { signIn, type SignInResponse } from 'next-auth/react';
 import Link from 'next/link';
 import { z } from 'zod';
-import { Input, Button } from '../../../components/ui';
+import { Input, Button } from "@/components/ui/ui";
 
 export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);

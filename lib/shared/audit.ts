@@ -1,4 +1,4 @@
-import { prisma } from './db';
+import { prisma } from '@/lib/core/db';
 
 export async function logAudit(params: {
   actorUserId?: string|null, entity: string, entityId: string, action: string, metadata?: any

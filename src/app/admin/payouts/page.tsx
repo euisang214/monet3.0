@@ -1,4 +1,4 @@
-import { Card } from "../../../components/ui";
+import { Card } from "@/components/ui/ui";
 
 export default function Page(){
   return (

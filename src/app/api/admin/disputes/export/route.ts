@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getExportData, dataToCSV } from '@/lib/admin-export';
+import { getExportData, dataToCSV } from '@/lib/core/admin-export';
 
 export async function GET() {
   const session = await auth();

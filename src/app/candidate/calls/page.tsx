@@ -5,7 +5,7 @@ import {
   FilterConfig,
   ActiveFilters,
 } from "../../../app/api/filterOptions";
-import { prisma } from "../../../../lib/db";
+import { prisma } from "@/lib/core/db";
 import { BookingStatus } from "@prisma/client";
 import type { CSSProperties } from "react";
 import { formatDateTime } from "../../../../lib/date";
