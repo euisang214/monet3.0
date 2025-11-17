@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeSlots, splitIntoSlots, Slot } from '../lib/availability';
+import { mergeSlots, splitIntoSlots, Slot } from '@/lib/shared/availability';
 
 describe('availability utilities', () => {
   it('merges continuous slots into a single range', () => {

@@ -8,7 +8,7 @@ import {
 import { prisma } from "@/lib/core/db";
 import { BookingStatus } from "@prisma/client";
 import type { CSSProperties } from "react";
-import { formatDateTime } from "../../../../lib/date";
+import { formatDateTime } from "@/lib/utils/date";
 
 function statusStyle(status: BookingStatus): CSSProperties {
   switch (status) {

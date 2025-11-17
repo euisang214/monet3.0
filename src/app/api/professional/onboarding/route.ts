@@ -7,7 +7,7 @@ import {
   createAccountOnboardingLink,
 } from "@/lib/integrations/stripe";
 import { z } from 'zod';
-import { timezones } from '../../../../lib/timezones';
+import { timezones } from '@/lib/utils/timezones';
 
 export async function POST(req: NextRequest) {
   const session = await auth();

@@ -14,8 +14,8 @@ import type { Stripe } from "@stripe/stripe-js";
 
 import { Card, Button } from "@/components/ui/ui";
 import type { ProfileResponse } from "../../../../../../types/profile";
-import type { TimeSlot } from "../../../../../../../lib/availability";
-import { convertTimeSlotsTimezone } from "../../../../../../../lib/availability";
+import type { TimeSlot } from "@/lib/shared/availability";
+import { convertTimeSlotsTimezone } from "@/lib/shared/availability";
 
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
 const STRIPE_MISSING_KEY_MESSAGE =

@@ -1,9 +1,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AvailabilityCalendar from "../../../../components/AvailabilityCalendar";
-import type { TimeSlot } from "../../../../../lib/availability";
-import { toUtcDateRange, resolveTimezone } from "../../../../../lib/availability";
+import AvailabilityCalendar from "@/components/bookings/AvailabilityCalendar";
+import type { TimeSlot } from "@/lib/shared/availability";
+import { toUtcDateRange, resolveTimezone } from "@/lib/shared/availability";
 
 export default function RequestSchedule({ params }: { params: { id: string } }) {
   const [slots, setSlots] = useState<TimeSlot[]>([]);

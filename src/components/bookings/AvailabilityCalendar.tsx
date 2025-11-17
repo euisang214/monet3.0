@@ -14,7 +14,7 @@ import {
   startOfWeekInTimezone,
   resolveTimezone,
   mergeSlots,
-} from '../../lib/availability';
+} from '@/lib/shared/availability';
 
 type CalendarSlot = TimeSlot & { sourceTimezone?: string };
 

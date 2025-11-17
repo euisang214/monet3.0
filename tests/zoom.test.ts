@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { recordZoomJoin } from '../lib/zoom';
+import { recordZoomJoin } from '@/lib/integrations/zoom';
 import { BookingStatus } from '@prisma/client';
 
 describe('recordZoomJoin', () => {

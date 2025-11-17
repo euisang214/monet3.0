@@ -1,6 +1,6 @@
 import { Feedback } from "@prisma/client";
 import { Card } from "./ui";
-import { formatDateTime } from "../../lib/date";
+import { formatDateTime } from "@/lib/utils/date";
 
 export default function HistoricalFeedback({ feedback }: { feedback: Feedback }) {
   const extraRatings = feedback.extraCategoryRatings as Record<string, number>;

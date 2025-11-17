@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input, Button, Select } from "@/components/ui/ui";
-import { timezones } from '../../../../../lib/timezones';
+import { timezones } from '@/lib/utils/timezones';
 import AvailabilityTimes, { AvailabilityRange } from '../../../candidate/settings/AvailabilityTimes';
 
 export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' | 'PROFESSIONAL' }) {

@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import AvailabilityCalendar from "../../../../../components/AvailabilityCalendar";
+import AvailabilityCalendar from "@/components/bookings/AvailabilityCalendar";
 import { Card, Input } from "@/components/ui/ui";
-import type { TimeSlot } from "../../../../../lib/availability";
+import type { TimeSlot } from "@/lib/shared/availability";
 
 export default function Schedule({ params }: { params: { id: string } }) {
   const [weeks, setWeeks] = useState(2);

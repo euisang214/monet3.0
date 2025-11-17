@@ -2,7 +2,7 @@
 
 import { Card, Button } from './ui';
 import React from 'react';
-import { formatDateTime } from '../../lib/date';
+import { formatDateTime } from '@/lib/utils/date';
 
 interface Call {
   id: string;

@@ -5,7 +5,7 @@ import {
   TimeSlot,
   getDefaultTimezone,
   normalizeSlots,
-} from "../../../../../../../lib/availability";
+} from "@/lib/shared/availability";
 import type { ProfileResponse } from "../../../../../../types/profile";
 
 const PAYMENT_ERROR_MESSAGE =
