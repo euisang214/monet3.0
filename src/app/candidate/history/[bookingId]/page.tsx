@@ -13,7 +13,7 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
   const headersList = headers();
   const protocol = headersList.get("x-forwarded-proto") || "http";
   const host = headersList.get("host") || "localhost:3000";
-  const res = await fetch(`${protocol}://${host}/api/feedback/${params.bookingId}`, {
+  const res = await fetch(`${protocol}://${host}/api/professional/feedback/${params.bookingId}`, {
     cache: "no-store",
     headers: {
       cookie: cookies().toString(),

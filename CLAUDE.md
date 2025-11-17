@@ -174,21 +174,51 @@ monet3.0/
 │   │       ├── feedback/
 │   │       ├── qc/
 │   │       └── verification/
-│   ├── components/                  # Shared React components (13 files)
+│   ├── components/                  # Shared React components (organized by domain)
+│   │   ├── bookings/               # Booking-related components
+│   │   ├── feedback/               # Feedback components
+│   │   ├── profile/                # Profile components
+│   │   ├── dashboard/              # Dashboard components
+│   │   └── ui/                     # Shared UI primitives
 │   ├── types/                       # TypeScript type definitions
 │   ├── auth.ts                      # NextAuth configuration
 │   └── middleware.ts                # Auth middleware
-├── lib/                             # Server-side utilities
-│   ├── calendar/                    # Google Calendar integration
-│   ├── payments/                    # Stripe utilities
-│   ├── queues/                      # BullMQ workers
-│   ├── api-helpers.ts               # API auth and helpers
-│   ├── admin-export.ts              # Admin CSV export utilities
-│   ├── db.ts                        # Prisma client singleton
-│   ├── flags.ts                     # Feature flags
-│   ├── professional-*.ts            # Professional portal utilities
-│   ├── bookings-*.ts                # Bookings utilities
-│   └── timezones.ts                 # Timezone utilities
+├── lib/                             # Server-side utilities (organized by role)
+│   ├── professional/                # Professional-specific business logic
+│   │   ├── dashboard.ts
+│   │   ├── earnings.ts
+│   │   ├── feedback.ts
+│   │   └── requests.ts
+│   ├── candidate/                   # Candidate-specific business logic (reserved)
+│   ├── shared/                      # Shared business logic
+│   │   ├── bookings/
+│   │   │   ├── history.ts
+│   │   │   └── upcoming.ts
+│   │   ├── availability.ts
+│   │   ├── qc.ts
+│   │   ├── audit.ts
+│   │   └── time-slot.ts
+│   ├── integrations/                # Third-party service integrations
+│   │   ├── stripe/
+│   │   │   ├── index.ts
+│   │   │   └── confirm.ts
+│   │   ├── calendar/
+│   │   │   └── google.ts
+│   │   ├── zoom.ts
+│   │   ├── email.ts
+│   │   └── s3.ts
+│   ├── core/                        # Core infrastructure
+│   │   ├── db.ts                    # Prisma client singleton
+│   │   ├── api-helpers.ts           # API auth and helpers
+│   │   ├── flags.ts                 # Feature flags
+│   │   ├── rate-limit.ts            # Rate limiting
+│   │   └── admin-export.ts          # Admin CSV exports
+│   ├── utils/                       # Pure utilities
+│   │   ├── date.ts
+│   │   ├── timezones.ts
+│   │   └── profileOptions.ts
+│   └── queues/                      # BullMQ workers
+│       └── index.ts
 ├── prisma/
 │   ├── schema.prisma                # Database schema
 │   ├── migrations/                  # Migration history
@@ -220,7 +250,7 @@ monet3.0/
 
 - `@/*` maps to `./src/*` (defined in `tsconfig.json`)
 
-**Usage**: `import { prisma } from '@/lib/db'` instead of `import { prisma } from '../../../lib/db'`
+**Usage**: `import { prisma } from '@/lib/core/db'` instead of `import { prisma } from '../../../lib/db'`
 
 ---
 
@@ -484,71 +514,89 @@ enum QCStatus {
 
 ### Structure
 
-All API routes are in `/src/app/api/` and follow Next.js App Router conventions.
+All API routes are in `/src/app/api/` and follow Next.js App Router conventions. **APIs are now organized by user role** for better clarity and maintainability.
 
 ### Authentication (`/api/auth/*`)
 
+Shared authentication endpoints (kept at root for NextAuth compatibility):
 - `POST /api/auth/signup` - User registration
 - `POST /api/auth/forgot-password` - Request password reset
 - `POST /api/auth/reset-password` - Reset password with token
 - `GET /api/auth/role` - Get current user's role
 - `/api/auth/[...nextauth]` - NextAuth handlers
 
-### Bookings (`/api/bookings/*`)
-
-- `POST /api/bookings/request` - Create booking request
-- `POST /api/bookings/[id]/accept` - Professional accepts booking
-- `POST /api/bookings/[id]/decline` - Professional declines booking
-- `POST /api/bookings/[id]/schedule` - Schedule time slot
-- `POST /api/bookings/[id]/checkout` - Create payment intent
-- `POST /api/bookings/[id]/cancel` - Cancel booking (respects 3hr window)
-- `GET /api/bookings/[id]/viewAvailabilities` - View professional availability
-- `GET /api/bookings/history` - Get booking history
-- `GET /api/bookings/upcoming` - Get upcoming bookings
-
-### Professionals (`/api/professionals/*`)
-
-- `GET /api/professionals/search` - Search professionals (anonymized)
-- `GET /api/professionals/[id]` - Get professional details
-
 ### Professional Portal (`/api/professional/*`)
 
-- `GET /api/professional/dashboard` - Dashboard data
-- `GET /api/professional/requests` - View booking requests
-- `GET /api/professional/earnings` - Earnings data
-- `GET /api/professional/feedback` - Feedback data
-- `PUT /api/professional/settings` - Update settings
+Professional-specific endpoints:
+
+**Bookings**:
+- `POST /api/professional/bookings/[id]/accept` - Accept booking request
+- `POST /api/professional/bookings/[id]/decline` - Decline booking request
+- `POST /api/professional/bookings/[id]/schedule` - Schedule call after accepting
+- `GET /api/professional/bookings/[id]/view-availabilities` - View candidate's available times
+
+**Feedback**:
+- `POST /api/professional/feedback/[bookingId]` - Submit feedback after call
+- `POST /api/professional/feedback/validate` - Validate feedback (QC check)
+
+**Settings & Onboarding**:
+- `PUT /api/professional/settings` - Update professional settings
+- `POST /api/professional/onboarding` - Stripe Connect onboarding
 
 ### Candidate Portal (`/api/candidate/*`)
 
-- `GET /api/candidate/[id]` - Get candidate details
+Candidate-specific endpoints:
+
+**Bookings**:
+- `POST /api/candidate/bookings/request` - Request a booking with a professional
+- `POST /api/candidate/bookings/[id]/checkout` - Initiate payment for booking
+
+**Professional Discovery**:
+- `GET /api/candidate/professionals/search` - Search/browse professionals (anonymized)
+- `GET /api/candidate/professionals/[id]` - View professional profile details
+- `GET /api/candidate/professionals/[id]/reviews` - View professional reviews
+
+**Profile & Settings**:
+- `GET /api/candidate/profile/[id]` - Get candidate profile
 - `POST /api/candidate/availability` - Set availability preferences
 - `GET /api/candidate/busy` - Get busy times from Google Calendar
-- `PUT /api/candidate/settings` - Update settings
+- `PUT /api/candidate/settings` - Update candidate settings
 
-### Payments & Stripe (`/api/payments/*`, `/api/stripe/*`)
+### Shared/Common Endpoints (`/api/shared/*`)
 
-- `POST /api/payments/confirm` - Confirm payment after Stripe checkout
-- `POST /api/stripe/intent` - Create PaymentIntent
-- `GET /api/stripe/account` - Get Stripe account info
-- `POST /api/stripe/webhook` - Stripe webhook handler
+Endpoints used by both roles or system-level operations:
 
-### Feedback & QC (`/api/feedback/*`, `/api/qc/*`)
+**Bookings**:
+- `POST /api/shared/bookings/[id]/cancel` - Cancel booking (either party, respects 3hr window)
 
-- `POST /api/feedback/[bookingId]` - Submit professional feedback
-- `POST /api/qc/[bookingId]/recheck` - Recheck QC status
+**Payments & Stripe**:
+- `POST /api/shared/payments/confirm` - Confirm payment after Stripe checkout
+- `POST /api/shared/payments/payout` - Release payment to professional
+- `POST /api/shared/payments/refund` - Refund payment to candidate
+- `POST /api/shared/stripe/intent` - Create Stripe PaymentIntent
+- `GET /api/shared/stripe/account` - Get Stripe account info
+- `POST /api/shared/stripe/webhook` - Stripe webhook handler
 
-### Admin (`/api/admin/*`)
+**Verification**:
+- `POST /api/shared/verification/request` - Request email verification
+- `POST /api/shared/verification/confirm` - Confirm email verification
+- `GET /api/shared/verification/status` - Check verification status
 
-- CSV Export endpoints:
-  - `GET /api/admin/users/export`
-  - `GET /api/admin/bookings/export`
-  - `GET /api/admin/payments/export`
-  - `GET /api/admin/payouts/export`
-  - `GET /api/admin/feedback/export`
-  - `GET /api/admin/disputes/export`
-  - `GET /api/admin/invoices/export`
-  - `GET /api/admin/audit-logs/export`
+**QC & Reviews**:
+- `POST /api/shared/qc/[bookingId]/recheck` - Recheck QC status
+- `GET /api/shared/reviews` - Get reviews (shared endpoint)
+
+### Admin Portal (`/api/admin/*`)
+
+Admin-only CSV export endpoints:
+- `GET /api/admin/users/export` - Export users
+- `GET /api/admin/bookings/export` - Export bookings
+- `GET /api/admin/payments/export` - Export payments
+- `GET /api/admin/payouts/export` - Export payouts
+- `GET /api/admin/feedback/export` - Export feedback
+- `GET /api/admin/disputes/export` - Export disputes
+- `GET /api/admin/invoices/export` - Export invoices
+- `GET /api/admin/audit-logs/export` - Export audit logs
 
 ### API Conventions
 
@@ -638,12 +686,12 @@ export const config = {
 
 ### RBAC (Role-Based Access Control)
 
-**File**: `/lib/api-helpers.ts`
+**File**: `/lib/core/api-helpers.ts`
 
 **Helper Functions**: `requireAuth()`, `requireRole()`, `withAuth()`, `withRole()`
 
 ```typescript
-import { requireAuth, requireRole, withRole } from '@/lib/api-helpers';
+import { requireAuth, requireRole, withRole } from '@/lib/core/api-helpers';
 
 // Option 1: Using requireRole directly
 export async function GET() {
@@ -848,7 +896,7 @@ Tests mock:
 
 ### Singleton Pattern (Prisma Client)
 
-**File**: `/lib/db.ts`
+**File**: `/lib/core/db.ts`
 
 ```typescript
 import { PrismaClient } from '@prisma/client';
@@ -868,7 +916,7 @@ if (process.env.NODE_ENV !== 'production')
 
 Business logic is isolated in `/lib/*` utilities, not in API routes.
 
-**Example**: Payment processing logic in `/lib/payments/stripe.ts`
+**Example**: Payment processing logic in `/lib/integrations/stripe/index.ts`
 
 ```typescript
 // ❌ BAD: Logic in API route
@@ -880,7 +928,7 @@ export async function POST(req: Request) {
 }
 
 // ✅ GOOD: Logic in service layer
-// /lib/payments/stripe.ts
+// /lib/integrations/stripe/index.ts
 export async function createPaymentIntent(bookingId: string) {
   const booking = await prisma.booking.findUnique({...});
   const fee = booking.price * 0.2;
@@ -937,7 +985,7 @@ type TimeSlot = {
 };
 ```
 
-**Conversion utilities** in `/lib/timezones.ts`:
+**Conversion utilities** in `/lib/utils/timezones.ts`:
 
 ```typescript
 import { formatInTimeZone } from 'date-fns-tz';
@@ -949,7 +997,7 @@ export function convertToUserTimezone(date: Date, timezone: string) {
 
 ### Feature Flag Pattern
 
-**File**: `/lib/flags.ts`
+**File**: `/lib/core/flags.ts`
 
 ```typescript
 export const flags = {
@@ -962,7 +1010,7 @@ export const flags = {
 **Usage in code**:
 
 ```typescript
-import { flags } from '@/lib/flags';
+import { flags } from '@/lib/core/flags';
 
 if (flags.FEATURE_SUCCESS_FEE) {
   // Apply success fee logic
@@ -1050,7 +1098,7 @@ export function checkRateLimit(identifier: string, limit: number = 10) {
 5. Fetch data in Server Component:
    ```typescript
    import { auth } from '@/auth';
-   import { prisma } from '@/lib/db';
+   import { prisma } from '@/lib/core/db';
 
    export default async function YourPage() {
      const session = await auth();
@@ -1088,7 +1136,7 @@ export function checkRateLimit(identifier: string, limit: number = 10) {
    ```
    FEATURE_YOUR_FLAG=true
    ```
-2. Add to `/lib/flags.ts`:
+2. Add to `/lib/core/flags.ts`:
    ```typescript
    export const flags = {
      // ... existing flags
@@ -1097,7 +1145,7 @@ export function checkRateLimit(identifier: string, limit: number = 10) {
    ```
 3. Use in code:
    ```typescript
-   import { flags } from '@/lib/flags';
+   import { flags } from '@/lib/core/flags';
 
    if (flags.FEATURE_YOUR_FLAG) {
      // New feature code
@@ -1342,15 +1390,15 @@ npm run build
 ### Authentication
 - `/src/auth.ts` - NextAuth configuration
 - `/src/middleware.ts` - Auth middleware
-- `/lib/api-helpers.ts` - API authentication and authorization helpers
+- `/lib/core/api-helpers.ts` - API authentication and authorization helpers
 
 ### Database
-- `/lib/db.ts` - Prisma client singleton
+- `/lib/core/db.ts` - Prisma client singleton
 - `/prisma/schema.prisma` - Database schema
 - `/prisma/seed.ts` - Seed data
 
 ### Payments
-- `/lib/payments/stripe.ts` - Stripe utilities
+- `/lib/integrations/stripe/index.ts` - Stripe utilities
 - `/api/stripe/webhook/route.ts` - Stripe webhook handler
 
 ### Background Jobs
@@ -1358,11 +1406,11 @@ npm run build
 - `/scripts/dev-queue.ts` - Queue worker entry point
 
 ### Calendar Integration
-- `/lib/calendar/google.ts` - Google Calendar API
-- `/lib/timezones.ts` - Timezone utilities
+- `/lib/integrations/calendar/google.ts` - Google Calendar API
+- `/lib/utils/timezones.ts` - Timezone utilities
 
 ### Configuration
-- `/lib/flags.ts` - Feature flags
+- `/lib/core/flags.ts` - Feature flags
 - `/.env` - Environment variables (gitignored)
 - `/.env.example` - Environment template
 
@@ -1479,6 +1527,35 @@ git push -u origin <branch-name>
 ---
 
 ## Changelog
+
+### 2025-11-17 - API Routes Reorganization
+- Reorganized `/src/app/api` directory by user role:
+  - `api/professional/` - Professional-specific endpoints (bookings actions, feedback submission, Stripe onboarding)
+  - `api/candidate/` - Candidate-specific endpoints (booking requests, professional discovery, checkout)
+  - `api/shared/` - Shared/common endpoints (payments, Stripe, verification, QC, reviews)
+  - `api/auth/` - Authentication endpoints (kept at root for NextAuth compatibility)
+  - `api/admin/` - Admin endpoints (unchanged)
+- Moved 25+ API route files to new organized structure
+- Updated all frontend fetch() calls to new API paths
+- Updated all relative imports in API routes to use @/lib aliases
+- Improved API discoverability and role-based access clarity
+
+### 2025-11-17 - Folder Structure Reorganization
+- Reorganized `/lib` directory by role and responsibility:
+  - `lib/professional/` - Professional-specific business logic
+  - `lib/candidate/` - Candidate-specific business logic (reserved for future use)
+  - `lib/shared/` - Shared business logic (bookings, availability, QC, audit)
+  - `lib/integrations/` - Third-party service integrations (Stripe, Zoom, Google Calendar, Email, S3)
+  - `lib/core/` - Core infrastructure (db, api-helpers, flags, rate-limit, admin-export)
+  - `lib/utils/` - Pure utilities (date, timezones, profileOptions)
+- Reorganized `/src/components` by domain:
+  - `components/bookings/` - Booking-related components
+  - `components/feedback/` - Feedback components
+  - `components/profile/` - Profile components
+  - `components/dashboard/` - Dashboard components
+  - `components/ui/` - Shared UI primitives
+- Updated all import paths across the codebase
+- Improved code discoverability and maintainability
 
 ### 2025-11-17 - Initial Version
 - Created comprehensive CLAUDE.md

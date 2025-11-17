@@ -1,8 +1,8 @@
 import { Queue, Worker, QueueEvents, JobsOptions } from 'bullmq';
 import IORedis from 'ioredis';
-import { prisma } from '../db';
-import { qcAndGatePayout } from '../qc';
-import { sendEmail } from '../email';
+import { prisma } from '@/lib/core/db';
+import { qcAndGatePayout } from '@/lib/shared/qc';
+import { sendEmail } from '@/lib/integrations/email';
 
 const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
 

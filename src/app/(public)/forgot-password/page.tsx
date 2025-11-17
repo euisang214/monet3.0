@@ -1,4 +1,4 @@
-import { Card } from '../../../components/ui';
+import { Card } from "@/components/ui/ui";
 import ForgotPasswordForm from './ForgotPasswordForm';
 
 export default function ForgotPasswordPage() {

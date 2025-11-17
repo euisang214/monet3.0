@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Input, Button, Select } from '../../../../components/ui';
-import { timezones } from '../../../../../lib/timezones';
+import { Input, Button, Select } from "@/components/ui/ui";
+import { timezones } from '@/lib/utils/timezones';
 import AvailabilityTimes, { AvailabilityRange } from '../../../candidate/settings/AvailabilityTimes';
 
 export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' | 'PROFESSIONAL' }) {
@@ -119,7 +119,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
       body.corporateEmail = corporateEmail;
     }
     setLoading(true);
-    const res = await fetch('/api/onboarding', {
+    const res = await fetch('/api/professional/onboarding', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -140,7 +140,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
   async function requestVerification() {
     setVerificationError(null);
     setVerifying(true);
-    const res = await fetch('/api/verification/request', {
+    const res = await fetch('/api/shared/verification/request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ corporateEmail }),
@@ -157,7 +157,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
   async function checkVerification() {
     setVerificationError(null);
     setChecking(true);
-    const res = await fetch('/api/verification/status', { cache: 'no-store' });
+    const res = await fetch('/api/shared/verification/status', { cache: 'no-store' });
     setChecking(false);
     const data = await res.json().catch(() => null);
     if (res.ok && data?.verified) {

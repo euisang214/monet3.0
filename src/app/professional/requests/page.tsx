@@ -1,8 +1,8 @@
 import DashboardClient from "../../../components/DashboardClient";
-import { Badge } from "../../../components/ui";
-import RequestActions from "../../../components/RequestActions";
+import { Badge } from "@/components/ui/ui";
+import RequestActions from "@/components/bookings/RequestActions";
 import { auth } from "@/auth";
-import { getProfessionalRequests } from "@/lib/professional-requests";
+import { getProfessionalRequests } from "@/lib/professional/requests";
 
 export default async function Requests({
   searchParams,

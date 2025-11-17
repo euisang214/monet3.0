@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
-import { Card } from "../../../../components/ui";
-import { prisma } from "../../../../../lib/db";
+import { Card } from "@/components/ui/ui";
+import { prisma } from "@/lib/core/db";
 import FeedbackForm from "./FeedbackForm";
 
 export default async function ProvideFeedbackPage({

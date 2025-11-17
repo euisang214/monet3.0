@@ -1,6 +1,6 @@
 'use client';
 
-import { Modal, Button } from '@/components/ui';
+import { Modal, Button } from '@/components/ui/ui';
 
 export type ValidationResult = {
   approved: boolean;

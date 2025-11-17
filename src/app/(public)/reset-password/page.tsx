@@ -1,4 +1,4 @@
-import { Card } from '../../../components/ui';
+import { Card } from "@/components/ui/ui";
 import ResetPasswordForm from './ResetPasswordForm';
 
 export default function ResetPasswordPage() {

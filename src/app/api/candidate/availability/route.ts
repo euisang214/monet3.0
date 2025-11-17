@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { prisma } from '../../../../../lib/db';
-import type { TimeSlot } from '../../../../../lib/availability';
+import { prisma } from "@/lib/core/db";
+import type { TimeSlot } from '@/lib/shared/availability';
 import {
   mergeSlots,
   splitIntoSlots,
@@ -10,7 +10,7 @@ import {
   toUtcDateRange,
   resolveTimezone,
   normalizeSlots,
-} from '../../../../../lib/availability';
+} from '@/lib/shared/availability';
 
 export async function POST(req: Request){
   const session = await auth();

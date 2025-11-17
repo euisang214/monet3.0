@@ -1,4 +1,4 @@
-import { Card } from "../../components/ui";
+import { Card } from "@/components/ui/ui";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";

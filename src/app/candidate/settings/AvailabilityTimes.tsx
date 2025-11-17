@@ -1,5 +1,5 @@
 'use client';
-import { Input, Button } from '../../../components/ui';
+import { Input, Button } from "@/components/ui/ui";
 
 export interface AvailabilityRange {
   day: number;

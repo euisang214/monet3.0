@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
-import { Card, Button, Input, Select } from '../../../components/ui';
-import { timezones } from '../../../../lib/timezones';
+import { Card, Button, Input, Select } from "@/components/ui/ui";
+import { timezones } from '@/lib/utils/timezones';
 import StripeSection from './StripeSection';
 
 interface SettingsData {

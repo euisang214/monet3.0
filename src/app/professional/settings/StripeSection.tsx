@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '../../../components/ui';
+import { Button } from "@/components/ui/ui";
 
 export default function StripeSection() {
   const [status, setStatus] = useState('loading');
@@ -12,7 +12,7 @@ export default function StripeSection() {
   useEffect(() => {
     async function fetchStatus() {
       try {
-        const res = await fetch('/api/stripe/account');
+        const res = await fetch('/api/shared/stripe/account');
         if (!res.ok) throw new Error();
         const data = await res.json();
         setStatus(data.status || 'not_connected');
@@ -27,7 +27,7 @@ export default function StripeSection() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/stripe/account', { method: 'POST' });
+      const res = await fetch('/api/shared/stripe/account', { method: 'POST' });
       const data = await res.json();
       if (!res.ok || !data.onboardingUrl) throw new Error();
       setMessage('Redirecting to Stripe...');

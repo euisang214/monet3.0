@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../../lib/db';
-import { sendEmail } from '../../../../../lib/email';
+import { prisma } from "@/lib/core/db";
+import { sendEmail } from '@/lib/integrations/email';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
 

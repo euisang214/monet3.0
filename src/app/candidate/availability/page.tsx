@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import AvailabilityCalendar from '../../../components/AvailabilityCalendar';
+import AvailabilityCalendar from '@/components/bookings/AvailabilityCalendar';
 
 export default function Availability(){
   return (

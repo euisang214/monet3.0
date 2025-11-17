@@ -5,7 +5,7 @@ import {
   TimeSlot,
   getDefaultTimezone,
   normalizeSlots,
-} from "../../../../../../../lib/availability";
+} from "@/lib/shared/availability";
 import type { ProfileResponse } from "../../../../../../types/profile";
 
 const PAYMENT_ERROR_MESSAGE =
@@ -61,13 +61,13 @@ async function loadCheckoutData(professionalId: string): Promise<CheckoutData> {
 
   try {
     const [professionalRes, intentRes] = await Promise.all([
-      fetch(`${baseUrl}/api/professionals/${professionalId}`, {
+      fetch(`${baseUrl}/api/candidate/professionals/${professionalId}`, {
         cache: "no-store",
         headers: {
           ...(sharedHeaders ?? {}),
         },
       }),
-      fetch(`${baseUrl}/api/stripe/intent`, {
+      fetch(`${baseUrl}/api/shared/stripe/intent`, {
         method: "POST",
         cache: "no-store",
         headers: {
