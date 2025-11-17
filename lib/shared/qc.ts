@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/core/db';
+import { enqueueNudges } from '@/lib/queues';
 
 export type QCReport = {
   wordCountOk: boolean;
@@ -30,5 +31,8 @@ export async function qcAndGatePayout(bookingId: string){
   // On pass, mark payout as ready
   if(pass){
     await prisma.payout.updateMany({ where:{ bookingId }, data: { status: 'pending' } });
+  } else {
+    // On revise, enqueue nudge emails at +24h, +48h, +72h
+    await enqueueNudges(bookingId);
   }
 }

@@ -108,17 +108,6 @@ export async function getExportData(type: ExportType): Promise<any[]> {
         },
       });
 
-    case 'invoices':
-      return prisma.invoice.findMany({
-        select: {
-          id: true,
-          bookingId: true,
-          amount: true,
-          status: true,
-          createdAt: true,
-        },
-      });
-
     default:
       throw new Error(`Unknown export type: ${type}`);
   }

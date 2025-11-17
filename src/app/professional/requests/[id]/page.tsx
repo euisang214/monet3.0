@@ -10,7 +10,7 @@ export default function RequestSchedule({ params }: { params: { id: string } }) 
   const router = useRouter();
 
   useEffect(() => {
-    fetch(`/api/professional/bookings/${params.id}/view-availabilities`)
+    fetch(`/api/professional/bookings/${params.id}/schedule`)
       .then((res) => res.json())
       .then((data) => {
         const availability: TimeSlot[] = (data.availability || []).map((s: any) => ({

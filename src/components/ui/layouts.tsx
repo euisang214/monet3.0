@@ -126,7 +126,6 @@ export function AdminShell({ children }: ShellProps) {
               <Link href="/admin/payouts">Payouts</Link>
               <Link href="/admin/feedback">Feedback (QC)</Link>
               <Link href="/admin/disputes">Disputes</Link>
-              <Link href="/admin/invoices">Invoices</Link>
               <Link href="/admin/audit-logs">Audit Logs</Link>
             </nav>
           </div>

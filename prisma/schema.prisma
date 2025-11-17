@@ -248,19 +248,6 @@ model Payout {
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
-model SuccessFeeInvoice {
-  id                  String   @id @default(cuid())
-  candidateId         String
-  professionalId      String
-  percentage          Int      @default(10)
-  declaredBonusAmount Int
-  invoiceAmount       Int
-  status              String // 'draft'|'sent'|'paid'|'void'
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  timezone            String   @default("UTC")
-}
-
 model Verification {
   id             String    @id @default(cuid())
   userId         String

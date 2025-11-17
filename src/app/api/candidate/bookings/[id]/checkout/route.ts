@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
 import { createCheckoutIntent, ensureCustomer } from '@/lib/integrations/stripe';
+import { createZoomMeeting } from '@/lib/integrations/zoom';
 import { auth } from '@/auth';
 
 export async function POST(req: NextRequest, { params }:{params:{id:string}}){
@@ -41,6 +42,8 @@ export async function POST(req: NextRequest, { params }:{params:{id:string}}){
 
   const updated = await prisma.booking.update({ where: { id: booking.id }, data: {
     priceUSD,
+    zoomMeetingId: meeting.id,
+    zoomJoinUrl: meeting.join_url,
   }});
 
   return NextResponse.json({
