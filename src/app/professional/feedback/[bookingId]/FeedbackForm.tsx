@@ -3,6 +3,7 @@
 import { Input, Button } from "../../../../components/ui";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { FeedbackValidationModal, type ValidationResult } from "./FeedbackValidationModal";
 
 export default function FeedbackForm({ bookingId }: { bookingId: string }) {
   const router = useRouter();
@@ -11,9 +12,62 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
   const [starsCategory3, setStarsCategory3] = useState("");
   const [actions, setActions] = useState("");
   const [text, setText] = useState("");
+  const [isValidating, setIsValidating] = useState(false);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [pendingPayload, setPendingPayload] = useState<any>(null);
 
   const submitDisabled =
     !starsCategory1 || !starsCategory2 || !starsCategory3 || !actions || !text;
+
+  async function validateFeedback(payload: any) {
+    setIsValidating(true);
+    try {
+      const res = await fetch('/api/feedback/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const result: ValidationResult = await res.json();
+        setValidationResult(result);
+        setShowValidationModal(true);
+
+        // If approved, proceed directly to submission after brief delay
+        if (result.approved) {
+          setTimeout(() => {
+            setShowValidationModal(false);
+            submitFeedback(payload);
+          }, 2000);
+        }
+      } else {
+        // If validation endpoint fails, proceed with submission anyway
+        console.error('Validation failed, proceeding with submission');
+        submitFeedback(payload);
+      }
+    } catch (error) {
+      // If validation fails, proceed with submission anyway
+      console.error('Validation error, proceeding with submission:', error);
+      submitFeedback(payload);
+    } finally {
+      setIsValidating(false);
+    }
+  }
+
+  async function submitFeedback(payload: any) {
+    const res = await fetch(`/api/feedback/${bookingId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      router.push(`/professional/requests`);
+    } else {
+      alert("Failed to submit feedback");
+    }
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,16 +95,29 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
       text: formData.get("text"),
     };
 
-    const res = await fetch(`/api/feedback/${bookingId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    setPendingPayload(payload);
+    await validateFeedback(payload);
+  }
 
-    if (res.ok) {
-      router.push(`/professional/requests`);
+  function handleImprove() {
+    setShowValidationModal(false);
+    // User stays on the form to improve their feedback
+  }
+
+  function handleProceedAnyway() {
+    setShowValidationModal(false);
+    if (pendingPayload) {
+      submitFeedback(pendingPayload);
+    }
+  }
+
+  function handleModalClose() {
+    // If approved, the modal auto-closes and submits
+    // If not approved and user closes, they can improve
+    if (validationResult?.approved && pendingPayload) {
+      submitFeedback(pendingPayload);
     } else {
-      alert("Failed to submit feedback");
+      setShowValidationModal(false);
     }
   }
 
@@ -126,11 +193,19 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
       </div>
       <Button
         type="submit"
-        disabled={submitDisabled}
+        disabled={submitDisabled || isValidating}
         variant={submitDisabled ? "muted" : "primary"}
       >
-        Submit
+        {isValidating ? "Validating..." : "Submit"}
       </Button>
+
+      <FeedbackValidationModal
+        isOpen={showValidationModal}
+        onClose={handleModalClose}
+        result={validationResult}
+        onProceedAnyway={handleProceedAnyway}
+        onImprove={handleImprove}
+      />
     </form>
   );
 }

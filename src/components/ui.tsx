@@ -57,3 +57,55 @@ function DataTableComponent<T extends Record<string, React.ReactNode>>({
 }
 
 export const DataTable = memo(DataTableComponent) as typeof DataTableComponent;
+
+export function Modal({
+  isOpen,
+  onClose,
+  children,
+  title,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  title?: string;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="modal-overlay"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+      }}
+    >
+      <div
+        className="modal-content"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          padding: '24px',
+          maxWidth: '600px',
+          width: '90%',
+          maxHeight: '80vh',
+          overflow: 'auto',
+        }}
+      >
+        {title && (
+          <h2 style={{ marginTop: 0, marginBottom: '16px' }}>{title}</h2>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+}
