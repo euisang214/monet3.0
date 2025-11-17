@@ -178,13 +178,16 @@ monet3.0/
 │   ├── types/                       # TypeScript type definitions
 │   ├── auth.ts                      # NextAuth configuration
 │   └── middleware.ts                # Auth middleware
-├── lib/                             # Server-side utilities (18 files)
-│   ├── auth/                        # RBAC helpers
+├── lib/                             # Server-side utilities
 │   ├── calendar/                    # Google Calendar integration
 │   ├── payments/                    # Stripe utilities
 │   ├── queues/                      # BullMQ workers
+│   ├── api-helpers.ts               # API auth and helpers
+│   ├── admin-export.ts              # Admin CSV export utilities
 │   ├── db.ts                        # Prisma client singleton
 │   ├── flags.ts                     # Feature flags
+│   ├── professional-*.ts            # Professional portal utilities
+│   ├── bookings-*.ts                # Bookings utilities
 │   └── timezones.ts                 # Timezone utilities
 ├── prisma/
 │   ├── schema.prisma                # Database schema
@@ -635,17 +638,24 @@ export const config = {
 
 ### RBAC (Role-Based Access Control)
 
-**File**: `/lib/auth/rbac.ts`
+**File**: `/lib/api-helpers.ts`
 
-**Helper Function**: `requireRole()`
+**Helper Functions**: `requireAuth()`, `requireRole()`, `withAuth()`, `withRole()`
 
 ```typescript
-import { requireRole } from '@/lib/auth/rbac';
+import { requireAuth, requireRole, withRole } from '@/lib/api-helpers';
 
+// Option 1: Using requireRole directly
 export async function GET() {
-  const user = await requireRole(['ADMIN', 'PROFESSIONAL']);
+  const session = await requireRole(['ADMIN', 'PROFESSIONAL']);
   // ... rest of handler
 }
+
+// Option 2: Using withRole wrapper (recommended)
+export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
+  // ... handler logic
+  return NextResponse.json({ data: result });
+});
 ```
 
 **Admin Access**: Hard-coded check for `admin@monet.local` email
@@ -1332,7 +1342,7 @@ npm run build
 ### Authentication
 - `/src/auth.ts` - NextAuth configuration
 - `/src/middleware.ts` - Auth middleware
-- `/lib/auth/rbac.ts` - Role-based access control
+- `/lib/api-helpers.ts` - API authentication and authorization helpers
 
 ### Database
 - `/lib/db.ts` - Prisma client singleton
