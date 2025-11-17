@@ -17,14 +17,20 @@ export const PLATFORM_FEE = Number(process.env.PLATFORM_FEE || '0');
  */
 export async function createCheckoutIntent(
   bookingId: string,
-  opts: { takeRate?: number; customerId?: string } = {},
+  opts: { takeRate?: number; customerId?: string; priceUSD?: number } = {},
 ) {
-  const { takeRate = PLATFORM_FEE, customerId } = opts;
-  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
-  if (!booking) throw new Error('booking not found');
-  if (booking.priceUSD == null)
-    throw new Error('booking price not set');
-  const amount = Math.round(booking.priceUSD * 100);
+  const { takeRate = PLATFORM_FEE, customerId, priceUSD: providedPrice } = opts;
+
+  // Optimize by allowing price to be passed in to avoid redundant DB query
+  let priceUSD = providedPrice;
+  if (priceUSD == null) {
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId }, select: { priceUSD: true } });
+    if (!booking) throw new Error('booking not found');
+    priceUSD = booking.priceUSD;
+  }
+
+  if (priceUSD == null) throw new Error('booking price not set');
+  const amount = Math.round(priceUSD * 100);
 
   const pi = await stripe.paymentIntents.create({
     amount,
@@ -54,9 +60,17 @@ export async function ensureCustomer(
   userId: string,
   email: string,
   name: string,
+  existingCustomerId?: string | null,
 ) {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  // Optimize by allowing existing customer ID to be passed in
+  if (existingCustomerId) return existingCustomerId;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { stripeCustomerId: true },
+  });
   if (user?.stripeCustomerId) return user.stripeCustomerId;
+
   const customer = await stripe.customers.create({ email, name });
   await prisma.user.update({
     where: { id: userId },
@@ -71,9 +85,17 @@ export async function ensureConnectedAccount(
   email: string,
   firstName: string,
   lastName: string,
+  existingAccountId?: string | null,
 ) {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  // Optimize by allowing existing account ID to be passed in
+  if (existingAccountId) return existingAccountId;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { stripeAccountId: true },
+  });
   if (user?.stripeAccountId) return user.stripeAccountId;
+
   const account = await stripe.accounts.create({
     type: 'express',
     email,
