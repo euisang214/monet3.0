@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { Button, Card, Badge } from './ui';
+import { Button, Card, Badge } from '@/components/ui';
 import { ProfileResponse } from '../types/profile';
 
 export default function ProfileDetail({

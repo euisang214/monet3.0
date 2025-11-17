@@ -9,16 +9,47 @@ export type QCReport = {
   notes: string[];
 }
 
+export type BasicValidationResult = {
+  valid: boolean;
+  errors: string[];
+  wordCount: number;
+}
+
+/**
+ * Centralized basic validation for feedback text and actions
+ * Used across submission, pre-flight validation, and background QC
+ */
+export function validateFeedbackBasics(text: string, actions: any[]): BasicValidationResult {
+  const errors: string[] = [];
+  const wordCount = String(text || '').trim().split(/\s+/).filter(Boolean).length;
+
+  if (wordCount < 200) {
+    errors.push(`Feedback is too short (${wordCount} words). Minimum 200 words required.`);
+  }
+
+  if (!Array.isArray(actions) || actions.length !== 3) {
+    errors.push(`Exactly 3 action items required. You provided ${Array.isArray(actions) ? actions.length : 0}.`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    wordCount,
+  };
+}
+
 export function evaluateFeedback(text: string, actions: string[]): QCReport{
+  const validation = validateFeedbackBasics(text, actions);
   const words = text.trim().split(/\s+/).filter(Boolean);
-  const wordCountOk = words.length >= 200;
-  const hasThreeActions = actions.filter(a=>a && a.trim().length>0).length === 3;
-  const rubricComplete = true; // stars validated at API
   const clarityScore = Math.min(100, Math.round(words.length / 4));
-  const notes: string[] = [];
-  if(!wordCountOk) notes.push('Word count below 200.');
-  if(!hasThreeActions) notes.push('Exactly three action items required.');
-  return { wordCountOk, hasThreeActions, rubricComplete, clarityScore, notes };
+
+  return {
+    wordCountOk: validation.wordCount >= 200,
+    hasThreeActions: Array.isArray(actions) && actions.filter(a => a && a.trim().length > 0).length === 3,
+    rubricComplete: true, // stars validated at API
+    clarityScore,
+    notes: validation.errors,
+  };
 }
 
 export async function qcAndGatePayout(bookingId: string){

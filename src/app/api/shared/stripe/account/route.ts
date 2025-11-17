@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 import { prisma } from "@/lib/core/db";
 import {
   stripe,
@@ -8,11 +8,7 @@ import {
   createAccountUpdateLink,
 } from "@/lib/integrations/stripe";
 
-export async function GET(_req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+export const GET = withAuth(async (session, _req: NextRequest) => {
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user?.stripeAccountId) {
@@ -35,13 +31,9 @@ export async function GET(_req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: 'stripe_error' }, { status: 500 });
   }
-}
+});
 
-export async function POST(_req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+export const POST = withAuth(async (session, _req: NextRequest) => {
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) {
@@ -72,5 +64,5 @@ export async function POST(_req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: 'stripe_error' }, { status: 500 });
   }
-}
+});
 

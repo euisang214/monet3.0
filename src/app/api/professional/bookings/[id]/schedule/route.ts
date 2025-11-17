@@ -1,24 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
 import { CALL_DURATION_MINUTES } from '@/lib/core/flags';
-import { auth } from '@/auth';
+import { withRole } from '@/lib/core/api-helpers';
 import { createZoomMeeting, generateZoomCalendarInvite } from '@/lib/integrations/zoom';
 import { sendEmail } from '@/lib/integrations/email';
 import {
   createTimeSlotFromDates,
   convertTimeSlotsTimezone,
   resolveTimezone,
-} from '@/lib/shared/availability';
+} from '@/lib/shared/time-slot';
 
 /**
  * GET - View candidate's available times
  * Used by professional to see which times the candidate is available
  */
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+export const GET = withRole(['PROFESSIONAL'], async (session, _req: NextRequest, { params }: { params: { id: string } }) => {
 
   const booking = await prisma.booking.findUnique({
     where: { id: params.id },
@@ -59,15 +55,13 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   );
 
   return NextResponse.json({ availability: availableSlots, busy: busySlots });
-}
+});
 
 /**
  * POST - Accept booking and confirm time
  * By selecting a time from candidate's availability, the professional accepts and schedules the booking
  */
-export async function POST(req: NextRequest, { params }:{params:{id:string}}){
-  const session = await auth();
-  if(!session?.user) return NextResponse.json({error:'unauthorized'}, {status:401});
+export const POST = withRole(['PROFESSIONAL'], async (session, req: NextRequest, { params }:{params:{id:string}}) => {
   const { startAt } = await req.json();
   const booking = await prisma.booking.findUnique({ where: { id: params.id } });
   if(!booking || booking.professionalId !== session.user.id) return NextResponse.json({error:'forbidden'}, {status:403});
@@ -138,4 +132,4 @@ A calendar invite with dial-in details has been attached to this email.`;
   }
 
   return NextResponse.json({ id: updated.id, startAt: updated.startAt, endAt: updated.endAt, status: updated.status });
-}
+});

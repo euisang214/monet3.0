@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 import { prisma } from '@/lib/core/db';
-import type { TimeSlot } from '@/lib/shared/availability';
-import { createTimeSlotFromDates, ensureTimezone, mergeSlots } from '@/lib/shared/availability';
+import type { TimeSlot } from '@/lib/shared/time-slot';
+import { createTimeSlotFromDates, ensureTimezone, mergeSlots } from '@/lib/shared/time-slot';
 
 export const GOOGLE_FREE_BUSY_TIMEZONE = 'America/New_York';
 

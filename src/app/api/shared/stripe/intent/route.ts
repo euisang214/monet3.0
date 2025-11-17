@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/core/db";
 import { stripe, ensureCustomer } from "@/lib/integrations/stripe";
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 
-export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user)
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+export const POST = withAuth(async (session, req: NextRequest) => {
 
   const { professionalId } = await req.json();
   if (!professionalId)
@@ -41,5 +38,5 @@ export async function POST(req: NextRequest) {
     clientSecret: (pi as any).client_secret,
     paymentIntentId: pi.id,
   });
-}
+});
 

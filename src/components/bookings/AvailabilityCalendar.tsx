@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { Button } from './ui';
+import { Button } from '@/components/ui';
 import { addDays, addMinutes } from 'date-fns';
 import { signIn } from 'next-auth/react';
 import {
@@ -14,7 +14,7 @@ import {
   startOfWeekInTimezone,
   resolveTimezone,
   mergeSlots,
-} from '@/lib/shared/availability';
+} from '@/lib/shared/time-slot';
 
 type CalendarSlot = TimeSlot & { sourceTimezone?: string };
 

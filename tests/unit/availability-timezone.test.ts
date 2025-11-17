@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeSlots, splitIntoSlots, type Slot } from '@/lib/shared/availability';
+import { mergeSlots, splitIntoSlots, type Slot } from '@/lib/shared/time-slot';
 import { createMockAvailability } from '../utils/fixtures';
 import { todayAt, tomorrowAt } from '../utils/helpers';
 

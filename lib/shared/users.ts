@@ -4,7 +4,7 @@ import {
   ActiveFilters,
   FilterConfig,
   buildFilterWhere,
-} from "../filterOptions";
+} from "@/lib/utils/filterOptions";
 
 export async function listUsers(
   roles: Role[] = [Role.PROFESSIONAL],

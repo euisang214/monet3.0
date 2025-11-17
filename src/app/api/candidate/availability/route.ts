@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 import { prisma } from "@/lib/core/db";
-import type { TimeSlot } from '@/lib/shared/availability';
+import type { TimeSlot } from '@/lib/shared/time-slot';
 import {
   mergeSlots,
   splitIntoSlots,
@@ -10,11 +10,9 @@ import {
   toUtcDateRange,
   resolveTimezone,
   normalizeSlots,
-} from '@/lib/shared/availability';
+} from '@/lib/shared/time-slot';
 
-export async function POST(req: Request){
-  const session = await auth();
-  if(!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+export const POST = withAuth(async (session, req: Request) => {
 
   const { events = [], busy = [] } = await req.json();
   const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { timezone: true } });
@@ -74,11 +72,9 @@ export async function POST(req: Request){
     await prisma.availability.createMany({ data: busyRows });
   }
   return NextResponse.json({ ok: true });
-}
+});
 
-export async function GET(){
-  const session = await auth();
-  if(!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+export const GET = withAuth(async (session) => {
   const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { timezone: true } });
   const timezone = resolveTimezone(user?.timezone);
   const rows = await prisma.availability.findMany({
@@ -102,4 +98,4 @@ export async function GET(){
     ),
   );
   return NextResponse.json({ events, busy });
-}
+});

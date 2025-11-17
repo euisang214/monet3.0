@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/core/db";
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 import { sendEmail } from '@/lib/integrations/email';
 
-export async function POST(req: NextRequest){
-  const session = await auth();
-  if(!session?.user) return NextResponse.json({error:'unauthorized'}, {status:401});
+export const POST = withAuth(async (session, req: NextRequest) => {
   const { corporateEmail } = await req.json();
   const token = Math.random().toString(36).slice(2,10);
   await prisma.verification.create({
@@ -17,4 +15,4 @@ export async function POST(req: NextRequest){
     text: `Click: ${process.env.APP_URL}/api/verification/confirm?token=${token}`,
   });
   return NextResponse.json({ ok: true });
-}
+});

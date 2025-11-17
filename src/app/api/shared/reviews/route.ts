@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 import { z } from 'zod';
 
 const reviewSchema = z.object({
@@ -14,12 +14,8 @@ const reviewSchema = z.object({
  * POST /api/reviews
  * Allows candidates to submit a review for a professional after a completed call
  */
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (session, req: NextRequest) => {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-    }
 
     const body = await req.json();
     const parsed = reviewSchema.safeParse(body);
@@ -95,4 +91,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

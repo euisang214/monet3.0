@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 import { prisma } from "@/lib/core/db";
 
-export async function GET() {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+export const GET = withAuth(async (session) => {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { corporateEmailVerified: true },
   });
   return NextResponse.json({ verified: !!user?.corporateEmailVerified });
-}
+});

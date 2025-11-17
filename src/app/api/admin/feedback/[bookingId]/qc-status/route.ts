@@ -1,27 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
 import { refundPayment } from '@/lib/integrations/stripe';
-import { auth } from '@/auth';
+import { withRole } from '@/lib/core/api-helpers';
 
 /**
  * Admin endpoint to manually update feedback QC status
  * When status is set to 'failed', automatically triggers refund and blocks payout
  */
-export async function PUT(
+export const PUT = withRole(['ADMIN'], async (
+  session,
   req: NextRequest,
   { params }: { params: { bookingId: string } }
-) {
-  const session = await auth();
-
-  // Check admin authorization
-  if (!session?.user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
-
-  // Only admins can manually set QC status
-  if (session.user.email !== 'admin@monet.local') {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  }
+) => {
 
   const body = await req.json();
   const { qcStatus, reason } = body;
@@ -79,4 +69,4 @@ export async function PUT(
     message: 'QC status updated successfully',
     qcStatus,
   });
-}
+});

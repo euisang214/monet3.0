@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 import { prisma } from "@/lib/core/db";
 import {
   ensureCustomer,
@@ -9,11 +9,7 @@ import {
 import { z } from 'zod';
 import { timezones } from '@/lib/utils/timezones';
 
-export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+export const POST = withAuth(async (session, req: NextRequest) => {
   const body = await req.json().catch(() => null);
   const base = z.object({
     role: z.enum(['CANDIDATE', 'PROFESSIONAL']),
@@ -269,4 +265,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, onboardingUrl });
   }
   return NextResponse.json({ ok: true });
-}
+});
