@@ -10,8 +10,20 @@ export const stripe = new Stripe(secret, {
   apiVersion: '2024-06-20' as Stripe.LatestApiVersion,
 });
 
-// PLATFORM_FEE is expected to be a decimal percentage (e.g. 0.1 for 10%)
+/**
+ * Platform fee as a decimal (0-1 range).
+ * Examples: 0.1 = 10%, 0.2 = 20%, 0.15 = 15%
+ * Set via PLATFORM_FEE environment variable.
+ */
 export const PLATFORM_FEE = Number(process.env.PLATFORM_FEE || '0');
+
+// Validate PLATFORM_FEE is a valid decimal percentage
+if (PLATFORM_FEE < 0 || PLATFORM_FEE > 1) {
+  throw new Error(
+    `PLATFORM_FEE must be between 0 and 1 (got ${PLATFORM_FEE}). ` +
+    `Use decimal format: 0.2 for 20%, 0.1 for 10%, etc.`
+  );
+}
 
 /**
  * Create a PaymentIntent for a booking. Funds are held by the platform until

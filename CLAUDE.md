@@ -440,21 +440,26 @@ model Booking {
 }
 ```
 
-#### Feedback
+#### CallFeedback
 ```prisma
-model Feedback {
-  id              String   @id @default(cuid())
-  bookingId       String   @unique
-  professionalId  String
-  summary         String   // Min 200 words
-  actions         Json     // Array of exactly 3 actions
-  contentRating   Int      // 1-5 stars
-  deliveryRating  Int      // 1-5 stars
-  valueRating     Int      // 1-5 stars
+model CallFeedback {
+  bookingId       String   @id
+  text            String   // Detailed feedback (min 200 words)
+  summary         String?  // Brief summary for QC LLM reference
+  actions         String[] // Exactly 3 action items
+  wordCount       Int      // Calculated word count
+  contentRating   Int      // 1-5 stars (content quality)
+  deliveryRating  Int      // 1-5 stars (delivery quality)
+  valueRating     Int      // 1-5 stars (overall value)
   qcStatus        QCStatus // passed | revise | failed | missing
+  submittedAt     DateTime
   // ... relations
+
+  @@map("Feedback") // Maps to existing table
 }
 ```
+
+**Note**: Model renamed from `Feedback` to `CallFeedback` for clarity. This is the feedback that professionals provide to candidates after calls.
 
 ### Enums
 
@@ -495,19 +500,21 @@ enum QCStatus {
 }
 ```
 
-#### ProfessionalReview
+#### ProfessionalRating
 ```prisma
-model ProfessionalReview {
+model ProfessionalRating {
   bookingId   String   @id
   rating      Int      // 1-5 stars
   text        String   // Min 50 characters
   submittedAt DateTime @default(now())
   timezone    String   @default("UTC")
   // Relation to booking
+
+  @@map("ProfessionalReview") // Maps to existing table
 }
 ```
 
-**Usage**: Allows candidates to submit reviews/ratings for professionals after completed calls. Separate from QC feedback (which professionals submit).
+**Usage**: Allows candidates to submit reviews/ratings for professionals after completed calls. This is distinct from `CallFeedback` which professionals submit about candidates.
 
 #### Verification
 ```prisma
@@ -1299,8 +1306,8 @@ NEXTAUTH_SECRET="your-secret-key-here"
 STRIPE_SECRET_KEY="sk_test_..."
 STRIPE_PUBLISHABLE_KEY="pk_test_..."
 
-# Platform Fee (0-100, default: 0)
-PLATFORM_FEE=20
+# Platform Fee as decimal (0-1, e.g. 0.2 for 20%)
+PLATFORM_FEE=0.2
 ```
 
 ### OAuth Providers
