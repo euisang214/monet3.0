@@ -6,9 +6,9 @@ import { z } from 'zod';
 const validateSchema = z.object({
   text: z.string(),
   actions: z.array(z.string()),
-  starsCategory1: z.number().int().min(1).max(5),
-  starsCategory2: z.number().int().min(1).max(5),
-  starsCategory3: z.number().int().min(1).max(5),
+  contentRating: z.number().int().min(1).max(5),
+  deliveryRating: z.number().int().min(1).max(5),
+  valueRating: z.number().int().min(1).max(5),
 });
 
 /**
@@ -29,7 +29,7 @@ export const POST = withRole(['PROFESSIONAL'], async (session, req: NextRequest)
       );
     }
 
-    const { text, actions, starsCategory1, starsCategory2, starsCategory3 } = parsed.data;
+    const { text, actions, contentRating, deliveryRating, valueRating } = parsed.data;
 
     // Use centralized basic validation
     const { validateFeedbackBasics } = await import('@/lib/shared/qc');
@@ -76,10 +76,10 @@ ${text}
 **Action Items:**
 ${actions.map((a, i) => `${i + 1}. ${a}`).join('\n')}
 
-**Star Ratings:**
-- Category 1 (Technical Skills): ${starsCategory1}/5
-- Category 2 (Communication): ${starsCategory2}/5
-- Category 3 (Problem Solving): ${starsCategory3}/5
+**Ratings:**
+- Content Quality: ${contentRating}/5
+- Delivery: ${deliveryRating}/5
+- Value: ${valueRating}/5
 
 **Quality Criteria:**
 1. Is the feedback specific and detailed? (not generic)
