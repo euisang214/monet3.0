@@ -3,13 +3,14 @@ import { prisma } from '@/lib/core/db';
 import { differenceInMinutes } from 'date-fns';
 import { withAuth } from '@/lib/core/api-helpers';
 import { refundPayment } from '@/lib/integrations/stripe';
+import { API_ERRORS, notFoundError, forbiddenError, createErrorResponse } from '@/lib/core/errors';
 
 export const POST = withAuth(async (session, req: NextRequest, { params }:{params:{id:string}}) => {
   const booking = await prisma.booking.findUnique({ where: { id: params.id } });
-  if(!booking) return NextResponse.json({error:'not_found'}, {status:404});
+  if(!booking) return notFoundError();
 
   const actor = session.user.id === booking.candidateId ? 'candidate' : (session.user.id === booking.professionalId ? 'professional' : 'none');
-  if(actor === 'none') return NextResponse.json({error:'forbidden'}, {status:403});
+  if(actor === 'none') return forbiddenError();
 
   // Check 3-hour cancellation window
   const minutesUntilCall = (booking.startAt.getTime() - Date.now()) / 60000;
@@ -27,9 +28,10 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
       });
     } catch (error) {
       console.error('Refund failed:', error);
-      return NextResponse.json(
-        { error: 'refund_failed', message: (error as Error).message },
-        { status: 500 }
+      return createErrorResponse(
+        API_ERRORS.REFUND_FAILED,
+        500,
+        { message: (error as Error).message }
       );
     }
   }
@@ -37,9 +39,10 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
   // Candidate cancellation policy
   if (minutesUntilCall < 180) {
     // Cannot cancel within 3 hours
-    return NextResponse.json(
-      { error: 'late_cancellation', message: 'Cannot cancel within 3 hours of scheduled call time' },
-      { status: 400 }
+    return createErrorResponse(
+      API_ERRORS.LATE_CANCELLATION,
+      400,
+      { message: 'Cannot cancel within 3 hours of scheduled call time' }
     );
   }
 
@@ -55,9 +58,10 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
     });
   } catch (error) {
     console.error('Refund failed:', error);
-    return NextResponse.json(
-      { error: 'refund_failed', message: (error as Error).message },
-      { status: 500 }
+    return createErrorResponse(
+      API_ERRORS.REFUND_FAILED,
+      500,
+      { message: (error as Error).message }
     );
   }
 });

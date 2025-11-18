@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/core/db";
 import { withAuth } from '@/lib/core/api-helpers';
+import { notFoundError, forbiddenError, validationError } from '@/lib/core/errors';
 
 export const GET = withAuth(async (session, _req: NextRequest, { params }: { params: { bookingId: string } }) => {
 
@@ -23,13 +24,13 @@ export const GET = withAuth(async (session, _req: NextRequest, { params }: { par
       },
     },
   });
-  if (!fb) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if (!fb) return notFoundError();
 
   if (
     fb.booking.candidateId !== session.user.id &&
     fb.booking.professionalId !== session.user.id
   ) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    return forbiddenError();
   }
 
   return NextResponse.json(fb);
@@ -43,10 +44,7 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
   const { validateFeedbackBasics } = await import('@/lib/shared/qc');
   const validation = validateFeedbackBasics(text, actions);
   if (!validation.valid) {
-    return NextResponse.json({
-      error: 'validation_error',
-      details: validation.errors
-    }, { status: 400 });
+    return validationError({ details: validation.errors });
   }
   const wordCount = validation.wordCount;
   const fb = await prisma.feedback.upsert({

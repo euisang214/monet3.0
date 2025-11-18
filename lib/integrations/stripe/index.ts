@@ -1,5 +1,7 @@
 import Stripe from 'stripe';
 import { prisma } from '@/lib/core/db';
+import { calculateNetAmount } from '@/lib/utils/payment';
+import { usdToCents } from '@/lib/utils/currency';
 
 const secret = process.env.STRIPE_SECRET_KEY;
 if (!secret) throw new Error('STRIPE_SECRET_KEY env var is required');
@@ -30,7 +32,7 @@ export async function createCheckoutIntent(
   }
 
   if (priceUSD == null) throw new Error('booking price not set');
-  const amount = Math.round(priceUSD * 100);
+  const amount = usdToCents(priceUSD);
 
   const pi = await stripe.paymentIntents.create({
     amount,
@@ -161,7 +163,7 @@ export async function releaseEscrowToProfessional(
   const chargeId = (pi as any).charges?.data?.[0]?.id;
   if (!chargeId) throw new Error('charge not found');
 
-  const amountNet = payment.amountGross - payment.platformFee;
+  const amountNet = calculateNetAmount(payment.amountGross, payment.platformFee);
 
   const transfer = await stripe.transfers.create({
     amount: amountNet,

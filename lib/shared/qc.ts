@@ -40,8 +40,7 @@ export function validateFeedbackBasics(text: string, actions: any[]): BasicValid
 
 export function evaluateFeedback(text: string, actions: string[]): QCReport{
   const validation = validateFeedbackBasics(text, actions);
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  const clarityScore = Math.min(100, Math.round(words.length / 4));
+  const clarityScore = Math.min(100, Math.round(validation.wordCount / 4));
 
   return {
     wordCountOk: validation.wordCount >= 200,
