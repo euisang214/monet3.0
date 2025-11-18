@@ -8,8 +8,8 @@ export const stripe = new Stripe(secret, {
   apiVersion: '2024-06-20' as Stripe.LatestApiVersion,
 });
 
-// PLATFORM_FEE is expected to be a decimal percentage (e.g. 0.1 for 10%)
-export const PLATFORM_FEE = Number(process.env.PLATFORM_FEE || '0');
+// PLATFORM_FEE is a decimal (e.g. 0.20 for 20%, 0.10 for 10%) (Issue #10)
+export const PLATFORM_FEE = Number(process.env.PLATFORM_FEE || '0.20');
 
 /**
  * Create a PaymentIntent for a booking. Funds are held by the platform until

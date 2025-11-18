@@ -430,7 +430,7 @@ model Booking {
   candidateId      String
   professionalId   String
   status           BookingStatus // draft | requested | accepted | cancelled | completed | completed_pending_feedback | refunded
-  priceUSD         Float?
+  priceUSD         Float?        // Price in USD dollars (e.g., 100.00 for $100)
   startAt          DateTime
   endAt            DateTime
   zoomMeetingId    String?
@@ -790,13 +790,23 @@ export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
    → GET /api/candidate/professionals/search
    → Shows anonymized listings
 
-2. REQUEST
-   Candidate requests booking with available times
+2. REQUEST & PAY
+   Candidate requests booking with available times AND pays immediately
    → POST /api/candidate/bookings/request { professionalId, slots, weeks }
    → Creates booking with status: "requested"
+   → Creates Stripe PaymentIntent (status: "held")
+   → Creates Payment database record
+   → Returns clientSecret and paymentIntentId
    → Sends email notification to professional
+   → Payment is held in escrow until call completion and QC pass
 
-3. ACCEPT & SCHEDULE
+3. CONFIRM PAYMENT
+   After Stripe confirms payment on client
+   → POST /api/shared/payments/confirm { paymentIntentId }
+   → Validates payment succeeded
+   → Payment record status remains "held" until after call
+
+4. ACCEPT & SCHEDULE
    Professional views candidate's available times and picks one
    → GET /api/professional/bookings/[id]/schedule (view candidate availability)
    → POST /api/professional/bookings/[id]/schedule { startAt }
@@ -805,33 +815,20 @@ export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
    → Status changes to "accepted"
    → By selecting a time, the professional confirms/accepts the booking
 
-4. CHECKOUT
-   Candidate pays for the accepted booking
-   → POST /api/candidate/bookings/[id]/checkout
-   → Creates Stripe PaymentIntent (status: "held")
-   → Creates Payment database record
-   → Returns client secret for Stripe Elements
-
-5. CONFIRM
-   After Stripe confirms payment on client
-   → POST /api/shared/payments/confirm { paymentIntentId }
-   → Validates payment succeeded
-   → Payment record status remains "held" until after call
-
-6. CALL
+5. CALL
    Candidate and Professional join Zoom
    → Join tracking via database
    → Status changes to "completed_pending_feedback" after both join
 
-7. FEEDBACK
+6. FEEDBACK
    Professional submits feedback
    → POST /api/professional/feedback/[bookingId] { summary, actions, ratings }
+   → Booking status changes to "completed"
    → Triggers QC job (500ms delay)
-   → Status changes to "completed"
 
-8. QC & PAYOUT
+7. QC & PAYOUT
    Background job validates feedback
-   → If passed: Payout status → "pending", professional can withdraw funds
+   → If passed: Creates Payout record with status "pending", professional can withdraw funds
    → If revise: Nudge emails queued at +24h, +48h, +72h, professional can resubmit
    → If failed (manual admin action only): Auto-refund, PaymentStatus: "refunded", Payout.status: "blocked"
 ```
@@ -1299,8 +1296,8 @@ NEXTAUTH_SECRET="your-secret-key-here"
 STRIPE_SECRET_KEY="sk_test_..."
 STRIPE_PUBLISHABLE_KEY="pk_test_..."
 
-# Platform Fee (0-100, default: 0)
-PLATFORM_FEE=20
+# Platform Fee (decimal: 0.20 for 20%, default: 0.20)
+PLATFORM_FEE=0.20
 ```
 
 ### OAuth Providers

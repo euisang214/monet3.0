@@ -19,7 +19,7 @@ export const POST = withAuth(async (session, req: NextRequest) => {
   const [candidate, pro, proUser] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { timezone: true },
+      select: { timezone: true, email: true, firstName: true, lastName: true, stripeCustomerId: true },
     }),
     prisma.professionalProfile.findUnique({
       where: { userId: professionalId },
@@ -30,6 +30,14 @@ export const POST = withAuth(async (session, req: NextRequest) => {
       select: { email: true },
     }),
   ]);
+
+  if (!candidate) {
+    return NextResponse.json({ error: 'candidate_not_found' }, { status: 404 });
+  }
+
+  if (!pro || !pro.priceUSD) {
+    return NextResponse.json({ error: 'professional_price_not_set' }, { status: 400 });
+  }
 
   const fallbackTimezone = resolveTimezone(candidate?.timezone);
   const rawSlots = Array.isArray(body.slots) ? body.slots : [];
@@ -54,9 +62,20 @@ export const POST = withAuth(async (session, req: NextRequest) => {
       startAt: firstRange ? firstRange.range.start : new Date(0),
       endAt: firstRange ? firstRange.range.end : new Date(0),
       timezone: firstRange ? firstRange.slot.timezone : fallbackTimezone,
-      priceUSD: pro?.priceUSD ?? 0,
+      priceUSD: pro.priceUSD,
     },
   });
+
+  // Create PaymentIntent immediately (Issue #11)
+  const { ensureCustomer, createCheckoutIntent } = await import('@/lib/integrations/stripe');
+  const customerId = await ensureCustomer(
+    candidate.id,
+    candidate.email,
+    `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim(),
+    candidate.stripeCustomerId,
+  );
+  const pi = await createCheckoutIntent(booking.id, { customerId, priceUSD: pro.priceUSD });
+
   if (proUser?.email) {
     await sendEmail({
       to: proUser.email,
@@ -64,5 +83,12 @@ export const POST = withAuth(async (session, req: NextRequest) => {
       text: `You have a new booking request from ${session.user.email}.`,
     });
   }
-  return NextResponse.json({ id: booking.id, status: booking.status, priceUSD: booking.priceUSD });
+
+  return NextResponse.json({
+    id: booking.id,
+    status: booking.status,
+    priceUSD: booking.priceUSD,
+    clientSecret: (pi as any).client_secret,
+    paymentIntentId: pi.id,
+  });
 });

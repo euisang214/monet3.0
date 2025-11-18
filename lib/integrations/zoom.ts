@@ -206,7 +206,7 @@ export async function recordZoomJoin(
   if (!booking) return;
 
   const email = participantEmail.toLowerCase();
-  const data: Record<string, Date> = {};
+  const data: Record<string, any> = {};
   if (
     email === booking.candidate.email.toLowerCase() &&
     !booking.candidateJoinedAt
@@ -221,15 +221,15 @@ export async function recordZoomJoin(
   }
   if (Object.keys(data).length === 0) return;
 
-  const updated = await db.booking.update({ where: { id: booking.id }, data });
-  if (
-    updated.candidateJoinedAt &&
-    updated.professionalJoinedAt &&
-    updated.status !== BookingStatus.completed_pending_feedback
-  ) {
-    await db.booking.update({
-      where: { id: booking.id },
-      data: { status: BookingStatus.completed_pending_feedback },
-    });
+  // Atomic update: set join time and status in single query (Issue #9)
+  // Check if both will have joined after this update
+  const willBothBeJoined =
+    (data.candidateJoinedAt || booking.candidateJoinedAt) &&
+    (data.professionalJoinedAt || booking.professionalJoinedAt);
+
+  if (willBothBeJoined && booking.status !== BookingStatus.completed_pending_feedback) {
+    data.status = BookingStatus.completed_pending_feedback;
   }
+
+  await db.booking.update({ where: { id: booking.id }, data });
 }

@@ -202,7 +202,7 @@ async function createProfessionals() {
       employer: euisangEmployer,
       title: pick(jobTitles),
       bio: 'Experienced finance professional with transaction and coverage background.',
-      priceUSD: 100,
+      priceUSD: 100.0,
       availabilityPrefs: {},
       timezone: tzEuisangss,
       interests: [pick(professionalInterests), pick(professionalInterests)],
@@ -219,7 +219,7 @@ async function createProfessionals() {
       corporateEmail: corporateEmailFor('Euisang', 'Seo', euisangEmployer),
     },
   });
-  out.push({ ...euisangss, priceUSD: 100, timezone: tzEuisangss });
+  out.push({ ...euisangss, priceUSD: 100.0, timezone: tzEuisangss });
 
   // additional mock professionals
   for (let i = 1; i <= 9; i++) {
@@ -243,7 +243,7 @@ async function createProfessionals() {
         employer,
         title: pick(jobTitles),
         bio: 'Experienced finance professional with transaction and coverage background.',
-        priceUSD: 80 + i,
+        priceUSD: 80.0 + i,
         availabilityPrefs: {},
         timezone,
         interests: [pick(professionalInterests), pick(professionalInterests)],
@@ -258,7 +258,7 @@ async function createProfessionals() {
         corporateEmail: corporateEmailFor(firstName, lastName, employer),
       },
     });
-    out.push({ ...user, priceUSD: 80 + i, timezone });
+    out.push({ ...user, priceUSD: 80.0 + i, timezone });
   }
 
   return out;
