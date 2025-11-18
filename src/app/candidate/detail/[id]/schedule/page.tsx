@@ -66,7 +66,7 @@ export default function Schedule({ params }: { params: { id: string } }) {
         <Card className="col" style={{ padding: 16, gap: 8 }}>
           <h3>Complete Your Payment</h3>
           <p>Your booking request has been created. Please complete the payment to send your request to the professional.</p>
-          <p><strong>Price:</strong> ${bookingData.priceUSD?.toFixed(2)}</p>
+          <p><strong>Price:</strong> ${((bookingData.priceUSD || 0) / 100).toFixed(2)}</p>
           <p className="text-muted">
             Payment will be held securely until the call is completed. The professional will only receive payment after providing feedback.
           </p>

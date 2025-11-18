@@ -115,7 +115,7 @@ export default function DetailsForm({ initialRole }: { initialRole: 'CANDIDATE' 
       body.employer = employer;
       body.title = title;
       body.bio = bio;
-      body.priceUSD = Number(priceUSD);
+      body.priceUSD = Math.round(Number(priceUSD) * 100); // Convert dollars to cents
       body.corporateEmail = corporateEmail;
     }
     setLoading(true);

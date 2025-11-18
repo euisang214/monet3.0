@@ -67,6 +67,7 @@ export const POST = withAuth(async (session, req: NextRequest) => {
   });
 
   // Create PaymentIntent immediately (Issue #11)
+  // priceUSD is in cents (e.g., 10000 = $100.00)
   const { ensureCustomer, createCheckoutIntent } = await import('@/lib/integrations/stripe');
   const customerId = await ensureCustomer(
     candidate.id,
@@ -74,7 +75,7 @@ export const POST = withAuth(async (session, req: NextRequest) => {
     `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim(),
     candidate.stripeCustomerId,
   );
-  const pi = await createCheckoutIntent(booking.id, { customerId, priceUSD: pro.priceUSD });
+  const pi = await createCheckoutIntent(booking.id, { customerId, priceCents: pro.priceUSD });
 
   if (proUser?.email) {
     await sendEmail({

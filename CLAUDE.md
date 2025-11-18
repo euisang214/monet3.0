@@ -430,7 +430,7 @@ model Booking {
   candidateId      String
   professionalId   String
   status           BookingStatus // draft | requested | accepted | cancelled | completed | completed_pending_feedback | refunded
-  priceUSD         Float?        // Price in USD dollars (e.g., 100.00 for $100)
+  priceUSD         Int?          // Price in cents (e.g., 10000 = $100.00)
   startAt          DateTime
   endAt            DateTime
   zoomMeetingId    String?
@@ -1019,16 +1019,16 @@ Helper functions create consistent Stripe resources:
 
 ```typescript
 export function createDestinationCharge(
-  amount: number,
+  amountCents: number,
   professionalStripeId: string,
-  platformFee: number
+  platformFeeCents: number
 ) {
   return {
-    amount: Math.round(amount * 100), // Convert to cents
+    amount: amountCents, // Already in cents (e.g., 10000 = $100.00)
     currency: 'usd',
     transfer_data: {
       destination: professionalStripeId,
-      amount: Math.round((amount - platformFee) * 100),
+      amount: amountCents - platformFeeCents,
     },
   };
 }
@@ -1597,6 +1597,17 @@ git push -u origin <branch-name>
 ---
 
 ## Changelog
+
+### 2025-11-18 - Money Handling: Cents (Int) Instead of Dollars (Float)
+- **BREAKING CHANGE**: All money fields now use cents (Int) instead of dollars (Float)
+- Updated `ProfessionalProfile.priceUSD`, `Booking.priceUSD`, and `ListingCardView.priceUSD` from Float to Int
+- Schema change: `priceUSD Int // Price in cents (e.g., 10000 = $100.00)`
+- Removed *100 multiplication in Stripe integration since prices are already in cents
+- Updated seed data: prices now stored as cents (e.g., 10000 instead of 100.0)
+- Updated all UI components to convert cents to dollars for display (divide by 100)
+- Updated onboarding form to convert user input (dollars) to cents (multiply by 100)
+- **Benefits**: Eliminates floating-point precision errors, consistent with Stripe's cent-based API
+- **Migration required**: Run `npx prisma migrate dev` to update database schema
 
 ### 2025-11-17 - API Routes Reorganization
 - Reorganized `/src/app/api` directory by user role:
