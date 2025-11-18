@@ -4,6 +4,7 @@ import { prisma } from "@/lib/core/db";
 import type { TimeSlot } from '@/lib/shared/availability';
 import {
   mergeSlots,
+  splitIntoSlots,
   createTimeSlotFromDates,
   convertTimeSlotsTimezone,
   toUtcDateRange,
@@ -61,13 +62,18 @@ export async function GET(){
     slot: createTimeSlotFromDates(row.start, row.end, row.timezone),
     busy: row.busy,
   }));
-  const events = convertTimeSlotsTimezone(
-    availability.filter((r) => !r.busy).map((r) => r.slot),
-    timezone,
+  // Split merged ranges back into 30-min slots for component rendering
+  const events = splitIntoSlots(
+    convertTimeSlotsTimezone(
+      availability.filter((r) => !r.busy).map((r) => r.slot),
+      timezone,
+    ),
   );
-  const busy = convertTimeSlotsTimezone(
-    availability.filter((r) => r.busy).map((r) => r.slot),
-    timezone,
+  const busy = splitIntoSlots(
+    convertTimeSlotsTimezone(
+      availability.filter((r) => r.busy).map((r) => r.slot),
+      timezone,
+    ),
   );
   return NextResponse.json({ events, busy });
 }
