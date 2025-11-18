@@ -42,13 +42,13 @@ export async function requireRole(
  * Wraps an API handler with authentication check
  * Returns 401 if not authenticated
  */
-export function withAuth(
-  handler: (session: Session, req: Request) => Promise<Response>
+export function withAuth<T = any>(
+  handler: (session: Session, req: Request, context?: T) => Promise<Response>
 ) {
-  return async (req: Request) => {
+  return async (req: Request, context?: T) => {
     try {
       const session = await requireAuth();
-      return await handler(session, req);
+      return await handler(session, req, context);
     } catch (err: any) {
       if (err.message === 'unauthorized') {
         return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -62,14 +62,14 @@ export function withAuth(
  * Wraps an API handler with role-based authorization check
  * Returns 401 if not authenticated, 403 if not authorized
  */
-export function withRole(
+export function withRole<T = any>(
   roles: ('ADMIN' | 'PROFESSIONAL' | 'CANDIDATE')[],
-  handler: (session: Session, req: Request) => Promise<Response>
+  handler: (session: Session, req: Request, context?: T) => Promise<Response>
 ) {
-  return async (req: Request) => {
+  return async (req: Request, context?: T) => {
     try {
       const session = await requireRole(roles);
-      return await handler(session, req);
+      return await handler(session, req, context);
     } catch (err: any) {
       if (err.message === 'unauthorized') {
         return NextResponse.json({ error: 'unauthorized' }, { status: 401 });

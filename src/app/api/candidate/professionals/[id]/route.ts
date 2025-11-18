@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/core/db";
-import { auth } from '@/auth';
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  // This endpoint doesn't require auth - it's public for browsing
+  // However, session is checked to determine if user has booked before (for identity reveal)
+  const { auth } = await import('@/auth');
   const session = await auth();
   const pro = await prisma.professionalProfile.findUnique({
     where: { userId: params.id },

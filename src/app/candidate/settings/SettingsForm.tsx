@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import { Card, Button, Input, Select } from "@/components/ui/ui";
 import { timezones } from '@/lib/utils/timezones';
-import ResumePreview from '../../../components/ResumePreview';
+import ResumePreview from '@/components/profile/ResumePreview';
 import AvailabilityTimes, { AvailabilityRange } from './AvailabilityTimes';
 
 interface SettingsData {

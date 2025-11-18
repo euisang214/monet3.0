@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import DashboardClient from "../../../components/DashboardClient";
+import DashboardClient from "@/components/dashboard/DashboardClient";
 import { getPastCalls } from "@/lib/shared/bookings/history";
 import { formatDateTime } from "@/lib/utils/date";
 

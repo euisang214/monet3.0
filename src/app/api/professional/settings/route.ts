@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 import { prisma } from "@/lib/core/db";
+import { parseFullName, formatFullName, deleteUserAccount } from '@/lib/shared/settings';
 
 async function fetchSettings(userId: string) {
   const user = await prisma.user.findUnique({
@@ -11,37 +12,29 @@ async function fetchSettings(userId: string) {
   const timezone = user.timezone;
   const verified =
     user.corporateEmailVerified || !!user.professionalProfile?.verifiedAt;
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+  const fullName = formatFullName(user.firstName, user.lastName);
   return { name: fullName, email: user.email, timezone, verified };
 }
 
-export async function GET() {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+export const GET = withAuth(async (session) => {
   const data = await fetchSettings(session.user.id);
   return NextResponse.json(data);
-}
+});
 
-export async function PUT(req: Request) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+export const PUT = withAuth(async (session, req: Request) => {
   const { name = '', email = '', timezone = '' } = await req.json();
-  const [firstName, ...rest] = name.split(' ');
-  const lastName = rest.join(' ');
+  const { firstName, lastName } = parseFullName(name);
   await prisma.user.update({
     where: { id: session.user.id },
     data: { firstName, lastName, email, timezone },
   });
   const data = await fetchSettings(session.user.id);
   return NextResponse.json(data);
-}
+});
 
-export async function DELETE() {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  await prisma.user.delete({ where: { id: session.user.id } });
+export const DELETE = withAuth(async (session) => {
+  await deleteUserAccount(session.user.id);
   return NextResponse.json({ ok: true });
-}
+});
 
-export { fetchSettings as getProfessionalSettings };
 

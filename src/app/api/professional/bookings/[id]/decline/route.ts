@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
-import { auth } from '@/auth';
+import { withRole } from '@/lib/core/api-helpers';
 
 /**
  * Professional declines a booking request
  * Note: Declined bookings are marked as 'cancelled' since there's no separate 'declined' status
  */
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+export const POST = withRole(['PROFESSIONAL'], async (session, _req: NextRequest, { params }: { params: { id: string } }) => {
 
   const booking = await prisma.booking.findUnique({ where: { id: params.id } });
   if (!booking || booking.professionalId !== session.user.id) {
@@ -22,4 +20,4 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   await prisma.booking.update({ where: { id: booking.id }, data: { status: 'cancelled' } });
   return NextResponse.json({ status: 'cancelled' });
-}
+});

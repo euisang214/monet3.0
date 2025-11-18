@@ -1,4 +1,4 @@
-import DashboardClient from "../../../components/DashboardClient";
+import DashboardClient from "@/components/dashboard/DashboardClient";
 import { auth } from "@/auth";
 import { getProvidedFeedback, getPendingFeedback } from "@/lib/professional/feedback";
 import { format } from "date-fns";

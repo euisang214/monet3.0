@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { useMemo, useState, ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import FilterDropdown from './FilterDropdown';
-import { Card, Button, DataTable, Input } from './ui';
-import Pagination from './Pagination';
-import { ActiveFilters } from '../app/api/filterOptions';
+import FilterDropdown from '@/components/profile/FilterDropdown';
+import { Card, Button, DataTable, Input } from '@/components/ui';
+import Pagination from '@/components/ui/Pagination';
+import { ActiveFilters } from '@/lib/utils/filterOptions';
 
 interface LinkValue {
   label: string;

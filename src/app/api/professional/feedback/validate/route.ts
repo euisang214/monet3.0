@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { withRole } from '@/lib/core/api-helpers';
 import { flags } from '@/lib/core/flags';
 import { z } from 'zod';
 
@@ -16,17 +16,8 @@ const validateSchema = z.object({
  * LLM-based validation of feedback quality before submission
  * Returns suggestions if feedback needs improvement
  */
-export async function POST(req: NextRequest) {
+export const POST = withRole(['PROFESSIONAL'], async (session, req: NextRequest) => {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-    }
-
-    // Only professionals can validate feedback (they're the ones submitting it)
-    if (session.user.role !== 'PROFESSIONAL') {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-    }
 
     const body = await req.json();
     const parsed = validateSchema.safeParse(body);
@@ -40,23 +31,15 @@ export async function POST(req: NextRequest) {
 
     const { text, actions, starsCategory1, starsCategory2, starsCategory3 } = parsed.data;
 
-    // Basic validation (same as submission endpoint)
-    const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
-    const basicIssues: string[] = [];
-
-    if (wordCount < 200) {
-      basicIssues.push(`Feedback is too short (${wordCount} words). Minimum 200 words required.`);
-    }
-
-    if (actions.length !== 3) {
-      basicIssues.push(`Exactly 3 action items required. You provided ${actions.length}.`);
-    }
+    // Use centralized basic validation
+    const { validateFeedbackBasics } = await import('@/lib/shared/qc');
+    const validation = validateFeedbackBasics(text, actions);
 
     // If basic validation fails, return immediately
-    if (basicIssues.length > 0) {
+    if (!validation.valid) {
       return NextResponse.json({
         approved: false,
-        issues: basicIssues,
+        issues: validation.errors,
         suggestions: [
           'Add more detail to your written feedback to reach 200 words',
           'Ensure you have exactly 3 specific, actionable items',
@@ -160,9 +143,9 @@ SUGGESTIONS: [If NEEDS_IMPROVEMENT, provide 2-3 bullet points with specific sugg
       const suggestionsText = suggestionsMatch?.[1] || '';
       const suggestions = suggestionsText
         .split('\n')
-        .map(s => s.trim())
-        .filter(s => s && (s.startsWith('-') || s.startsWith('•') || s.match(/^\d+\./)))
-        .map(s => s.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, ''))
+        .map((s: string) => s.trim())
+        .filter((s: string) => s && (s.startsWith('-') || s.startsWith('•') || s.match(/^\d+\./)))
+        .map((s: string) => s.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, ''))
         .slice(0, 3); // Limit to 3 suggestions
 
       return NextResponse.json({
@@ -185,4 +168,4 @@ SUGGESTIONS: [If NEEDS_IMPROVEMENT, provide 2-3 bullet points with specific sugg
       note: 'Advanced validation temporarily unavailable',
     });
   }
-}
+});

@@ -1,5 +1,5 @@
 import { Feedback } from "@prisma/client";
-import { Card } from "./ui";
+import { Card } from "@/components/ui";
 import { formatDateTime } from "@/lib/utils/date";
 
 export default function HistoricalFeedback({ feedback }: { feedback: Feedback }) {

@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import HistoricalFeedback from "../../../../components/HistoricalFeedback";
+import HistoricalFeedback from "@/components/feedback/HistoricalFeedback";
 import { notFound, redirect } from "next/navigation";
 import { Feedback } from "@prisma/client";
 import { cookies, headers } from "next/headers";

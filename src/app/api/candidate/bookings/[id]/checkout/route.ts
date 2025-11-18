@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
 import { createCheckoutIntent, ensureCustomer } from '@/lib/integrations/stripe';
-import { createZoomMeeting } from '@/lib/integrations/zoom';
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 
-export async function POST(req: NextRequest, { params }:{params:{id:string}}){
-  const session = await auth();
-  if(!session?.user) return NextResponse.json({error:'unauthorized'}, {status:401});
+export const POST = withAuth(async (session, req: NextRequest, { params }:{params:{id:string}}) => {
 
   // Fetch booking with candidate user data in a single query for better performance
   const booking = await prisma.booking.findUnique({
@@ -38,17 +35,13 @@ export async function POST(req: NextRequest, { params }:{params:{id:string}}){
   const priceUSD = booking.priceUSD;
   // Pass priceUSD to avoid redundant database query
   const pi = await createCheckoutIntent(booking.id, { customerId, priceUSD });
-  const meeting = await createZoomMeeting('Monet Call', booking.startAt.toISOString());
 
-  const updated = await prisma.booking.update({ where: { id: booking.id }, data: {
-    priceUSD,
-    zoomMeetingId: meeting.id,
-    zoomJoinUrl: meeting.join_url,
-  }});
+  // Note: Zoom meeting will be created when professional schedules the call
+  // See: /api/professional/bookings/[id]/schedule
 
   return NextResponse.json({
     clientSecret: (pi as any).client_secret,
     paymentIntentId: pi.id,
-    booking: updated,
+    booking,
   });
-}
+});

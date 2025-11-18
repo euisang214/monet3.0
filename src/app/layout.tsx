@@ -1,6 +1,6 @@
 import "../../styles/global.css";
 import type { Metadata } from "next";
-import { StatusProvider } from "../components/StatusPopup";
+import { StatusProvider } from "@/components/ui/StatusPopup";
 
 export const metadata: Metadata = {
   title: "Monet",

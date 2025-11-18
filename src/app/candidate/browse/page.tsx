@@ -3,7 +3,7 @@ import {
   getFilterOptions,
   FilterConfig,
   ActiveFilters,
-} from "../../../app/api/filterOptions";
+} from '@/lib/utils/filterOptions';
 import { listUsers } from "../../../app/api/users/list";
 import { Role } from "@prisma/client";
 

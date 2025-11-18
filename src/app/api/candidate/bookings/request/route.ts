@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/core/db";
 import { rateLimit } from '@/lib/core/rate-limit';
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 import { sendEmail } from '@/lib/integrations/email';
-import type { TimeSlot } from '@/lib/shared/availability';
-import { toUtcDateRange, resolveTimezone, normalizeSlots } from '@/lib/shared/availability';
+import type { TimeSlot } from '@/lib/shared/time-slot';
+import { toUtcDateRange, resolveTimezone, normalizeSlots } from '@/lib/shared/time-slot';
 
-export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+export const POST = withAuth(async (session, req: NextRequest) => {
   if (!rateLimit(`req:${session.user.id}`)) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
 
   const body = await req.json();
@@ -67,4 +65,4 @@ export async function POST(req: NextRequest) {
     });
   }
   return NextResponse.json({ id: booking.id, status: booking.status, priceUSD: booking.priceUSD });
-}
+});

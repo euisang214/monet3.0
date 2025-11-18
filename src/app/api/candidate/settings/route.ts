@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 import { prisma } from "@/lib/core/db";
 import { s3 } from '@/lib/integrations/s3';
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { parseFullName, formatFullName, deleteUserAccount } from '@/lib/shared/settings';
 
 async function fetchSettings(userId: string) {
   const user = await prisma.user.findUnique({
@@ -29,7 +30,7 @@ async function fetchSettings(userId: string) {
     chatScheduled: true,
   };
   const defaultBusy = flags.defaultBusy || [];
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+  const fullName = formatFullName(user.firstName, user.lastName);
   const timezone = user.timezone;
   return {
     name: fullName,
@@ -41,16 +42,12 @@ async function fetchSettings(userId: string) {
   };
 }
 
-export async function GET() {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+export const GET = withAuth(async (session) => {
   const data = await fetchSettings(session.user.id);
   return NextResponse.json(data);
-}
+});
 
-export async function PUT(req: Request) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+export const PUT = withAuth(async (session, req: Request) => {
   const form = await req.formData();
   const name = (form.get('name') as string) || '';
   const email = (form.get('email') as string) || '';
@@ -60,8 +57,7 @@ export async function PUT(req: Request) {
   const timezone = (form.get('timezone') as string) || '';
   const file = form.get('resume') as File | null;
 
-  const [firstName, ...rest] = name.split(' ');
-  const lastName = rest.join(' ');
+  const { firstName, lastName } = parseFullName(name);
 
   const existing = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -98,13 +94,10 @@ export async function PUT(req: Request) {
 
   const data = await fetchSettings(session.user.id);
   return NextResponse.json(data);
-}
+});
 
-export async function DELETE() {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  await prisma.user.delete({ where: { id: session.user.id } });
+export const DELETE = withAuth(async (session) => {
+  await deleteUserAccount(session.user.id);
   return NextResponse.json({ ok: true });
-}
+});
 
-export { fetchSettings as getCandidateSettings };

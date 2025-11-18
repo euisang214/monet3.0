@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
 import { differenceInMinutes } from 'date-fns';
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 import { refundPayment } from '@/lib/integrations/stripe';
 
-export async function POST(req: NextRequest, { params }:{params:{id:string}}){
-  const session = await auth();
-  if(!session?.user) return NextResponse.json({error:'unauthorized'}, {status:401});
+export const POST = withAuth(async (session, req: NextRequest, { params }:{params:{id:string}}) => {
   const booking = await prisma.booking.findUnique({ where: { id: params.id } });
   if(!booking) return NextResponse.json({error:'not_found'}, {status:404});
 
@@ -62,4 +60,4 @@ export async function POST(req: NextRequest, { params }:{params:{id:string}}){
       { status: 500 }
     );
   }
-}
+});

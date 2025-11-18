@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { withAuth } from '@/lib/core/api-helpers';
 import { getBusyTimes } from '@/lib/integrations/calendar/google';
 import { prisma } from "@/lib/core/db";
 import {
@@ -10,11 +10,9 @@ import {
   splitIntoSlots,
   toUtcDateRange,
   TimeSlot,
-} from '@/lib/shared/availability';
+} from '@/lib/shared/time-slot';
 
-export async function GET(){
-  const session = await auth();
-  if(!session?.user) return NextResponse.json({error:'unauthorized'},{status:401});
+export const GET = withAuth(async (session) => {
   try{
     const busyFromGoogle = await getBusyTimes(session.user.id);
 
@@ -82,4 +80,4 @@ export async function GET(){
     }
     return NextResponse.json({ error: 'failed_to_fetch' }, { status: 500 });
   }
-}
+});
