@@ -98,7 +98,7 @@ export default async function CallsPage({
             professionalProfile: { select: { title: true, employer: true } },
           },
         },
-        feedback: { select: { bookingId: true } },
+        callFeedback: { select: { bookingId: true } },
       },
       orderBy: { startAt: "desc" },
       skip: (page - 1) * perPage,
@@ -118,7 +118,7 @@ export default async function CallsPage({
     );
     const callDateLabel =
       b.status === BookingStatus.requested ? "" : formatDateTime(b.startAt);
-    const hasFeedback = Boolean(b.feedback);
+    const hasFeedback = Boolean(b.callFeedback);
     return {
       name,
       firm: b.professional.professionalProfile?.employer ?? "",

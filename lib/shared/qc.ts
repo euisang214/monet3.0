@@ -52,10 +52,10 @@ export function evaluateFeedback(text: string, actions: string[]): QCReport{
 }
 
 export async function qcAndGatePayout(bookingId: string){
-  const fb = await prisma.feedback.findUnique({ where: { bookingId } });
+  const fb = await prisma.callFeedback.findUnique({ where: { bookingId } });
   if(!fb) return;
-  const pass = fb.wordCount >= 200 && fb.actions.length === 3 && fb.starsCategory1>0 && fb.starsCategory2>0 && fb.starsCategory3>0;
-  await prisma.feedback.update({
+  const pass = fb.wordCount >= 200 && fb.actions.length === 3 && fb.contentRating>0 && fb.deliveryRating>0 && fb.valueRating>0;
+  await prisma.callFeedback.update({
     where: { bookingId }, data: { qcStatus: pass ? 'passed' : 'revise', qcReport: {} }
   });
   // On pass, mark payout as ready

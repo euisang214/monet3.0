@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
 import { withAuth } from '@/lib/core/api-helpers';
 import { z } from 'zod';
+import { API_ERRORS, validationError, notFoundError, forbiddenError, createErrorResponse, internalError } from '@/lib/core/errors';
+import { rateLimit } from '@/lib/core/rate-limit';
 
 const reviewSchema = z.object({
   bookingId: z.string(),
@@ -16,15 +18,16 @@ const reviewSchema = z.object({
  */
 export const POST = withAuth(async (session, req: NextRequest) => {
   try {
+    // Rate limit review submissions
+    if (!rateLimit(`review:${session.user.id}`)) {
+      return createErrorResponse(API_ERRORS.VALIDATION_ERROR, 429, { message: 'Too many review submissions. Please try again later.' });
+    }
 
     const body = await req.json();
     const parsed = reviewSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'validation_error', details: parsed.error.errors },
-        { status: 400 }
-      );
+      return validationError({ details: parsed.error.errors });
     }
 
     const { bookingId, rating, text, timezone } = parsed.data;
@@ -33,40 +36,35 @@ export const POST = withAuth(async (session, req: NextRequest) => {
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        professionalReview: true,
+        professionalRating: true,
       },
     });
 
     if (!booking) {
-      return NextResponse.json(
-        { error: 'booking_not_found' },
-        { status: 404 }
-      );
+      return notFoundError(API_ERRORS.BOOKING_NOT_FOUND);
     }
 
     // Only the candidate who booked can review
     if (booking.candidateId !== session.user.id) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+      return forbiddenError();
     }
 
     // Only allow reviews for completed bookings
     if (booking.status !== 'completed') {
-      return NextResponse.json(
-        { error: 'booking_not_completed', currentStatus: booking.status },
-        { status: 400 }
+      return createErrorResponse(
+        API_ERRORS.BOOKING_NOT_COMPLETED,
+        400,
+        { currentStatus: booking.status }
       );
     }
 
     // Check if review already exists
-    if (booking.professionalReview) {
-      return NextResponse.json(
-        { error: 'review_already_exists' },
-        { status: 400 }
-      );
+    if (booking.professionalRating) {
+      return createErrorResponse(API_ERRORS.REVIEW_ALREADY_EXISTS);
     }
 
     // Create the review
-    const review = await prisma.professionalReview.create({
+    const review = await prisma.professionalRating.create({
       data: {
         bookingId,
         rating,
@@ -86,9 +84,6 @@ export const POST = withAuth(async (session, req: NextRequest) => {
     });
   } catch (error: any) {
     console.error('Review submission error:', error);
-    return NextResponse.json(
-      { error: 'internal_error', message: error.message },
-      { status: 500 }
-    );
+    return internalError(error.message);
   }
 });

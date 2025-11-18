@@ -5,7 +5,7 @@ import { notFoundError, forbiddenError, validationError } from '@/lib/core/error
 
 export const GET = withAuth(async (session, _req: NextRequest, { params }: { params: { bookingId: string } }) => {
 
-  const fb = await prisma.feedback.findUnique({
+  const fb = await prisma.callFeedback.findUnique({
     where: { bookingId: params.bookingId },
     include: {
       booking: {
@@ -38,7 +38,7 @@ export const GET = withAuth(async (session, _req: NextRequest, { params }: { par
 
 export const POST = withAuth(async (session, req: NextRequest, { params }:{params:{bookingId:string}}) => {
   const data = await req.json();
-  const { starsCategory1, starsCategory2, starsCategory3, actions, text, extraCategoryRatings } = data;
+  const { contentRating, deliveryRating, valueRating, actions, text, extraCategoryRatings } = data;
 
   // Use centralized validation
   const { validateFeedbackBasics } = await import('@/lib/shared/qc');
@@ -47,13 +47,13 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
     return validationError({ details: validation.errors });
   }
   const wordCount = validation.wordCount;
-  const fb = await prisma.feedback.upsert({
+  const fb = await prisma.callFeedback.upsert({
     where: { bookingId: params.bookingId },
-    update: { starsCategory1, starsCategory2, starsCategory3, actions, text, wordCount, extraCategoryRatings, submittedAt: new Date(), qcStatus: 'revise' },
-    create: { bookingId: params.bookingId, starsCategory1, starsCategory2, starsCategory3, actions, text, wordCount, extraCategoryRatings, submittedAt: new Date(), qcStatus: 'revise' },
+    update: { contentRating, deliveryRating, valueRating, actions, text, wordCount, extraCategoryRatings, submittedAt: new Date(), qcStatus: 'revise' },
+    create: { bookingId: params.bookingId, contentRating, deliveryRating, valueRating, actions, text, wordCount, extraCategoryRatings, submittedAt: new Date(), qcStatus: 'revise' },
   });
   // Enqueue QC
   const { enqueueFeedbackQC } = await import('@/lib/queues');
   await enqueueFeedbackQC(params.bookingId);
-  return NextResponse.json({ ok: true, feedback: fb });
+  return NextResponse.json({ ok: true, callFeedback: fb });
 });

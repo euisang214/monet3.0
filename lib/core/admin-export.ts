@@ -71,16 +71,17 @@ export async function getExportData(type: ExportType): Promise<any[]> {
       });
 
     case 'feedback':
-      return prisma.feedback.findMany({
+      return prisma.callFeedback.findMany({
         select: {
           bookingId: true,
           text: true,
+          summary: true,
           actions: true,
           qcStatus: true,
           wordCount: true,
-          starsCategory1: true,
-          starsCategory2: true,
-          starsCategory3: true,
+          contentRating: true,
+          deliveryRating: true,
+          valueRating: true,
           submittedAt: true,
         },
       });

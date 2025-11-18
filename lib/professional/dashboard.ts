@@ -37,7 +37,7 @@ export async function getProfessionalDashboardData(
       },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.professionalReview.findFirst({
+    prisma.professionalRating.findFirst({
       where: { booking: { professionalId: userId } },
       orderBy: { submittedAt: "desc" },
     }),

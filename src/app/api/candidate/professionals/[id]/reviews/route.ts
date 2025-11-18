@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
+import { notFoundError, internalError } from '@/lib/core/errors';
 
 /**
  * GET /api/professionals/[id]/reviews
@@ -19,15 +20,12 @@ export async function GET(
     });
 
     if (!professional || professional.role !== 'PROFESSIONAL') {
-      return NextResponse.json(
-        { error: 'professional_not_found' },
-        { status: 404 }
-      );
+      return notFoundError();
     }
 
     // Get all reviews for this professional
     // Only include reviews from completed bookings
-    const reviews = await prisma.professionalReview.findMany({
+    const reviews = await prisma.professionalRating.findMany({
       where: {
         booking: {
           professionalId: professionalId,
@@ -73,9 +71,6 @@ export async function GET(
     });
   } catch (error: any) {
     console.error('Get reviews error:', error);
-    return NextResponse.json(
-      { error: 'internal_error', message: error.message },
-      { status: 500 }
-    );
+    return internalError(error.message);
   }
 }
