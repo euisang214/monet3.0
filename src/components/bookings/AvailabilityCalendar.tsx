@@ -16,8 +16,6 @@ import {
   mergeSlots,
 } from '@/lib/shared/availability';
 
-type CalendarSlot = TimeSlot & { sourceTimezone?: string };
-
 interface AvailabilityCalendarProps {
   weeks?: number;
   onConfirm?: (slots: TimeSlot[]) => void;
@@ -41,10 +39,8 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 }) => {
   const isEdit = mode === 'edit';
   const [timezone, setTimezone] = useState<string>(() => resolveTimezone(null));
-  const [events, setEvents] = useState<TimeSlot[]>([]);
-  const [persistedBusySlots, setPersistedBusySlots] = useState<CalendarSlot[]>([]);
-  const [defaultBusySlots, setDefaultBusySlots] = useState<CalendarSlot[]>([]);
-  const [defaultBusyRanges, setDefaultBusyRanges] = useState<{
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+  const [recurringBusyRanges, setRecurringBusyRanges] = useState<{
     day: number;
     start: string;
     end: string;
@@ -60,6 +56,7 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const formatInTimezone = (date: Date, pattern: string) =>
     formatDateInTimezone(date, timezone, pattern);
 
+  // Update week start when timezone changes
   useEffect(() => {
     try {
       setWeekStart(startOfWeekInTimezone(new Date(), timezone));
@@ -68,51 +65,39 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     }
   }, [timezone]);
 
+  // Convert all slots to new timezone when timezone changes
   useEffect(() => {
-    setEvents((prev) => convertTimeSlotsTimezone(prev, timezone));
-    setDefaultBusySlots((prev) =>
-      prev.map((slot) => ({
-        ...convertTimeSlotTimezone(slot, timezone),
-        sourceTimezone: slot.sourceTimezone,
-      })),
-    );
-    setPersistedBusySlots((prev) =>
-      prev.map((slot) => ({
-        ...convertTimeSlotTimezone(slot, timezone),
-        sourceTimezone: slot.sourceTimezone,
-      })),
-    );
+    setAvailableSlots((prev) => convertTimeSlotsTimezone(prev, timezone));
     setSelected((prev) => (prev ? convertTimeSlotTimezone(prev, timezone) : null));
   }, [timezone]);
 
+  // Load settings (timezone + recurring busy ranges) for edit mode
   useEffect(() => {
-    if (!isEdit) {
-      return;
-    }
-    async function loadDefaults() {
+    if (!isEdit) return;
+
+    async function loadSettings() {
       try {
         const res = await fetch('/api/candidate/settings');
         if (res.ok) {
           const data = await res.json();
-          const defaultRanges = Array.isArray(data.defaultBusy) ? data.defaultBusy : [];
-          if (defaultRanges.length) {
-            setDefaultBusyRanges(defaultRanges);
-          } else {
-            setDefaultBusyRanges([]);
-          }
+          const ranges = Array.isArray(data.defaultBusy) ? data.defaultBusy : [];
+          setRecurringBusyRanges(ranges);
+
           if (typeof data.timezone === 'string') {
             setTimezone(resolveTimezone(data.timezone));
           }
         }
       } catch {
-        setDefaultBusyRanges([]);
+        setRecurringBusyRanges([]);
       }
     }
-    loadDefaults();
+    loadSettings();
   }, [isEdit]);
 
+  // Load professional's timezone for select mode
   useEffect(() => {
     if (isEdit) return;
+
     async function loadProfessionalTimezone() {
       try {
         const res = await fetch('/api/professional/settings');
@@ -129,9 +114,12 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     loadProfessionalTimezone();
   }, [isEdit]);
 
+  // Load saved availability for edit mode (localStorage → API fallback)
   useEffect(() => {
     if (!isEdit) return;
-    const load = async () => {
+
+    const loadAvailability = async () => {
+      // Try localStorage first
       const saved = typeof window !== 'undefined' ? localStorage.getItem('candidateAvailability') : null;
       if (saved) {
         try {
@@ -143,92 +131,43 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 const tz = typeof slot?.timezone === 'string' ? slot.timezone : timezone;
                 return { start: slot.start, end: slot.end, timezone: tz } as TimeSlot;
               });
-            setEvents(convertTimeSlotsTimezone(normalized, timezone));
-            setPersistedBusySlots([]);
+            setAvailableSlots(convertTimeSlotsTimezone(normalized, timezone));
             return;
           }
         } catch {
           localStorage.removeItem('candidateAvailability');
         }
       }
+
+      // Fallback to API
       try {
         const res = await fetch('/api/candidate/availability');
         if (res.ok) {
           const data = await res.json();
           const eventsData: TimeSlot[] = Array.isArray(data.events) ? data.events : [];
-          const busyData: TimeSlot[] = Array.isArray(data.busy) ? data.busy : [];
-          setEvents(convertTimeSlotsTimezone(eventsData, timezone));
-          setPersistedBusySlots(
-            convertTimeSlotsTimezone(busyData, timezone).map((slot) => ({ ...slot })),
-          );
+          setAvailableSlots(convertTimeSlotsTimezone(eventsData, timezone));
         }
       } catch {
         // ignore load errors
       }
     };
-    load();
+    loadAvailability();
   }, [isEdit, timezone]);
 
+  // Save to localStorage when availableSlots change (edit mode only)
   useEffect(() => {
     if (!isEdit) return;
     if (typeof window === 'undefined') return;
-    localStorage.setItem('candidateAvailability', JSON.stringify(events));
-  }, [events, isEdit]);
+    localStorage.setItem('candidateAvailability', JSON.stringify(availableSlots));
+  }, [availableSlots, isEdit]);
 
+  // Load preset slots for select mode
   useEffect(() => {
-    if (isEdit) {
-      return;
-    }
-    setEvents(convertTimeSlotsTimezone(slots, timezone));
+    if (isEdit) return;
+    setAvailableSlots(convertTimeSlotsTimezone(slots, timezone));
   }, [slots, isEdit, timezone]);
 
-  const handleSync = async () => {
-    if (!isEdit) return;
-    const res = await fetch('/api/candidate/busy');
-    if (res.status === 401) {
-      alert('Please connect your Google Calendar to sync availability.');
-      await signIn('google', { callbackUrl: window.location.href });
-      return;
-    }
-    if (!res.ok) return;
-    try {
-      const data = await res.json();
-      const eventsData: TimeSlot[] = Array.isArray(data.events) ? data.events : [];
-      const busyData: TimeSlot[] = Array.isArray(data.busy) ? data.busy : [];
-      setEvents(convertTimeSlotsTimezone(eventsData, timezone));
-      setPersistedBusySlots(
-        convertTimeSlotsTimezone(busyData, timezone).map(slot => ({ ...slot })),
-      );
-    } catch {
-      // ignore sync errors
-    }
-  };
-
-  useEffect(() => {
-    if (!isEdit) return;
-    handleSync();
-  }, [isEdit, timezone]);
-
-  useEffect(() => {
-    if (!isEdit) return;
-    const slots: CalendarSlot[] = [];
-    for (let w = 0; w < weeks; w++) {
-      defaultBusyRanges.forEach(r => {
-        const dayStartUtc = addDays(weekStart, r.day + w * 7);
-        const [sh, sm] = r.start.split(':').map(Number);
-        const [eh, em] = r.end.split(':').map(Number);
-        const startMinutes = sh * 60 + sm;
-        const endMinutes = eh * 60 + em;
-        for (let minute = startMinutes; minute < endMinutes; minute += 30) {
-          const slotStartUtc = addMinutes(dayStartUtc, minute);
-          const slotEndUtc = addMinutes(slotStartUtc, 30);
-          slots.push({ ...createTimeSlotFromDates(slotStartUtc, slotEndUtc, timezone) });
-        }
-      });
-    }
-    setDefaultBusySlots(slots);
-  }, [weekStart, weeks, defaultBusyRanges, isEdit, timezone]);
-
+  // Cleanup drag state on mouse up
   useEffect(() => {
     const handleMouseUp = () => {
       setIsDragging(false);
@@ -239,57 +178,88 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     return () => window.removeEventListener('mouseup', handleMouseUp);
   }, []);
 
+  // Generate days and time rows
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const rows = useMemo(() => Array.from({ length: 48 }, (_, i) => i), []);
 
-  const manualKeys = useMemo(
-    () => new Set(events.map(slot => toUtcDateRange(slot).start.getTime())),
-    [events],
+  // Build set of available slot keys for fast lookup
+  const availableKeys = useMemo(
+    () => new Set(availableSlots.map(slot => toUtcDateRange(slot).start.getTime())),
+    [availableSlots],
   );
 
-  const defaultBusyKeys = useMemo(
-    () => new Set(defaultBusySlots.map(slot => toUtcDateRange(slot).start.getTime())),
-    [defaultBusySlots],
-  );
-
-  const persistedBusyKeys = useMemo(
-    () =>
-      new Set(
-        persistedBusySlots.map((slot) => toUtcDateRange(slot).start.getTime()),
-      ),
-    [persistedBusySlots],
-  );
+  // Build set of recurring busy slot keys (for pre-populating available slots)
+  const recurringBusyKeys = useMemo(() => {
+    const keys = new Set<number>();
+    for (let w = 0; w < weeks; w++) {
+      recurringBusyRanges.forEach(r => {
+        const dayStartUtc = addDays(weekStart, r.day + w * 7);
+        const [sh, sm] = r.start.split(':').map(Number);
+        const [eh, em] = r.end.split(':').map(Number);
+        const startMinutes = sh * 60 + sm;
+        const endMinutes = eh * 60 + em;
+        for (let minute = startMinutes; minute < endMinutes; minute += 30) {
+          const slotStartUtc = addMinutes(dayStartUtc, minute);
+          keys.add(slotStartUtc.getTime());
+        }
+      });
+    }
+    return keys;
+  }, [weekStart, weeks, recurringBusyRanges]);
 
   const selectedKey = useMemo(() => (selected ? toUtcDateRange(selected).start.getTime() : null), [selected]);
 
-  const isDefaultBusySlot = (date: Date) => defaultBusyKeys.has(date.getTime());
-  const isPersistedBusySlot = (date: Date) => persistedBusyKeys.has(date.getTime());
-  const isManualSlot = (date: Date) => manualKeys.has(date.getTime());
-  const isAvailableSlot = (date: Date) => isManualSlot(date);
+  const isAvailableSlot = (dateUtc: Date) => availableKeys.has(dateUtc.getTime());
+  const isRecurringBusy = (dateUtc: Date) => recurringBusyKeys.has(dateUtc.getTime());
+
+  // Sync with Google Calendar (manual only, not on mount)
+  const handleSync = async () => {
+    if (!isEdit) return;
+
+    const res = await fetch('/api/candidate/busy');
+    if (res.status === 401) {
+      alert('Please connect your Google Calendar to sync availability.');
+      await signIn('google', { callbackUrl: window.location.href });
+      return;
+    }
+    if (!res.ok) return;
+
+    try {
+      const data = await res.json();
+      const busyData: TimeSlot[] = Array.isArray(data.busy) ? data.busy : [];
+
+      // Convert busy slots to UTC keys
+      const busyKeys = new Set(
+        convertTimeSlotsTimezone(busyData, timezone).map(
+          slot => toUtcDateRange(slot).start.getTime()
+        )
+      );
+
+      // Remove any available slots that conflict with Google Calendar busy times
+      setAvailableSlots(prev =>
+        prev.filter(slot => !busyKeys.has(toUtcDateRange(slot).start.getTime()))
+      );
+    } catch {
+      // ignore sync errors
+    }
+  };
 
   const toggleSlot = (dateUtc: Date) => {
     if (!isEdit) return;
+
     const slotStart = dateUtc;
     const slotEnd = addMinutes(slotStart, 30);
     const slotKey = slotStart.getTime();
     const newSlot = createTimeSlotFromDates(slotStart, slotEnd, timezone);
-    const manual = isManualSlot(slotStart);
-    const isDefaultBusy = isDefaultBusySlot(slotStart);
-    const isPersistedBusy = isPersistedBusySlot(slotStart);
+    const isAvailable = availableKeys.has(slotKey);
 
     flushSync(() => {
-      if (isPersistedBusy && !manual) {
-        return;
-      }
-      if (isDefaultBusy && !manual) {
-        setEvents(prev => [...prev, newSlot]);
-        return;
-      }
-
-      if (manual) {
-        setEvents(prev => prev.filter(s => toUtcDateRange(s).start.getTime() !== slotKey));
+      if (isAvailable) {
+        // Remove from available
+        setAvailableSlots(prev => prev.filter(s => toUtcDateRange(s).start.getTime() !== slotKey));
       } else {
-        setEvents(prev => [...prev, newSlot]);
+        // Add to available (overrides recurring busy if needed)
+        setAvailableSlots(prev => [...prev, newSlot]);
       }
     });
   };
@@ -297,21 +267,13 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const prevWeek = () => setWeekStart(prev => addDays(prev, -7));
   const nextWeek = () => setWeekStart(prev => addDays(prev, 7));
 
-  const normalizeForSubmit = (slot: CalendarSlot): TimeSlot => {
-    if (slot.sourceTimezone) {
-      return convertTimeSlotTimezone(slot, slot.sourceTimezone);
-    }
-    const { start, end, timezone: tz } = slot;
-    return { start, end, timezone: tz };
-  };
-
   const handleConfirm = async () => {
     if (isEdit) {
       const endLimit = addDays(new Date(), weeks * 7);
-      const allAvailable: CalendarSlot[] = events.map(slot => ({ ...slot }));
 
-      const uniqueAvailable = new Map<number, CalendarSlot>();
-      allAvailable.forEach(slot => {
+      // Deduplicate and filter to current view range
+      const uniqueAvailable = new Map<number, TimeSlot>();
+      availableSlots.forEach(slot => {
         const key = toUtcDateRange(slot).start.getTime();
         if (!uniqueAvailable.has(key)) {
           uniqueAvailable.set(key, slot);
@@ -321,35 +283,17 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       const availableWithinRange = Array.from(uniqueAvailable.values()).filter(
         slot => toUtcDateRange(slot).start < endLimit,
       );
-      const availableKeys = new Set(
-        availableWithinRange.map(slot => toUtcDateRange(slot).start.getTime()),
-      );
-      const availablePayload = availableWithinRange.map(normalizeForSubmit);
-      const mergedAvailablePayload = mergeSlots(availablePayload);
 
-      const uniqueBusy = new Map<number, CalendarSlot>();
-      defaultBusySlots.forEach(slot => {
-        const key = toUtcDateRange(slot).start.getTime();
-        if (!uniqueBusy.has(key)) {
-          uniqueBusy.set(key, slot);
-        }
-      });
-
-      const busyPayload = Array.from(uniqueBusy.values())
-        .filter(slot => {
-          const start = toUtcDateRange(slot).start;
-          return start < endLimit && !availableKeys.has(start.getTime());
-        })
-        .map(normalizeForSubmit);
-      const mergedBusyPayload = mergeSlots(busyPayload);
+      // Merge consecutive 30-min slots into longer blocks
+      const mergedAvailable = mergeSlots(availableWithinRange);
 
       if (onConfirm) {
-        await onConfirm(mergedAvailablePayload);
+        await onConfirm(mergedAvailable);
       } else {
         await fetch('/api/candidate/availability', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ events: mergedAvailablePayload, busy: mergedBusyPayload }),
+          body: JSON.stringify({ events: mergedAvailable }),
         });
       }
     } else if (onConfirm && selected) {
@@ -410,11 +354,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               const slotStartUtc = addMinutes(day, row * 30);
               const slotEndUtc = addMinutes(slotStartUtc, 30);
               const key = slotStartUtc.getTime();
-              const manual = isManualSlot(slotStartUtc);
-              const persistedBusy = isPersistedBusySlot(slotStartUtc);
-              const defaultBusy = isDefaultBusySlot(slotStartUtc);
-              const available = manual;
+              const available = isAvailableSlot(slotStartUtc);
               const isSelected = selectedKey === key;
+
               return (
                 <div
                   key={`${col}-${row}`}
@@ -454,18 +396,14 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                     borderTop: '1px solid var(--border)',
                     borderLeft: '1px solid var(--border)',
                     background: isEdit
-                      ? manual
-                        ? '#4ade80'
-                        : persistedBusy || defaultBusy
-                        ? '#fecaca'
-                        : 'transparent'
+                      ? available
+                        ? '#4ade80'  // Green: available
+                        : 'transparent'  // Blank: not available
                       : isSelected
-                      ? '#22c55e'
+                      ? '#22c55e'  // Dark green: selected
                       : available
-                      ? '#bbf7d0'
-                      : persistedBusy || defaultBusy
-                      ? '#fecaca'
-                      : 'transparent',
+                      ? '#bbf7d0'  // Light green: selectable
+                      : 'transparent',  // Blank: not available
                     cursor: isEdit
                       ? 'pointer'
                       : available
