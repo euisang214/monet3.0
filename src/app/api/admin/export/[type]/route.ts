@@ -7,7 +7,6 @@ const VALID_EXPORT_TYPES: ExportType[] = [
   'bookings',
   'payments',
   'payouts',
-  'disputes',
   'feedback',
   'audit-logs',
 ];
