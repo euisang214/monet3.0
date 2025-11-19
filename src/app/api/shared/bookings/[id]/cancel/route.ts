@@ -18,19 +18,28 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
   if(actor === 'professional'){
     await prisma.booking.update({ where: { id: booking.id }, data: { status: 'cancelled' } });
 
-    // Process refund
-    try {
-      await refundPayment(booking.id);
+    // Process refund only if payment exists (Issue #2)
+    const payment = await prisma.payment.findUnique({ where: { bookingId: booking.id } });
+    if (payment) {
+      try {
+        await refundPayment(booking.id);
+        return NextResponse.json({
+          message: 'Booking cancelled and refund processed',
+          refundRule: 'full_refund'
+        });
+      } catch (error) {
+        console.error('Refund failed:', error);
+        return NextResponse.json(
+          { error: 'refund_failed', message: (error as Error).message },
+          { status: 500 }
+        );
+      }
+    } else {
+      // No payment made yet, just cancel
       return NextResponse.json({
-        message: 'Booking cancelled and refund processed',
-        refundRule: 'full_refund'
+        message: 'Booking cancelled (no payment to refund)',
+        refundRule: 'no_payment'
       });
-    } catch (error) {
-      console.error('Refund failed:', error);
-      return NextResponse.json(
-        { error: 'refund_failed', message: (error as Error).message },
-        { status: 500 }
-      );
     }
   }
 
@@ -46,18 +55,27 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
   // More than 3 hours - allow cancellation with full refund
   await prisma.booking.update({ where: { id: booking.id }, data: { status: 'cancelled' } });
 
-  // Process refund
-  try {
-    await refundPayment(booking.id);
+  // Process refund only if payment exists (Issue #2)
+  const payment = await prisma.payment.findUnique({ where: { bookingId: booking.id } });
+  if (payment) {
+    try {
+      await refundPayment(booking.id);
+      return NextResponse.json({
+        message: 'Booking cancelled and refund processed',
+        refundRule: 'full_refund'
+      });
+    } catch (error) {
+      console.error('Refund failed:', error);
+      return NextResponse.json(
+        { error: 'refund_failed', message: (error as Error).message },
+        { status: 500 }
+      );
+    }
+  } else {
+    // No payment made yet, just cancel
     return NextResponse.json({
-      message: 'Booking cancelled and refund processed',
-      refundRule: 'full_refund'
+      message: 'Booking cancelled (no payment to refund)',
+      refundRule: 'no_payment'
     });
-  } catch (error) {
-    console.error('Refund failed:', error);
-    return NextResponse.json(
-      { error: 'refund_failed', message: (error as Error).message },
-      { status: 500 }
-    );
   }
 });

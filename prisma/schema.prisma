@@ -108,7 +108,7 @@ model ProfessionalProfile {
   employer          String
   title             String
   bio               String
-  priceUSD          Int
+  priceUSD          Int          // Price in cents (e.g., 10000 = $100.00)
   availabilityPrefs Json         @default("{}")
   verifiedAt        DateTime?
   timezone          String      @default("UTC")
@@ -169,7 +169,7 @@ model Booking {
   startAt          DateTime
   endAt            DateTime
   timezone         String      @default("UTC")
-  priceUSD         Int?
+  priceUSD         Int?         // Price in cents (e.g., 10000 = $100.00)
   zoomMeetingId    String?
   zoomJoinUrl      String?
   candidateJoinedAt    DateTime?
@@ -303,7 +303,7 @@ view ListingCardView {
   userId   String
   employer String
   title    String
-  priceUSD Int
+  priceUSD Int      // Price in cents (e.g., 10000 = $100.00)
   tags     String[]
 
   @@ignore // Prisma doesn't manage view fields in client; created in migration SQL

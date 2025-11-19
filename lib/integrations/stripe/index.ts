@@ -8,29 +8,32 @@ export const stripe = new Stripe(secret, {
   apiVersion: '2024-06-20' as Stripe.LatestApiVersion,
 });
 
-// PLATFORM_FEE is expected to be a decimal percentage (e.g. 0.1 for 10%)
-export const PLATFORM_FEE = Number(process.env.PLATFORM_FEE || '0');
+// PLATFORM_FEE is a decimal (e.g. 0.20 for 20%, 0.10 for 10%) (Issue #10)
+export const PLATFORM_FEE = Number(process.env.PLATFORM_FEE || '0.20');
 
 /**
  * Create a PaymentIntent for a booking. Funds are held by the platform until
  * released to the professional. Optionally apply a platform fee percentage.
+ *
+ * Note: priceUSD is stored in cents (e.g., 10000 = $100.00)
  */
 export async function createCheckoutIntent(
   bookingId: string,
-  opts: { takeRate?: number; customerId?: string; priceUSD?: number } = {},
+  opts: { takeRate?: number; customerId?: string; priceCents?: number } = {},
 ) {
-  const { takeRate = PLATFORM_FEE, customerId, priceUSD: providedPrice } = opts;
+  const { takeRate = PLATFORM_FEE, customerId, priceCents: providedPrice } = opts;
 
   // Optimize by allowing price to be passed in to avoid redundant DB query
-  let priceUSD = providedPrice;
-  if (priceUSD == null) {
+  let priceCents = providedPrice;
+  if (priceCents == null) {
     const booking = await prisma.booking.findUnique({ where: { id: bookingId }, select: { priceUSD: true } });
     if (!booking) throw new Error('booking not found');
-    priceUSD = booking.priceUSD ?? undefined;
+    priceCents = booking.priceUSD ?? undefined;
   }
 
-  if (priceUSD == null) throw new Error('booking price not set');
-  const amount = Math.round(priceUSD * 100);
+  if (priceCents == null) throw new Error('booking price not set');
+  // priceUSD is already in cents, pass directly to Stripe
+  const amount = priceCents;
 
   const pi = await stripe.paymentIntents.create({
     amount,

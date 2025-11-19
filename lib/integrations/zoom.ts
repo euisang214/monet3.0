@@ -206,7 +206,7 @@ export async function recordZoomJoin(
   if (!booking) return;
 
   const email = participantEmail.toLowerCase();
-  const data: Record<string, Date> = {};
+  const data: Record<string, any> = {};
   if (
     email === booking.candidate.email.toLowerCase() &&
     !booking.candidateJoinedAt
@@ -221,15 +221,25 @@ export async function recordZoomJoin(
   }
   if (Object.keys(data).length === 0) return;
 
-  const updated = await db.booking.update({ where: { id: booking.id }, data });
-  if (
-    updated.candidateJoinedAt &&
-    updated.professionalJoinedAt &&
-    updated.status !== BookingStatus.completed_pending_feedback
-  ) {
-    await db.booking.update({
-      where: { id: booking.id },
-      data: { status: BookingStatus.completed_pending_feedback },
-    });
-  }
+  // Step 1: Update the join timestamp unconditionally
+  await db.booking.update({
+    where: { id: booking.id },
+    data
+  });
+
+  // Step 2: Atomically transition status to completed_pending_feedback
+  // if both participants have now joined. This is a database-level check
+  // via the WHERE clause, so even if two join events race, both will
+  // correctly check the final state after their timestamp updates.
+  await db.booking.updateMany({
+    where: {
+      id: booking.id,
+      candidateJoinedAt: { not: null },
+      professionalJoinedAt: { not: null },
+      status: { not: BookingStatus.completed_pending_feedback },
+    },
+    data: {
+      status: BookingStatus.completed_pending_feedback,
+    },
+  });
 }

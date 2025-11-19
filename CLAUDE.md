@@ -430,7 +430,7 @@ model Booking {
   candidateId      String
   professionalId   String
   status           BookingStatus // draft | requested | accepted | cancelled | completed | completed_pending_feedback | refunded
-  priceUSD         Float?
+  priceUSD         Int?          // Price in cents (e.g., 10000 = $100.00)
   startAt          DateTime
   endAt            DateTime
   zoomMeetingId    String?
@@ -790,13 +790,23 @@ export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
    → GET /api/candidate/professionals/search
    → Shows anonymized listings
 
-2. REQUEST
-   Candidate requests booking with available times
+2. REQUEST & PAY
+   Candidate requests booking with available times AND pays immediately
    → POST /api/candidate/bookings/request { professionalId, slots, weeks }
    → Creates booking with status: "requested"
+   → Creates Stripe PaymentIntent (status: "held")
+   → Creates Payment database record
+   → Returns clientSecret and paymentIntentId
    → Sends email notification to professional
+   → Payment is held in escrow until call completion and QC pass
 
-3. ACCEPT & SCHEDULE
+3. CONFIRM PAYMENT
+   After Stripe confirms payment on client
+   → POST /api/shared/payments/confirm { paymentIntentId }
+   → Validates payment succeeded
+   → Payment record status remains "held" until after call
+
+4. ACCEPT & SCHEDULE
    Professional views candidate's available times and picks one
    → GET /api/professional/bookings/[id]/schedule (view candidate availability)
    → POST /api/professional/bookings/[id]/schedule { startAt }
@@ -805,33 +815,20 @@ export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
    → Status changes to "accepted"
    → By selecting a time, the professional confirms/accepts the booking
 
-4. CHECKOUT
-   Candidate pays for the accepted booking
-   → POST /api/candidate/bookings/[id]/checkout
-   → Creates Stripe PaymentIntent (status: "held")
-   → Creates Payment database record
-   → Returns client secret for Stripe Elements
-
-5. CONFIRM
-   After Stripe confirms payment on client
-   → POST /api/shared/payments/confirm { paymentIntentId }
-   → Validates payment succeeded
-   → Payment record status remains "held" until after call
-
-6. CALL
+5. CALL
    Candidate and Professional join Zoom
    → Join tracking via database
    → Status changes to "completed_pending_feedback" after both join
 
-7. FEEDBACK
+6. FEEDBACK
    Professional submits feedback
    → POST /api/professional/feedback/[bookingId] { summary, actions, ratings }
+   → Booking status changes to "completed"
    → Triggers QC job (500ms delay)
-   → Status changes to "completed"
 
-8. QC & PAYOUT
+7. QC & PAYOUT
    Background job validates feedback
-   → If passed: Payout status → "pending", professional can withdraw funds
+   → If passed: Creates Payout record with status "pending", professional can withdraw funds
    → If revise: Nudge emails queued at +24h, +48h, +72h, professional can resubmit
    → If failed (manual admin action only): Auto-refund, PaymentStatus: "refunded", Payout.status: "blocked"
 ```
@@ -1022,16 +1019,16 @@ Helper functions create consistent Stripe resources:
 
 ```typescript
 export function createDestinationCharge(
-  amount: number,
+  amountCents: number,
   professionalStripeId: string,
-  platformFee: number
+  platformFeeCents: number
 ) {
   return {
-    amount: Math.round(amount * 100), // Convert to cents
+    amount: amountCents, // Already in cents (e.g., 10000 = $100.00)
     currency: 'usd',
     transfer_data: {
       destination: professionalStripeId,
-      amount: Math.round((amount - platformFee) * 100),
+      amount: amountCents - platformFeeCents,
     },
   };
 }
@@ -1299,8 +1296,8 @@ NEXTAUTH_SECRET="your-secret-key-here"
 STRIPE_SECRET_KEY="sk_test_..."
 STRIPE_PUBLISHABLE_KEY="pk_test_..."
 
-# Platform Fee (0-100, default: 0)
-PLATFORM_FEE=20
+# Platform Fee (decimal: 0.20 for 20%, default: 0.20)
+PLATFORM_FEE=0.20
 ```
 
 ### OAuth Providers
@@ -1600,6 +1597,17 @@ git push -u origin <branch-name>
 ---
 
 ## Changelog
+
+### 2025-11-18 - Money Handling: Cents (Int) Instead of Dollars (Float)
+- **BREAKING CHANGE**: All money fields now use cents (Int) instead of dollars (Float)
+- Updated `ProfessionalProfile.priceUSD`, `Booking.priceUSD`, and `ListingCardView.priceUSD` from Float to Int
+- Schema change: `priceUSD Int // Price in cents (e.g., 10000 = $100.00)`
+- Removed *100 multiplication in Stripe integration since prices are already in cents
+- Updated seed data: prices now stored as cents (e.g., 10000 instead of 100.0)
+- Updated all UI components to convert cents to dollars for display (divide by 100)
+- Updated onboarding form to convert user input (dollars) to cents (multiply by 100)
+- **Benefits**: Eliminates floating-point precision errors, consistent with Stripe's cent-based API
+- **Migration required**: Run `npx prisma migrate dev` to update database schema
 
 ### 2025-11-17 - API Routes Reorganization
 - Reorganized `/src/app/api` directory by user role:
