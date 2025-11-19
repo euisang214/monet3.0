@@ -10,6 +10,7 @@ import { BookingStatus } from "@prisma/client";
 import type { CSSProperties } from "react";
 import { formatDateTime } from "@/lib/utils/date";
 import { formatFullName } from "@/lib/shared/settings";
+import CancelBookingButton from "@/components/bookings/CancelBookingButton";
 
 function statusStyle(status: BookingStatus): CSSProperties {
   switch (status) {
@@ -132,6 +133,14 @@ export default async function CallsPage({
       feedback: hasFeedback
         ? { label: "View Feedback", href: `/candidate/calls/${b.id}/feedback` }
         : { label: "View Feedback", variant: "muted", disabled: true },
+      cancel: (
+        <CancelBookingButton
+          bookingId={b.id}
+          startAt={b.startAt}
+          status={b.status}
+          variant="inline"
+        />
+      ),
     };
   });
 
@@ -143,6 +152,7 @@ export default async function CallsPage({
     { key: "date", label: "Date of Call" },
     { key: "status", label: "Status" },
     { key: "feedback", label: "View Feedback" },
+    { key: "cancel", label: "" },
   ];
 
   return (
