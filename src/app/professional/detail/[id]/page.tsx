@@ -6,7 +6,7 @@ export default async function Detail({ params }: { params: { id: string } }) {
   const headersList = headers();
   const host = headersList.get('host') || 'localhost:3000';
   const protocol = headersList.get('x-forwarded-proto') ?? 'http';
-  const res = await fetch(`${protocol}://${host}/api/candidate/${params.id}`, {
+  const res = await fetch(`${protocol}://${host}/api/candidate/profile/${params.id}`, {
     cache: 'no-store',
   });
   if (!res.ok) {
