@@ -1,8 +1,9 @@
 import { auth } from "@/auth";
 import HistoricalFeedback from "@/components/feedback/HistoricalFeedback";
+import QCRecheckButton from "@/components/feedback/QCRecheckButton";
 import { notFound, redirect } from "next/navigation";
 import { CallFeedback } from "@prisma/client";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { formatFullName } from "@/lib/shared/settings";
 
 export default async function ProfessionalHistoryPage({
@@ -15,7 +16,10 @@ export default async function ProfessionalHistoryPage({
     redirect("/login");
   }
 
-  const res = await fetch(`/api/professional/feedback/${params.bookingId}`, {
+  const headersList = headers();
+  const protocol = headersList.get("x-forwarded-proto") || "http";
+  const host = headersList.get("host") || "localhost:3000";
+  const res = await fetch(`${protocol}://${host}/api/professional/feedback/${params.bookingId}`, {
     cache: "no-store",
     headers: {
       cookie: cookies().toString(),
@@ -41,6 +45,7 @@ export default async function ProfessionalHistoryPage({
   return (
     <section className="col" style={{ gap: 16 }}>
       <h2>{heading}</h2>
+      <QCRecheckButton bookingId={params.bookingId} qcStatus={feedback.qcStatus} />
       <HistoricalFeedback feedback={feedback} />
     </section>
   );

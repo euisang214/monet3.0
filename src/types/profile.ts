@@ -26,4 +26,6 @@ export interface ProfileResponse {
     text: string;
     submittedAt: string;
   }[];
+  averageRating?: number;
+  totalReviews?: number;
 }

@@ -55,7 +55,7 @@ export default function ProfileDetail({
           About
         </button>
         <button className={clsx('tab', { active: tab === 'reviews' })} onClick={() => setTab('reviews')}>
-          Reviews
+          Reviews {profile.totalReviews ? `(${profile.totalReviews})` : ''}
         </button>
       </div>
 
@@ -143,15 +143,36 @@ export default function ProfileDetail({
       ) : (
         <Card className="col" style={{ padding: 16, gap: 16 }}>
           {profile.reviews && profile.reviews.length > 0 ? (
-            profile.reviews.map((r, idx) => (
-              <div key={idx} className="col" style={{ gap: 4 }}>
-                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong>{`Candidate ${idx + 1}`}</strong>
-                  <span>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+            <>
+              {profile.averageRating !== undefined && (
+                <div className="row" style={{ alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+                    {profile.averageRating.toFixed(1)}
+                  </span>
+                  <span style={{ color: 'var(--warning)' }}>
+                    {'★'.repeat(Math.round(profile.averageRating))}
+                    {'☆'.repeat(5 - Math.round(profile.averageRating))}
+                  </span>
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    ({profile.totalReviews} {profile.totalReviews === 1 ? 'review' : 'reviews'})
+                  </span>
                 </div>
-                <p>{r.text}</p>
-              </div>
-            ))
+              )}
+              {profile.reviews.map((r, idx) => (
+                <div key={idx} className="col" style={{ gap: 4, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong>{`Candidate ${idx + 1}`}</strong>
+                    <span style={{ color: 'var(--warning)' }}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                  </div>
+                  <p style={{ margin: 0 }}>{r.text}</p>
+                  {r.submittedAt && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {new Date(r.submittedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </>
           ) : (
             <p style={{ color: 'var(--text-muted)' }}>No reviews yet.</p>
           )}

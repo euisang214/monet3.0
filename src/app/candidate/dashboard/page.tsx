@@ -4,7 +4,7 @@ import {
   FilterConfig,
   ActiveFilters,
 } from '@/lib/utils/filterOptions';
-import { listUsers } from "../../../app/api/users/list";
+import { listUsers } from "@/lib/shared/users";
 import { Role } from "@prisma/client";
 import DashboardClient from "../../../components/DashboardClient";
 
