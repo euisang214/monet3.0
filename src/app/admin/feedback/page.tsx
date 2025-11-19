@@ -122,7 +122,7 @@ export default async function AdminFeedbackPage({
       <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
         <h2>Feedback QC Management</h2>
         <a
-          href="/api/admin/feedback/export"
+          href="/api/admin/export/feedback"
           style={{
             padding: "8px 16px",
             backgroundColor: "var(--primary)",
