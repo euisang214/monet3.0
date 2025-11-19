@@ -3,6 +3,7 @@ import DashboardClient from "@/components/dashboard/DashboardClient";
 import { auth } from "@/auth";
 import { getProfessionalDashboardData } from "@/lib/professional/dashboard";
 import { format } from "date-fns";
+import CancelButton from "@/components/bookings/CancelButton";
 
 export default async function ProDashboard({
   searchParams,
@@ -26,6 +27,7 @@ export default async function ProDashboard({
     date: format(b.startAt, "yyyy-MM-dd"),
     time: format(b.startAt, "hh:mm a"),
     action: b.zoomJoinUrl ? { label: "Join", href: b.zoomJoinUrl } : "",
+    cancel: <CancelButton bookingId={b.id} role="professional" startAt={b.startAt} />,
   }));
 
   const columns = [
@@ -33,6 +35,7 @@ export default async function ProDashboard({
     { key: "date", label: "Date" },
     { key: "time", label: "Time" },
     { key: "action", label: "Zoom" },
+    { key: "cancel", label: "" },
   ];
 
   return (

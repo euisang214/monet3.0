@@ -10,6 +10,7 @@ import { BookingStatus } from "@prisma/client";
 import type { CSSProperties } from "react";
 import { formatDateTime } from "@/lib/utils/date";
 import { formatFullName } from "@/lib/shared/settings";
+import CancelButton from "@/components/bookings/CancelButton";
 
 function statusStyle(status: BookingStatus): CSSProperties {
   switch (status) {
@@ -100,6 +101,7 @@ export default async function CallsPage({
           },
         },
         callFeedback: { select: { bookingId: true } },
+        professionalRating: { select: { bookingId: true } },
       },
       orderBy: { startAt: "desc" },
       skip: (page - 1) * perPage,
@@ -118,6 +120,9 @@ export default async function CallsPage({
     const callDateLabel =
       b.status === BookingStatus.requested ? "" : formatDateTime(b.startAt);
     const hasFeedback = Boolean(b.callFeedback);
+    const hasReview = Boolean(b.professionalRating);
+    const canReview = b.status === BookingStatus.completed && !hasReview;
+    const canCancel = b.status === BookingStatus.requested || b.status === BookingStatus.accepted;
     return {
       name,
       firm: b.professional.professionalProfile?.employer ?? "",
@@ -132,6 +137,14 @@ export default async function CallsPage({
       feedback: hasFeedback
         ? { label: "View Feedback", href: `/candidate/calls/${b.id}/feedback` }
         : { label: "View Feedback", variant: "muted", disabled: true },
+      review: canReview
+        ? { label: "Leave Review", href: `/candidate/calls/${b.id}/review` }
+        : hasReview
+        ? { label: "Reviewed", variant: "muted", disabled: true }
+        : null,
+      cancel: canCancel ? (
+        <CancelButton bookingId={b.id} role="candidate" startAt={b.startAt} />
+      ) : null,
     };
   });
 
@@ -142,7 +155,9 @@ export default async function CallsPage({
     { key: "days", label: "Days Since Requested" },
     { key: "date", label: "Date of Call" },
     { key: "status", label: "Status" },
-    { key: "feedback", label: "View Feedback" },
+    { key: "feedback", label: "Feedback" },
+    { key: "review", label: "Review" },
+    { key: "cancel", label: "" },
   ];
 
   return (
@@ -155,7 +170,7 @@ export default async function CallsPage({
         initialActive={active}
         dateFilters={dateFilters}
         dateFilterLabels={dateFilterLabels}
-        buttonColumns={["feedback"]}
+        buttonColumns={["feedback", "review"]}
         page={page}
         totalPages={totalPages}
       />
