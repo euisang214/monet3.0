@@ -52,6 +52,9 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const draggedSlots = useRef<Set<number>>(new Set());
   const lastSlot = useRef<number | null>(null);
   const [selected, setSelected] = useState<TimeSlot | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const formatInTimezone = (date: Date, pattern: string) =>
     formatDateInTimezone(date, timezone, pattern);
@@ -216,15 +219,22 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const handleSync = async () => {
     if (!isEdit) return;
 
-    const res = await fetch('/api/candidate/busy');
-    if (res.status === 401) {
-      alert('Please connect your Google Calendar to sync availability.');
-      await signIn('google', { callbackUrl: window.location.href });
-      return;
-    }
-    if (!res.ok) return;
+    setSyncing(true);
+    setError(null);
 
     try {
+      const res = await fetch('/api/candidate/busy');
+      if (res.status === 401) {
+        setError('Please connect your Google Calendar to sync availability.');
+        await signIn('google', { callbackUrl: window.location.href });
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || data.message || 'Failed to sync with Google Calendar');
+        return;
+      }
+
       const data = await res.json();
       const busyData: TimeSlot[] = Array.isArray(data.busy) ? data.busy : [];
 
@@ -239,8 +249,10 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       setAvailableSlots(prev =>
         prev.filter(slot => !busyKeys.has(toUtcDateRange(slot).start.getTime()))
       );
-    } catch {
-      // ignore sync errors
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -268,46 +280,73 @@ const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const nextWeek = () => setWeekStart(prev => addDays(prev, 7));
 
   const handleConfirm = async () => {
-    if (isEdit) {
-      const endLimit = addDays(new Date(), weeks * 7);
+    setSaving(true);
+    setError(null);
 
-      // Deduplicate and filter to current view range
-      const uniqueAvailable = new Map<number, TimeSlot>();
-      availableSlots.forEach(slot => {
-        const key = toUtcDateRange(slot).start.getTime();
-        if (!uniqueAvailable.has(key)) {
-          uniqueAvailable.set(key, slot);
-        }
-      });
+    try {
+      if (isEdit) {
+        const endLimit = addDays(new Date(), weeks * 7);
 
-      const availableWithinRange = Array.from(uniqueAvailable.values()).filter(
-        slot => toUtcDateRange(slot).start < endLimit,
-      );
-
-      // Merge consecutive 30-min slots into longer blocks
-      const mergedAvailable = mergeSlots(availableWithinRange);
-
-      if (onConfirm) {
-        await onConfirm(mergedAvailable);
-      } else {
-        await fetch('/api/candidate/availability', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ events: mergedAvailable }),
+        // Deduplicate and filter to current view range
+        const uniqueAvailable = new Map<number, TimeSlot>();
+        availableSlots.forEach(slot => {
+          const key = toUtcDateRange(slot).start.getTime();
+          if (!uniqueAvailable.has(key)) {
+            uniqueAvailable.set(key, slot);
+          }
         });
+
+        const availableWithinRange = Array.from(uniqueAvailable.values()).filter(
+          slot => toUtcDateRange(slot).start < endLimit,
+        );
+
+        // Merge consecutive 30-min slots into longer blocks
+        const mergedAvailable = mergeSlots(availableWithinRange);
+
+        if (onConfirm) {
+          await onConfirm(mergedAvailable);
+        } else {
+          const res = await fetch('/api/candidate/availability', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ events: mergedAvailable }),
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            setError(data.error || data.message || 'Failed to save availability');
+            return;
+          }
+        }
+      } else if (onConfirm && selected) {
+        await onConfirm([selected]);
       }
-    } else if (onConfirm && selected) {
-      await onConfirm([selected]);
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
     <div className="col" style={{ gap: 12 }}>
+      {error && (
+        <div style={{ color: 'var(--error)', padding: '8px 12px', background: 'var(--error-bg, #fee2e2)', borderRadius: 'var(--radius)', fontSize: '0.875rem' }}>
+          {error}
+        </div>
+      )}
       <div className="row" style={{ gap: 8 }}>
         <Button onClick={prevWeek}>{'<'}</Button>
         <Button onClick={nextWeek}>{'>'}</Button>
-        {isEdit && <Button onClick={handleSync}>Sync Google Calendar</Button>}
-        {isEdit && <Button onClick={handleConfirm}>Confirm Availability</Button>}
+        {isEdit && (
+          <Button onClick={handleSync} disabled={syncing}>
+            {syncing ? 'Syncing...' : 'Sync Google Calendar'}
+          </Button>
+        )}
+        {isEdit && (
+          <Button onClick={handleConfirm} disabled={saving}>
+            {saving ? 'Saving...' : 'Confirm Availability'}
+          </Button>
+        )}
       </div>
       <div
         className="calendar-grid"
