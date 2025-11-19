@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       await prisma.auditLog.create({
         data: {
           action: 'refund_processed',
-          userId: booking.candidateId,
+          actorUserId: booking.candidateId,
           metadata: {
             bookingId,
             reason,

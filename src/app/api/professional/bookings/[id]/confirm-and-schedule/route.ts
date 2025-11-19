@@ -64,9 +64,26 @@ export const GET = withRole(['PROFESSIONAL'], async (session, _req: NextRequest,
  */
 export const POST = withRole(['PROFESSIONAL'], async (session, req: NextRequest, { params }:{params:{id:string}}) => {
   const { startAt } = await req.json();
+
+  // Validate startAt is provided
+  if (!startAt) {
+    return NextResponse.json({ error: 'startAt is required' }, { status: 400 });
+  }
+
   const booking = await prisma.booking.findUnique({ where: { id: params.id } });
   if(!booking || booking.professionalId !== session.user.id) return NextResponse.json({error:'forbidden'}, {status:403});
+
+  // Validate date parsing
   const start = new Date(startAt);
+  if (isNaN(start.getTime())) {
+    return NextResponse.json({ error: 'invalid_date', message: 'startAt must be a valid date' }, { status: 400 });
+  }
+
+  // Validate date is in the future
+  if (start.getTime() < Date.now()) {
+    return NextResponse.json({ error: 'past_date', message: 'Cannot schedule a call in the past' }, { status: 400 });
+  }
+
   const end = new Date(start.getTime() + CALL_DURATION_MINUTES*60*1000);
   const zoom = await createZoomMeeting('Mentorship Call', start.toISOString());
   const updated = await prisma.booking.update({

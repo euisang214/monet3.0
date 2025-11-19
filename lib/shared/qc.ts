@@ -59,10 +59,11 @@ export async function qcAndGatePayout(bookingId: string){
 
   // Use same validation logic as submission (Issue #4)
   const validation = validateFeedbackBasics(fb.text, fb.actions);
-  const starsValid = fb.starsCategory1>0 && fb.starsCategory2>0 && fb.starsCategory3>0;
+  // Use correct Prisma field names (not database column names)
+  const starsValid = fb.contentRating > 0 && fb.deliveryRating > 0 && fb.valueRating > 0;
   const pass = validation.valid && starsValid;
 
-  await prisma.feedback.update({
+  await prisma.callFeedback.update({
     where: { bookingId }, data: { qcStatus: pass ? 'passed' : 'revise', qcReport: {} }
   });
 

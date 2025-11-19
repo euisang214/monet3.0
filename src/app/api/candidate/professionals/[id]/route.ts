@@ -50,7 +50,8 @@ export async function GET(
     activities: pro.activities,
   };
 
-  const reviews = await prisma.professionalReview.findMany({
+  // Use correct model name: ProfessionalRating (maps to ProfessionalReview table)
+  const reviews = await prisma.professionalRating.findMany({
     where: { booking: { professionalId: params.id } },
     orderBy: { submittedAt: 'desc' },
   });
@@ -61,7 +62,20 @@ export async function GET(
   }));
 
   if (reveal) {
-    payload.identity = { name: 'Revealed User', email: 'pro@example.com' };
+    // Fetch actual professional identity instead of hardcoded values
+    const proUser = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: { firstName: true, lastName: true, email: true },
+    });
+    if (proUser) {
+      const { formatFullName } = await import('@/lib/shared/settings');
+      payload.identity = {
+        name: formatFullName(proUser.firstName, proUser.lastName),
+        email: proUser.email
+      };
+    } else {
+      payload.identity = { redacted: true };
+    }
   } else {
     payload.identity = { redacted: true };
   }

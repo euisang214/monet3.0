@@ -7,12 +7,22 @@ export async function POST(req: NextRequest) {
   const sig = req.headers.get('stripe-signature') || '';
   const raw = await req.text();
 
+  // Require webhook secret to be configured - don't allow bypass
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('STRIPE_WEBHOOK_SECRET is not configured');
+    return NextResponse.json(
+      { error: 'Webhook secret not configured' },
+      { status: 500 },
+    );
+  }
+
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(
       raw,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET || '',
+      webhookSecret,
     );
   } catch (err: any) {
     return NextResponse.json(

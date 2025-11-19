@@ -45,22 +45,33 @@ export async function createCheckoutIntent(
   // priceUSD is already in cents, pass directly to Stripe
   const amount = priceCents;
 
+  // Use idempotency key to prevent duplicate charges on network retries
   const pi = await stripe.paymentIntents.create({
     amount,
     currency: 'usd',
     automatic_payment_methods: { enabled: true },
     metadata: { bookingId },
     customer: customerId,
+  }, {
+    idempotencyKey: `booking_checkout_${bookingId}`,
   });
 
   const platformFee = Math.round(amount * takeRate);
 
-  await prisma.payment.create({
-    data: {
+  // Use upsert to handle duplicate payment creation attempts gracefully
+  await prisma.payment.upsert({
+    where: { bookingId },
+    create: {
       bookingId,
       amountGross: amount,
       platformFee,
       escrowHoldId: pi.id,
+      status: 'held',
+    },
+    update: {
+      escrowHoldId: pi.id,
+      amountGross: amount,
+      platformFee,
       status: 'held',
     },
   });
@@ -168,11 +179,21 @@ export async function releaseEscrowToProfessional(
   if (!payment) throw new Error('payment not found');
   if (payment.status !== 'held') throw new Error('payment not in held state');
 
-  const pi = await stripe.paymentIntents.retrieve(payment.escrowHoldId, {
-    expand: ['charges'],
-  });
+  let pi;
+  try {
+    pi = await stripe.paymentIntents.retrieve(payment.escrowHoldId, {
+      expand: ['charges'],
+    });
+  } catch (error) {
+    console.error(`Failed to retrieve PaymentIntent ${payment.escrowHoldId}:`, error);
+    throw new Error(`stripe_retrieval_failed: ${(error as Error).message}`);
+  }
+
   const chargeId = (pi as any).charges?.data?.[0]?.id;
-  if (!chargeId) throw new Error('charge not found');
+  if (!chargeId) {
+    console.error(`No charge found for PaymentIntent: ${payment.escrowHoldId}`);
+    throw new Error('charge_not_found_in_payment_intent');
+  }
 
   const amountNet = calculateNetAmount(payment.amountGross, payment.platformFee);
 
@@ -188,12 +209,23 @@ export async function releaseEscrowToProfessional(
     data: { status: 'released' },
   });
 
-  await prisma.payout.create({
-    data: {
+  // Update existing pending payout (created by qcAndGatePayout) or create if missing
+  await prisma.payout.upsert({
+    where: { bookingId },
+    update: {
+      proStripeAccountId,
+      amountNet,
+      status: 'paid',
+      stripeTransferId: transfer.id,
+      paidAt: new Date(),
+    },
+    create: {
       bookingId,
       proStripeAccountId,
       amountNet,
       status: 'paid',
+      stripeTransferId: transfer.id,
+      paidAt: new Date(),
     },
   });
 
@@ -207,11 +239,21 @@ export async function refundPayment(bookingId: string) {
   const payment = await prisma.payment.findUnique({ where: { bookingId } });
   if (!payment) throw new Error('payment not found');
 
-  const pi = await stripe.paymentIntents.retrieve(payment.escrowHoldId, {
-    expand: ['charges'],
-  });
+  let pi;
+  try {
+    pi = await stripe.paymentIntents.retrieve(payment.escrowHoldId, {
+      expand: ['charges'],
+    });
+  } catch (error) {
+    console.error(`Failed to retrieve PaymentIntent for refund ${payment.escrowHoldId}:`, error);
+    throw new Error(`stripe_retrieval_failed: ${(error as Error).message}`);
+  }
+
   const chargeId = (pi as any).charges?.data?.[0]?.id;
-  if (!chargeId) throw new Error('charge not found');
+  if (!chargeId) {
+    console.error(`No charge found for PaymentIntent: ${payment.escrowHoldId}`);
+    throw new Error('charge_not_found_in_payment_intent');
+  }
 
   await stripe.refunds.create({ charge: chargeId });
 

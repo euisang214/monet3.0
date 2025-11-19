@@ -1,0 +1,201 @@
+================================================================================
+SECURITY AUDIT SUMMARY - Monet 3.0 Authentication & Authorization
+Date: 2025-11-19
+================================================================================
+
+CRITICAL VULNERABILITIES FOUND: 4
+HIGH SEVERITY ISSUES: 7  
+MEDIUM SEVERITY ISSUES: 7
+TOTAL ISSUES: 18
+
+================================================================================
+CRITICAL ISSUES (MUST FIX BEFORE PRODUCTION)
+================================================================================
+
+[CRITICAL-1] Unrestricted Professional Account Registration
+Location: /src/app/api/auth/signup/route.ts (lines 11, 23)
+Impact: Anyone can create a professional account without verification
+Risk: Complete bypasses professional vetting system, allows payment fraud
+Fix: Only allow CANDIDATE role in signup, require separate professional verification
+
+[CRITICAL-2] Unauthenticated Candidate Profile Exposure  
+Location: /src/app/api/candidate/profile/[id]/route.ts (lines 5-43)
+Impact: All candidate personal data (email, resume, education) is publicly accessible
+Risk: Privacy violation, GDPR violation, phishing vector
+Fix: Add authentication check and ownership validation
+
+[CRITICAL-3] User Role Enumeration Endpoint
+Location: /src/app/api/auth/role/route.ts (lines 5-17)
+Impact: Can enumerate all professionals in system by email
+Risk: Information disclosure, targeted attacks
+Fix: Remove endpoint or require authentication
+
+[CRITICAL-4] Unauthenticated QC Recheck Endpoint
+Location: /src/app/api/shared/qc/[bookingId]/recheck/route.ts (lines 3-7)
+Impact: Anyone can trigger unlimited QC jobs on any booking
+Risk: Denial of service, workflow manipulation
+Fix: Add authentication and proper authorization checks
+
+================================================================================
+HIGH SEVERITY ISSUES (FIX WITHIN 1 WEEK)
+================================================================================
+
+[HIGH-5] Hardcoded Default AUTH_SECRET
+Location: /src/auth.ts (line 18)
+Issue: Falls back to 'dev-secret' if environment variables not set
+Risk: Authentication bypass in production
+
+[HIGH-6] Weak Email Verification Tokens
+Location: /src/app/api/shared/verification/request/route.ts (line 8)
+Issue: Uses Math.random() for 8-char tokens - easily guessable
+Risk: Token prediction/brute force attacks
+
+[HIGH-7] OAuth Tokens Stored in Plaintext
+Location: /prisma/schema.prisma (lines 82-83)
+Issue: Google/LinkedIn tokens stored unencrypted in database
+Risk: Complete compromise if database breached
+
+[HIGH-8] Unvalidated Payment Intent Creation
+Location: /src/app/api/shared/stripe/intent/route.ts (lines 8-43)
+Issue: Can create payment intents for any professional
+Risk: Abuse vector, potential Stripe fee manipulation
+
+[HIGH-9] No Rate Limiting on Auth Endpoints
+Location: /src/app/api/auth/* routes
+Issue: signup, forgot-password, reset-password have no rate limiting
+Risk: Brute force attacks, email enumeration, account spam
+
+[HIGH-10] Ineffective In-Memory Rate Limiting
+Location: /lib/core/rate-limit.ts
+Issue: Map-based rate limit lost on restart, not shared across servers
+Risk: Rate limiting provides no real protection in production
+
+[HIGH-11] Stripe Webhook Secret Not Validated
+Location: /src/app/api/shared/stripe/webhook/route.ts (line 15)
+Issue: Falls back to empty string if STRIPE_WEBHOOK_SECRET not set
+Risk: Signature validation bypassed, forged payment events accepted
+
+================================================================================
+MEDIUM SEVERITY ISSUES (FIX WITHIN 1 MONTH)
+================================================================================
+
+[MEDIUM-12] Implicit JWT Role Fallback to CANDIDATE
+Location: /src/auth.ts (lines 101, 108)
+Issue: Silently defaults to CANDIDATE if role missing from token
+Risk: Unexpected privilege level, breaks RBAC assumptions
+
+[MEDIUM-13] TypeScript Type Safety Bypass
+Location: /src/auth.ts (lines 94-95)
+Issue: Using (user as any) bypasses type checking on security fields
+Risk: Hidden type mismatches, harder to refactor safely
+
+[MEDIUM-14] No Audit Logging for Auth Events
+Location: All auth endpoints
+Issue: No logging of signup, login, password reset, role changes
+Risk: Cannot detect or investigate security incidents
+
+[MEDIUM-16] Password Reset Tokens in Email URLs
+Location: /src/app/api/auth/forgot-password/route.ts (line 35)
+Issue: Tokens exposed in plaintext email URLs
+Risk: Token leakage via email forwarding, server logs
+
+[MEDIUM-17] API Routes Excluded from Middleware
+Location: /src/middleware.ts (lines 4-6)
+Issue: Each API must manually call auth(), easy to forget
+Risk: Already found Issue #3 due to this design (unauthenticated endpoint)
+
+[MEDIUM-18] No Explicit CSRF Protection Documentation
+Location: All routes
+Issue: Relies on NextAuth default, no explicit validation
+Risk: Vulnerable if NextAuth configuration changes
+
+================================================================================
+API ENDPOINTS AUDIT RESULTS
+================================================================================
+
+Total API Routes Reviewed: 34
+With Auth Checks: 30
+Missing Auth: 4 (Issues #2, #3, #4, #8)
+Missing Ownership Checks: 2
+Weak Token Generation: 1 (Issue #6)
+Invalid Fallbacks: 2 (Issues #5, #11)
+
+================================================================================
+QUICK FIX CHECKLIST - PRIORITY ORDER
+================================================================================
+
+BEFORE DEPLOYING TO PRODUCTION:
+[ ] Fix Issue #1 - Remove PROFESSIONAL from signup role enum
+[ ] Fix Issue #2 - Add auth check to candidate/profile endpoint
+[ ] Fix Issue #3 - Remove or protect /api/auth/role endpoint
+[ ] Fix Issue #4 - Add auth to shared/qc/recheck endpoint
+[ ] Fix Issue #5 - Remove 'dev-secret' fallback from auth.ts
+[ ] Fix Issue #11 - Require STRIPE_WEBHOOK_SECRET in webhook validation
+
+WITHIN 1 WEEK:
+[ ] Fix Issue #6 - Use crypto.randomBytes for email verification tokens
+[ ] Fix Issue #9 - Add rate limiting to auth endpoints (use existing rateLimit)
+[ ] Fix Issue #10 - Implement Redis-based rate limiting
+[ ] Fix Issue #7 - Encrypt OAuth tokens at rest
+[ ] Fix Issue #8 - Review or remove shared/stripe/intent endpoint
+
+WITHIN 1 MONTH:
+[ ] Fix Issue #14 - Add audit logging to all auth events
+[ ] Fix Issue #12 - Validate JWT role explicitly
+[ ] Fix Issue #13 - Remove 'as any' type assertions
+[ ] Fix Issue #17 - Create middleware wrapper for all API routes
+[ ] Fix Issue #18 - Document CSRF protection strategy
+
+================================================================================
+COMPLIANCE & LEGAL RISKS
+================================================================================
+
+GDPR/Privacy Violations:
+- Issue #2: Exposing candidate personal data without consent
+- Issue #3: User enumeration violates privacy
+- Issue #14: Lack of audit trail for compliance
+
+Financial/Payment Risks:
+- Issue #1: Fraudulent professional accounts can receive payments
+- Issue #7: Database breach exposes payment processor tokens
+- Issue #11: Forged Stripe webhooks could trigger false refunds/transfers
+
+Service Quality Risks:
+- Issue #10: Rate limiting ineffective against DDoS
+- Issue #4: QC endpoint vulnerable to queue flooding DoS
+
+================================================================================
+RECOMMENDATIONS FOR SECURE PRACTICES
+================================================================================
+
+1. Before any production deployment:
+   - Fix all 4 CRITICAL issues
+   - Have security review approve fixes
+   - Run penetration testing
+
+2. Implement continuous security:
+   - Add automated security linting rules
+   - Require security review for auth changes
+   - Regular security audits (quarterly)
+
+3. Development practices:
+   - Use strict middleware for all routes
+   - Never bypass TypeScript type checking for security fields
+   - Always require explicit auth checks (no implicit defaults)
+   - Use cryptographically secure libraries (crypto module, not Math.random)
+
+4. Testing:
+   - Add security-focused unit tests
+   - Test all RBAC boundaries
+   - Test all error handling paths
+   - Pentest before production
+
+5. Monitoring:
+   - Log and alert on auth failures
+   - Monitor for failed login patterns
+   - Track role changes
+   - Alert on unusual payment activity
+
+================================================================================
+FULL REPORT AVAILABLE AT: /home/user/monet3.0/SECURITY_AUDIT_2025-11-19.md
+================================================================================

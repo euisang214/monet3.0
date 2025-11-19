@@ -39,33 +39,13 @@ export function StatusProvider({children}:{children:ReactNode}){
     }
   },[status]);
 
-  useEffect(()=>{
-    const originalFetch = window.fetch;
-    window.fetch = async (...args: Parameters<typeof originalFetch>) => {
-      start('Processing...');
-      try{
-        const res = await originalFetch(...args);
-        if(!res.ok){
-          let msg = res.statusText;
-          try{
-            const data = await res.clone().json();
-            msg = (data.error || data.message || msg) as string;
-          }catch{
-            const text = await res.clone().text();
-            if(text) msg = text;
-          }
-          error(msg);
-        }else{
-          success('Success');
-        }
-        return res;
-      }catch(err:any){
-        error(err?.message || 'Request failed');
-        throw err;
-      }
-    };
-    return ()=>{ window.fetch = originalFetch; };
-  },[start, success, error]);
+  // NOTE: Global fetch interception removed to prevent incorrect status messages
+  // Components should handle their own loading/success/error states using useStatus() hook
+  // Example usage:
+  //   const { start, success, error } = useStatus();
+  //   start('Saving...');
+  //   const res = await fetch('/api/endpoint', {...});
+  //   if (res.ok) success('Saved!'); else error('Failed to save');
 
   return (
     <StatusContext.Provider value={{start, success, error, clear}}>

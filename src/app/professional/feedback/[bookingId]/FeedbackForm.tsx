@@ -16,6 +16,8 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [pendingPayload, setPendingPayload] = useState<any>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submitDisabled =
     !contentRating || !deliveryRating || !valueRating || !actions || !text;
@@ -56,16 +58,26 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
   }
 
   async function submitFeedback(payload: any) {
-    const res = await fetch(`/api/professional/feedback/${bookingId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    setIsSubmitting(true);
+    setSubmitError(null);
 
-    if (res.ok) {
-      router.push(`/professional/requests`);
-    } else {
-      alert("Failed to submit feedback");
+    try {
+      const res = await fetch(`/api/professional/feedback/${bookingId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        router.push(`/professional/requests`);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSubmitError(data.error || data.message || "Failed to submit feedback. Please try again.");
+      }
+    } catch (err) {
+      setSubmitError("Network error. Please check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -123,6 +135,11 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="col" style={{ gap: 16 }}>
+      {submitError && (
+        <div style={{ color: 'var(--error)', padding: '8px 12px', background: 'var(--error-bg, #fee2e2)', borderRadius: 'var(--radius)', fontSize: '0.875rem' }}>
+          {submitError}
+        </div>
+      )}
       <div className="col" style={{ gap: 4 }}>
         <h3>Content Rating</h3>
         <p className="text-sm">Evaluate the quality and relevance of discussion content.</p>
@@ -193,10 +210,10 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
       </div>
       <Button
         type="submit"
-        disabled={submitDisabled || isValidating}
+        disabled={submitDisabled || isValidating || isSubmitting}
         variant={submitDisabled ? "muted" : "primary"}
       >
-        {isValidating ? "Validating..." : "Submit"}
+        {isSubmitting ? "Submitting..." : isValidating ? "Validating..." : "Submit"}
       </Button>
 
       <FeedbackValidationModal

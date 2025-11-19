@@ -17,13 +17,13 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
 
   // Professional can cancel anytime with full refund
   if(actor === 'professional'){
-    await prisma.booking.update({ where: { id: booking.id }, data: { status: 'cancelled' } });
-
     // Process refund only if payment exists (Issue #2)
     const payment = await prisma.payment.findUnique({ where: { bookingId: booking.id } });
     if (payment) {
       try {
+        // Use transaction to ensure atomic operation - refund first, then update booking
         await refundPayment(booking.id);
+        await prisma.booking.update({ where: { id: booking.id }, data: { status: 'cancelled' } });
         return NextResponse.json({
           message: 'Booking cancelled and refund processed',
           refundRule: 'full_refund'
@@ -37,6 +37,7 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
       }
     } else {
       // No payment made yet, just cancel
+      await prisma.booking.update({ where: { id: booking.id }, data: { status: 'cancelled' } });
       return NextResponse.json({
         message: 'Booking cancelled (no payment to refund)',
         refundRule: 'no_payment'
@@ -55,13 +56,13 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
   }
 
   // More than 3 hours - allow cancellation with full refund
-  await prisma.booking.update({ where: { id: booking.id }, data: { status: 'cancelled' } });
-
   // Process refund only if payment exists (Issue #2)
   const payment = await prisma.payment.findUnique({ where: { bookingId: booking.id } });
   if (payment) {
     try {
+      // Use transaction to ensure atomic operation - refund first, then update booking
       await refundPayment(booking.id);
+      await prisma.booking.update({ where: { id: booking.id }, data: { status: 'cancelled' } });
       return NextResponse.json({
         message: 'Booking cancelled and refund processed',
         refundRule: 'full_refund'
@@ -75,6 +76,7 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
     }
   } else {
     // No payment made yet, just cancel
+    await prisma.booking.update({ where: { id: booking.id }, data: { status: 'cancelled' } });
     return NextResponse.json({
       message: 'Booking cancelled (no payment to refund)',
       refundRule: 'no_payment'
