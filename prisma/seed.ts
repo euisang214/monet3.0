@@ -432,12 +432,12 @@ async function createBookings(candidates: any[], professionals: any[]) {
       },
     });
 
-    await prisma.feedback.create({
+    await prisma.callFeedback.create({
       data: {
         bookingId: booking.id,
-        starsCategory1: 5,
-        starsCategory2: 5,
-        starsCategory3: 5,
+        contentRating: 5,
+        deliveryRating: 5,
+        valueRating: 5,
         extraCategoryRatings: {},
         wordCount: 50,
         actions: ['Mock interview', 'Resume review'],
@@ -449,7 +449,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
       },
     });
 
-    await prisma.professionalReview.create({
+    await prisma.professionalRating.create({
       data: {
         bookingId: booking.id,
         rating: spec.reviewRating,
@@ -491,12 +491,12 @@ async function createBookings(candidates: any[], professionals: any[]) {
         },
       });
 
-      await prisma.feedback.create({
+      await prisma.callFeedback.create({
         data: {
           bookingId: booking.id,
-          starsCategory1: 4,
-          starsCategory2: 5,
-          starsCategory3: 4,
+          contentRating: 4,
+          deliveryRating: 5,
+          valueRating: 4,
           extraCategoryRatings: {},
           wordCount: 40,
           actions: ['Follow up', 'Practice more'],
@@ -508,7 +508,7 @@ async function createBookings(candidates: any[], professionals: any[]) {
         },
       });
 
-      await prisma.professionalReview.create({
+      await prisma.professionalRating.create({
         data: {
           bookingId: booking.id,
           rating: 4,
@@ -553,12 +553,12 @@ async function createBookings(candidates: any[], professionals: any[]) {
         },
       });
 
-      await prisma.feedback.create({
+      await prisma.callFeedback.create({
         data: {
           bookingId: booking.id,
-          starsCategory1: 5,
-          starsCategory2: 5,
-          starsCategory3: 5,
+          contentRating: 5,
+          deliveryRating: 5,
+          valueRating: 5,
           extraCategoryRatings: {},
           wordCount: 60,
           actions: ['Mock interview', 'Resume review'],

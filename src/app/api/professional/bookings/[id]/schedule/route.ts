@@ -9,6 +9,7 @@ import {
   convertTimeSlotsTimezone,
   resolveTimezone,
 } from '@/lib/shared/time-slot';
+import { formatFullName } from '@/lib/shared/settings';
 
 /**
  * GET - View candidate's available times
@@ -87,8 +88,8 @@ export const POST = withRole(['PROFESSIONAL'], async (session, req: NextRequest,
 
   const proEmail = professional?.email;
   const candEmail = candidate?.email;
-  const proName = professional ? `${professional.firstName || ''} ${professional.lastName || ''}`.trim() : undefined;
-  const candName = candidate ? `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() : undefined;
+  const proName = professional ? formatFullName(professional.firstName, professional.lastName) : undefined;
+  const candName = candidate ? formatFullName(candidate.firstName, candidate.lastName) : undefined;
 
   // Generate enhanced calendar invite with Zoom details
   const ics = generateZoomCalendarInvite(

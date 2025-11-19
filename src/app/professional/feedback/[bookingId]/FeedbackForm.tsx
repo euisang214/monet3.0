@@ -7,9 +7,9 @@ import { FeedbackValidationModal, type ValidationResult } from "./FeedbackValida
 
 export default function FeedbackForm({ bookingId }: { bookingId: string }) {
   const router = useRouter();
-  const [starsCategory1, setStarsCategory1] = useState("");
-  const [starsCategory2, setStarsCategory2] = useState("");
-  const [starsCategory3, setStarsCategory3] = useState("");
+  const [contentRating, setContentRating] = useState("");
+  const [deliveryRating, setDeliveryRating] = useState("");
+  const [valueRating, setValueRating] = useState("");
   const [actions, setActions] = useState("");
   const [text, setText] = useState("");
   const [isValidating, setIsValidating] = useState(false);
@@ -18,7 +18,7 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
   const [pendingPayload, setPendingPayload] = useState<any>(null);
 
   const submitDisabled =
-    !starsCategory1 || !starsCategory2 || !starsCategory3 || !actions || !text;
+    !contentRating || !deliveryRating || !valueRating || !actions || !text;
 
   async function validateFeedback(payload: any) {
     setIsValidating(true);
@@ -84,9 +84,9 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
       }
     }
     const payload = {
-      starsCategory1: Number(formData.get("starsCategory1")),
-      starsCategory2: Number(formData.get("starsCategory2")),
-      starsCategory3: Number(formData.get("starsCategory3")),
+      contentRating: Number(formData.get("contentRating")),
+      deliveryRating: Number(formData.get("deliveryRating")),
+      valueRating: Number(formData.get("valueRating")),
       extraCategoryRatings: extra,
       actions: actionsText
         .split("\n")
@@ -124,41 +124,41 @@ export default function FeedbackForm({ bookingId }: { bookingId: string }) {
   return (
     <form onSubmit={handleSubmit} className="col" style={{ gap: 16 }}>
       <div className="col" style={{ gap: 4 }}>
-        <h3>Category 1 Rating</h3>
-        <p className="text-sm">Evaluate core technical skills.</p>
+        <h3>Content Rating</h3>
+        <p className="text-sm">Evaluate the quality and relevance of discussion content.</p>
         <Input
           type="number"
-          name="starsCategory1"
+          name="contentRating"
           min={1}
           max={5}
-          value={starsCategory1}
-          onChange={(e) => setStarsCategory1(e.target.value)}
+          value={contentRating}
+          onChange={(e) => setContentRating(e.target.value)}
           required
         />
       </div>
       <div className="col" style={{ gap: 4 }}>
-        <h3>Category 2 Rating</h3>
-        <p className="text-sm">Assess communication and collaboration.</p>
+        <h3>Delivery Rating</h3>
+        <p className="text-sm">Assess communication clarity and engagement.</p>
         <Input
           type="number"
-          name="starsCategory2"
+          name="deliveryRating"
           min={1}
           max={5}
-          value={starsCategory2}
-          onChange={(e) => setStarsCategory2(e.target.value)}
+          value={deliveryRating}
+          onChange={(e) => setDeliveryRating(e.target.value)}
           required
         />
       </div>
       <div className="col" style={{ gap: 4 }}>
-        <h3>Category 3 Rating</h3>
-        <p className="text-sm">Judge problem-solving approach.</p>
+        <h3>Value Rating</h3>
+        <p className="text-sm">Judge overall value and actionable insights provided.</p>
         <Input
           type="number"
-          name="starsCategory3"
+          name="valueRating"
           min={1}
           max={5}
-          value={starsCategory3}
-          onChange={(e) => setStarsCategory3(e.target.value)}
+          value={valueRating}
+          onChange={(e) => setValueRating(e.target.value)}
           required
         />
       </div>

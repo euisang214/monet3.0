@@ -1,5 +1,7 @@
 import Stripe from 'stripe';
 import { prisma } from '@/lib/core/db';
+import { calculateNetAmount } from '@/lib/utils/payment';
+import { usdToCents } from '@/lib/utils/currency';
 
 const secret = process.env.STRIPE_SECRET_KEY;
 if (!secret) throw new Error('STRIPE_SECRET_KEY env var is required');
@@ -10,6 +12,14 @@ export const stripe = new Stripe(secret, {
 
 // PLATFORM_FEE is a decimal (e.g. 0.20 for 20%, 0.10 for 10%) (Issue #10)
 export const PLATFORM_FEE = Number(process.env.PLATFORM_FEE || '0.20');
+
+// Validate PLATFORM_FEE is a valid decimal percentage
+if (PLATFORM_FEE < 0 || PLATFORM_FEE > 1) {
+  throw new Error(
+    `PLATFORM_FEE must be between 0 and 1 (got ${PLATFORM_FEE}). ` +
+    `Use decimal format: 0.2 for 20%, 0.1 for 10%, etc.`
+  );
+}
 
 /**
  * Create a PaymentIntent for a booking. Funds are held by the platform until
@@ -164,7 +174,7 @@ export async function releaseEscrowToProfessional(
   const chargeId = (pi as any).charges?.data?.[0]?.id;
   if (!chargeId) throw new Error('charge not found');
 
-  const amountNet = payment.amountGross - payment.platformFee;
+  const amountNet = calculateNetAmount(payment.amountGross, payment.platformFee);
 
   const transfer = await stripe.transfers.create({
     amount: amountNet,

@@ -181,8 +181,8 @@ model Booking {
   candidate          User                @relation("CandidateBookings", fields: [candidateId], references: [id], onDelete: Cascade)
   professional       User                @relation("ProfessionalBookings", fields: [professionalId], references: [id], onDelete: Cascade)
   payment            Payment?
-  feedback           Feedback?
-  professionalReview ProfessionalReview?
+  callFeedback       CallFeedback?
+  professionalRating ProfessionalRating?
   payout             Payout?
 
   @@index([status, startAt])
@@ -207,24 +207,27 @@ model Payment {
   @@index([status])
 }
 
-model Feedback {
+model CallFeedback {
   bookingId            String   @id
-  starsCategory1       Int
-  starsCategory2       Int
-  starsCategory3       Int
+  contentRating        Int      @map("starsCategory1")
+  deliveryRating       Int      @map("starsCategory2")
+  valueRating          Int      @map("starsCategory3")
   extraCategoryRatings Json     @default("{}")
   wordCount            Int
   actions              String[]
-  text                 String
+  summary              String?  // Brief summary for QC LLM reference
+  text                 String   // Detailed feedback text
   submittedAt          DateTime
   timezone             String   @default("UTC")
   qcStatus             QCStatus
   qcReport             Json     @default("{}")
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("Feedback")
 }
 
-model ProfessionalReview {
+model ProfessionalRating {
   bookingId   String   @id
   rating      Int
   text        String
@@ -232,6 +235,8 @@ model ProfessionalReview {
   timezone    String   @default("UTC")
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("ProfessionalReview")
 }
 
 model Payout {

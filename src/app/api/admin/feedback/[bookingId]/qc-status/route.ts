@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
 import { refundPayment } from '@/lib/integrations/stripe';
 import { withRole } from '@/lib/core/api-helpers';
+import { API_ERRORS, createErrorResponse, notFoundError } from '@/lib/core/errors';
 
 /**
  * Admin endpoint to manually update feedback QC status
@@ -18,22 +19,23 @@ export const PUT = withRole(['ADMIN'], async (
 
   // Validate qcStatus
   if (!['passed', 'revise', 'failed', 'missing'].includes(qcStatus)) {
-    return NextResponse.json(
-      { error: 'invalid_qc_status', valid: ['passed', 'revise', 'failed', 'missing'] },
-      { status: 400 }
+    return createErrorResponse(
+      API_ERRORS.INVALID_QC_STATUS,
+      400,
+      { valid: ['passed', 'revise', 'failed', 'missing'] }
     );
   }
 
-  const feedback = await prisma.feedback.findUnique({
+  const callFeedback = await prisma.callFeedback.findUnique({
     where: { bookingId: params.bookingId },
   });
 
-  if (!feedback) {
-    return NextResponse.json({ error: 'feedback_not_found' }, { status: 404 });
+  if (!callFeedback) {
+    return notFoundError(API_ERRORS.FEEDBACK_NOT_FOUND);
   }
 
   // Update feedback QC status
-  await prisma.feedback.update({
+  await prisma.callFeedback.update({
     where: { bookingId: params.bookingId },
     data: {
       qcStatus,
@@ -58,9 +60,10 @@ export const PUT = withRole(['ADMIN'], async (
       });
     } catch (error) {
       console.error('Failed to process refund:', error);
-      return NextResponse.json(
-        { error: 'refund_failed', message: (error as Error).message },
-        { status: 500 }
+      return createErrorResponse(
+        API_ERRORS.REFUND_FAILED,
+        500,
+        { message: (error as Error).message }
       );
     }
   }

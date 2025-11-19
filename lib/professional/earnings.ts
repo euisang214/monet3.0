@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/core/db";
 import { PaymentStatus } from "@prisma/client";
+import { calculateNetAmount } from "@/lib/utils/payment";
 
 export async function getProfessionalEarnings(
   userId: string,
@@ -41,14 +42,18 @@ export async function getProfessionalEarnings(
     ]);
 
   const stats = {
-    total:
-      (totalAgg._sum.amountGross ?? 0) - (totalAgg._sum.platformFee ?? 0),
-    currentMonth:
-      (currentMonthAgg._sum.amountGross ?? 0) -
-      (currentMonthAgg._sum.platformFee ?? 0),
-    pending:
-      (pendingAgg._sum.amountGross ?? 0) -
-      (pendingAgg._sum.platformFee ?? 0),
+    total: calculateNetAmount(
+      totalAgg._sum.amountGross ?? 0,
+      totalAgg._sum.platformFee ?? 0
+    ),
+    currentMonth: calculateNetAmount(
+      currentMonthAgg._sum.amountGross ?? 0,
+      currentMonthAgg._sum.platformFee ?? 0
+    ),
+    pending: calculateNetAmount(
+      pendingAgg._sum.amountGross ?? 0,
+      pendingAgg._sum.platformFee ?? 0
+    ),
   };
 
   return { stats, payments, totalPages: Math.ceil(totalCount / perPage) };

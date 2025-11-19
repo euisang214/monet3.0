@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/core/db";
 import { PaymentStatus } from "@prisma/client";
+import { calculateNetAmount } from "@/lib/utils/payment";
 
 export async function getProfessionalDashboardData(
   userId: string,
@@ -36,14 +37,14 @@ export async function getProfessionalDashboardData(
       },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.professionalReview.findFirst({
+    prisma.professionalRating.findFirst({
       where: { booking: { professionalId: userId } },
       orderBy: { submittedAt: "desc" },
     }),
   ]);
 
   const totalEarnings = payments.reduce(
-    (sum, p) => sum + (p.amountGross - p.platformFee),
+    (sum, p) => sum + calculateNetAmount(p.amountGross, p.platformFee),
     0
   );
 
@@ -52,7 +53,7 @@ export async function getProfessionalDashboardData(
   monthStart.setHours(0, 0, 0, 0);
   const recentEarnings = payments
     .filter((p) => p.createdAt >= monthStart)
-    .reduce((sum, p) => sum + (p.amountGross - p.platformFee), 0);
+    .reduce((sum, p) => sum + calculateNetAmount(p.amountGross, p.platformFee), 0);
 
   const responseRate =
     requestedCount > 0 ? Math.round((acceptedCount / requestedCount) * 100) : 0;

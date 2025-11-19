@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/core/db';
 import { createCheckoutIntent, ensureCustomer } from '@/lib/integrations/stripe';
 import { withAuth } from '@/lib/core/api-helpers';
+import { formatFullName } from '@/lib/shared/settings';
 
 export const POST = withAuth(async (session, req: NextRequest, { params }:{params:{id:string}}) => {
 
@@ -27,7 +28,7 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
   const customerId = await ensureCustomer(
     booking.candidate.id,
     booking.candidate.email,
-    `${booking.candidate.firstName || ''} ${booking.candidate.lastName || ''}`.trim(),
+    formatFullName(booking.candidate.firstName, booking.candidate.lastName),
     booking.candidate.stripeCustomerId,
   );
   if (booking.priceUSD == null)

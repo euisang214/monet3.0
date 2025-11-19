@@ -5,7 +5,7 @@ process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/monet_test';
 process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.AUTH_SECRET = 'test-secret-key-for-testing-only';
 process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
-process.env.PLATFORM_FEE = '20';
+process.env.PLATFORM_FEE = '0.2';
 process.env.CALL_DURATION_MINUTES = '30';
 process.env.DEFAULT_TIMEZONE = 'America/New_York';
 

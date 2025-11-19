@@ -1,8 +1,8 @@
-import { Feedback } from "@prisma/client";
+import { CallFeedback } from "@prisma/client";
 import { Card } from "@/components/ui";
 import { formatDateTime } from "@/lib/utils/date";
 
-export default function HistoricalFeedback({ feedback }: { feedback: Feedback }) {
+export default function HistoricalFeedback({ feedback }: { feedback: CallFeedback }) {
   const extraRatings = feedback.extraCategoryRatings as Record<string, number>;
   return (
     <Card className="col" style={{ padding: 16, gap: 8 }}>
@@ -12,9 +12,9 @@ export default function HistoricalFeedback({ feedback }: { feedback: Feedback })
       <div>
         <strong>Ratings</strong>
         <ul>
-          <li>Category 1: {feedback.starsCategory1}</li>
-          <li>Category 2: {feedback.starsCategory2}</li>
-          <li>Category 3: {feedback.starsCategory3}</li>
+          <li>Content: {feedback.contentRating}/5</li>
+          <li>Delivery: {feedback.deliveryRating}/5</li>
+          <li>Value: {feedback.valueRating}/5</li>
           {Object.entries(extraRatings).map(([k, v]) => (
             <li key={k}>
               {k}: {v as number}
@@ -22,8 +22,14 @@ export default function HistoricalFeedback({ feedback }: { feedback: Feedback })
           ))}
         </ul>
       </div>
+      {feedback.summary && (
+        <div>
+          <strong>Summary</strong>
+          <p>{feedback.summary}</p>
+        </div>
+      )}
       <div>
-        <strong>Summary</strong>
+        <strong>Action Items</strong>
         <ul>
           {feedback.actions.map((a, i) => (
             <li key={i}>{a}</li>

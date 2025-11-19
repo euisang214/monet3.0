@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/core/db";
 import { stripe, ensureCustomer } from "@/lib/integrations/stripe";
 import { withAuth } from '@/lib/core/api-helpers';
+import { formatFullName } from '@/lib/shared/settings';
+import { usdToCents } from '@/lib/utils/currency';
 
 export const POST = withAuth(async (session, req: NextRequest) => {
 
@@ -23,11 +25,11 @@ export const POST = withAuth(async (session, req: NextRequest) => {
   const customerId = await ensureCustomer(
     user.id,
     user.email,
-    `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+    formatFullName(user.firstName, user.lastName),
   );
 
   const pi = await stripe.paymentIntents.create({
-    amount: Math.round(pro.priceUSD * 100),
+    amount: usdToCents(pro.priceUSD),
     currency: 'usd',
     automatic_payment_methods: { enabled: true },
     customer: customerId,

@@ -3,6 +3,8 @@ import DashboardClient from "@/components/dashboard/DashboardClient";
 import { auth } from "@/auth";
 import { getProfessionalEarnings } from "@/lib/professional/earnings";
 import { format } from "date-fns";
+import { calculateNetAmount } from "@/lib/utils/payment";
+import { centsToUsd } from "@/lib/utils/currency";
 
 export default async function Earnings({
   searchParams,
@@ -24,7 +26,7 @@ export default async function Earnings({
   const rows = payments.map((p) => ({
     date: format(p.createdAt, "MMMM d, yyyy"),
     description: `Expert Call with ${p.booking.candidate.email}`,
-    amount: `+$${((p.amountGross - p.platformFee) / 100).toFixed(2)}`,
+    amount: `+$${centsToUsd(calculateNetAmount(p.amountGross, p.platformFee)).toFixed(2)}`,
     status:
       p.status === "released"
         ? "Completed"
@@ -47,15 +49,15 @@ export default async function Earnings({
         <div className="grid grid-3" style={{ gap: 16 }}>
           <div className="card" style={{ padding: 16 }}>
             <h4>Total Earnings</h4>
-            <div style={{ fontSize: 24 }}>{"$"}{(stats.total / 100).toFixed(2)}</div>
+            <div style={{ fontSize: 24 }}>{"$"}{centsToUsd(stats.total).toFixed(2)}</div>
           </div>
           <div className="card" style={{ padding: 16 }}>
             <h4>Current Month</h4>
-            <div style={{ fontSize: 24 }}>{"$"}{(stats.currentMonth / 100).toFixed(2)}</div>
+            <div style={{ fontSize: 24 }}>{"$"}{centsToUsd(stats.currentMonth).toFixed(2)}</div>
           </div>
           <div className="card" style={{ padding: 16 }}>
             <h4>Pending Payouts</h4>
-            <div style={{ fontSize: 24 }}>{"$"}{(stats.pending / 100).toFixed(2)}</div>
+            <div style={{ fontSize: 24 }}>{"$"}{centsToUsd(stats.pending).toFixed(2)}</div>
           </div>
         </div>
       </Card>

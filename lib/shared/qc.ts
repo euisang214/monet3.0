@@ -42,8 +42,7 @@ export function validateFeedbackBasics(text: string, actions: string[]): BasicVa
 
 export function evaluateFeedback(text: string, actions: string[]): QCReport{
   const validation = validateFeedbackBasics(text, actions);
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  const clarityScore = Math.min(100, Math.round(words.length / 4));
+  const clarityScore = Math.min(100, Math.round(validation.wordCount / 4));
 
   return {
     wordCountOk: validation.wordCount >= 200,
@@ -55,7 +54,7 @@ export function evaluateFeedback(text: string, actions: string[]): QCReport{
 }
 
 export async function qcAndGatePayout(bookingId: string){
-  const fb = await prisma.feedback.findUnique({ where: { bookingId } });
+  const fb = await prisma.callFeedback.findUnique({ where: { bookingId } });
   if(!fb) return;
 
   // Use same validation logic as submission (Issue #4)
