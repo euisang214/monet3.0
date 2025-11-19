@@ -257,10 +257,14 @@ model Verification {
   id             String    @id @default(cuid())
   userId         String
   corporateEmail String
-  token          String
+  token          String    @unique
+  expiresAt      DateTime
   verifiedAt     DateTime?
   createdAt      DateTime  @default(now())
   timezone       String    @default("UTC")
+
+  @@index([token])
+  @@index([userId])
 }
 
 model Notification {
