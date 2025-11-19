@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/ui";
 import RequestActions from "@/components/bookings/RequestActions";
 import { auth } from "@/auth";
 import { getProfessionalRequests } from "@/lib/professional/requests";
+import { formatFullName } from "@/lib/shared/settings";
 
 export default async function Requests({
   searchParams,
@@ -24,8 +25,7 @@ export default async function Requests({
   const rows = requests.map((r) => {
     const candidate = r.candidate;
     const profile = candidate.candidateProfile;
-    const name = `${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim() ||
-      candidate.email;
+    const name = formatFullName(candidate.firstName, candidate.lastName) || candidate.email;
     const school = profile?.education?.[0]?.school ?? "";
     const interests = (
       <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>

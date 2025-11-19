@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeSlots, splitIntoSlots, type Slot } from '@/lib/shared/time-slot';
+import { mergeSlots, splitIntoSlots, type TimeSlot } from '@/lib/shared/time-slot';
 import { createMockAvailability } from '../utils/fixtures';
 import { todayAt, tomorrowAt } from '../utils/helpers';
 
@@ -17,7 +17,7 @@ import { todayAt, tomorrowAt } from '../utils/helpers';
 describe('Availability Management', () => {
   describe('Time Slot Merging', () => {
     it('should merge continuous slots into a single range', () => {
-      const slots: Slot[] = [
+      const slots: TimeSlot[] = [
         { start: '2024-01-01T09:00:00', end: '2024-01-01T09:30:00', timezone: 'America/New_York' },
         { start: '2024-01-01T09:30:00', end: '2024-01-01T10:00:00', timezone: 'America/New_York' },
       ];
@@ -30,7 +30,7 @@ describe('Availability Management', () => {
     });
 
     it('should not merge non-continuous slots', () => {
-      const slots: Slot[] = [
+      const slots: TimeSlot[] = [
         { start: '2024-01-01T09:00:00', end: '2024-01-01T09:30:00', timezone: 'America/New_York' },
         { start: '2024-01-01T11:00:00', end: '2024-01-01T11:30:00', timezone: 'America/New_York' },
       ];
@@ -41,14 +41,14 @@ describe('Availability Management', () => {
     });
 
     it('should handle empty slot array', () => {
-      const slots: Slot[] = [];
+      const slots: TimeSlot[] = [];
       const merged = mergeSlots(slots);
 
       expect(merged).toHaveLength(0);
     });
 
     it('should merge multiple continuous slots', () => {
-      const slots: Slot[] = [
+      const slots: TimeSlot[] = [
         { start: '2024-01-01T09:00:00', end: '2024-01-01T09:30:00', timezone: 'America/New_York' },
         { start: '2024-01-01T09:30:00', end: '2024-01-01T10:00:00', timezone: 'America/New_York' },
         { start: '2024-01-01T10:00:00', end: '2024-01-01T10:30:00', timezone: 'America/New_York' },
@@ -62,7 +62,7 @@ describe('Availability Management', () => {
     });
 
     it('should handle mixed continuous and non-continuous slots', () => {
-      const slots: Slot[] = [
+      const slots: TimeSlot[] = [
         { start: '2024-01-01T09:00:00', end: '2024-01-01T09:30:00', timezone: 'America/New_York' },
         { start: '2024-01-01T09:30:00', end: '2024-01-01T10:00:00', timezone: 'America/New_York' },
         { start: '2024-01-01T11:00:00', end: '2024-01-01T11:30:00', timezone: 'America/New_York' },
@@ -81,7 +81,7 @@ describe('Availability Management', () => {
 
   describe('Time Slot Splitting', () => {
     it('should split range into 30-minute chunks', () => {
-      const ranges: Slot[] = [
+      const ranges: TimeSlot[] = [
         { start: '2024-01-01T09:00:00', end: '2024-01-01T10:00:00', timezone: 'America/New_York' },
       ];
 
@@ -95,7 +95,7 @@ describe('Availability Management', () => {
     });
 
     it('should split multiple ranges', () => {
-      const ranges: Slot[] = [
+      const ranges: TimeSlot[] = [
         { start: '2024-01-01T09:00:00', end: '2024-01-01T10:00:00', timezone: 'America/New_York' },
         { start: '2024-01-01T14:00:00', end: '2024-01-01T15:00:00', timezone: 'America/New_York' },
       ];
@@ -106,7 +106,7 @@ describe('Availability Management', () => {
     });
 
     it('should handle custom slot duration', () => {
-      const ranges: Slot[] = [
+      const ranges: TimeSlot[] = [
         { start: '2024-01-01T09:00:00', end: '2024-01-01T10:00:00', timezone: 'America/New_York' },
       ];
 
@@ -116,7 +116,7 @@ describe('Availability Management', () => {
     });
 
     it('should handle empty range array', () => {
-      const ranges: Slot[] = [];
+      const ranges: TimeSlot[] = [];
       const slots = splitIntoSlots(ranges, 30);
 
       expect(slots).toHaveLength(0);
@@ -125,7 +125,7 @@ describe('Availability Management', () => {
 
   describe('Round-Trip Merge and Split', () => {
     it('should maintain slots through merge and split cycle', () => {
-      const originalSlots: Slot[] = [
+      const originalSlots: TimeSlot[] = [
         { start: '2024-01-01T09:00:00', end: '2024-01-01T09:30:00', timezone: 'America/New_York' },
         { start: '2024-01-01T09:30:00', end: '2024-01-01T10:00:00', timezone: 'America/New_York' },
       ];
@@ -154,7 +154,7 @@ describe('Timezone Handling', () => {
       ];
 
       validTimezones.forEach(tz => {
-        const slot: Slot = {
+        const slot: TimeSlot = {
           start: '2024-01-01T09:00:00',
           end: '2024-01-01T09:30:00',
           timezone: tz,
@@ -169,7 +169,7 @@ describe('Timezone Handling', () => {
     });
 
     it('should store timezone with each slot', () => {
-      const slot: Slot = {
+      const slot: TimeSlot = {
         start: '2024-01-01T09:00:00',
         end: '2024-01-01T09:30:00',
         timezone: 'America/Los_Angeles',
@@ -182,7 +182,7 @@ describe('Timezone Handling', () => {
 
   describe('Timezone Conversions', () => {
     it('should maintain UTC times across timezone changes', () => {
-      const slot: Slot = {
+      const slot: TimeSlot = {
         start: '2024-01-01T14:00:00',
         end: '2024-01-01T14:30:00',
         timezone: 'America/New_York',
@@ -193,13 +193,13 @@ describe('Timezone Handling', () => {
     });
 
     it('should handle daylight saving time transitions', () => {
-      const winterSlot: Slot = {
+      const winterSlot: TimeSlot = {
         start: '2024-01-15T10:00:00', // Winter (EST)
         end: '2024-01-15T10:30:00',
         timezone: 'America/New_York',
       };
 
-      const summerSlot: Slot = {
+      const summerSlot: TimeSlot = {
         start: '2024-07-15T10:00:00', // Summer (EDT)
         end: '2024-07-15T10:30:00',
         timezone: 'America/New_York',
@@ -211,13 +211,13 @@ describe('Timezone Handling', () => {
 
   describe('Multi-Timezone Scenarios', () => {
     it('should support bookings across different timezones', () => {
-      const candidateSlot: Slot = {
+      const candidateSlot: TimeSlot = {
         start: '2024-01-01T14:00:00',
         end: '2024-01-01T14:30:00',
         timezone: 'America/New_York', // 2 PM EST
       };
 
-      const professionalSlot: Slot = {
+      const professionalSlot: TimeSlot = {
         start: '2024-01-01T11:00:00',
         end: '2024-01-01T11:30:00',
         timezone: 'America/Los_Angeles', // 11 AM PST = 2 PM EST
@@ -228,7 +228,7 @@ describe('Timezone Handling', () => {
     });
 
     it('should merge slots within same timezone only', () => {
-      const slots: Slot[] = [
+      const slots: TimeSlot[] = [
         { start: '2024-01-01T09:00:00', end: '2024-01-01T09:30:00', timezone: 'America/New_York' },
         { start: '2024-01-01T09:30:00', end: '2024-01-01T10:00:00', timezone: 'America/New_York' },
         { start: '2024-01-01T09:00:00', end: '2024-01-01T09:30:00', timezone: 'America/Los_Angeles' },
@@ -330,11 +330,11 @@ describe('Google Calendar Integration', () => {
     });
 
     it('should merge Google Calendar busy times with manual availability', () => {
-      const manualSlots: Slot[] = [
+      const manualSlots: TimeSlot[] = [
         { start: '2024-01-01T09:00:00', end: '2024-01-01T17:00:00', timezone: 'America/New_York' },
       ];
 
-      const busyTimes: Slot[] = [
+      const busyTimes: TimeSlot[] = [
         { start: '2024-01-01T10:00:00', end: '2024-01-01T11:00:00', timezone: 'America/New_York' },
       ];
 
@@ -389,7 +389,7 @@ describe('Google Calendar Integration', () => {
 describe('Slot Validation', () => {
   describe('Time Format Validation', () => {
     it('should use ISO 8601 format for time slots', () => {
-      const slot: Slot = {
+      const slot: TimeSlot = {
         start: '2024-01-01T09:00:00',
         end: '2024-01-01T09:30:00',
         timezone: 'America/New_York',

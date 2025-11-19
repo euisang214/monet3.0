@@ -579,8 +579,8 @@ Shared authentication endpoints (kept at root for NextAuth compatibility):
 Professional-specific endpoints:
 
 **Bookings**:
-- `GET /api/professional/bookings/[id]/schedule` - View candidate's available times
-- `POST /api/professional/bookings/[id]/schedule` - Accept booking and schedule by picking a time
+- `GET /api/professional/bookings/[id]/confirm-and-schedule` - View candidate's available times
+- `POST /api/professional/bookings/[id]/confirm-and-schedule` - Accept booking and schedule by picking a time
   - Creates Zoom meeting, sends calendar invites, changes status to 'accepted'
   - By selecting a time, the professional confirms/accepts the booking
 - `POST /api/professional/bookings/[id]/decline` - Decline booking request
@@ -815,8 +815,8 @@ export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
 
 4. ACCEPT & SCHEDULE
    Professional views candidate's available times and picks one
-   → GET /api/professional/bookings/[id]/schedule (view candidate availability)
-   → POST /api/professional/bookings/[id]/schedule { startAt }
+   → GET /api/professional/bookings/[id]/confirm-and-schedule (view candidate availability)
+   → POST /api/professional/bookings/[id]/confirm-and-schedule { startAt }
    → Creates Zoom meeting
    → Sends calendar invites to both parties
    → Status changes to "accepted"
@@ -1604,6 +1604,20 @@ git push -u origin <branch-name>
 ---
 
 ## Changelog
+
+### 2025-11-19 - Refactoring Cleanup
+- **Removed `/candidate/history` route**: Redundant with `/candidate/calls`
+  - Moved feedback view page to `/candidate/calls/[bookingId]/feedback`
+  - Updated all links to use the new path
+- **Renamed `/schedule` endpoint to `/confirm-and-schedule`**: Clearer naming
+  - `GET /api/professional/bookings/[id]/confirm-and-schedule` - View candidate's available times
+  - `POST /api/professional/bookings/[id]/confirm-and-schedule` - Accept booking and schedule
+  - Updated frontend code and tests
+- **Removed `Slot` type alias**: Now use only `TimeSlot` everywhere
+  - Updated `mergeSlots()` and `splitIntoSlots()` function signatures
+  - Updated all test files
+- **Applied `formatFullName()` helper consistently**: Across all files that format user names
+  - Updated 8+ files to use the helper from `@/lib/shared/settings`
 
 ### 2025-11-18 - Money Handling: Cents (Int) Instead of Dollars (Float)
 - **BREAKING CHANGE**: All money fields now use cents (Int) instead of dollars (Float)

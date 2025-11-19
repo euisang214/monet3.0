@@ -5,6 +5,7 @@ import { withAuth } from '@/lib/core/api-helpers';
 import { sendEmail } from '@/lib/integrations/email';
 import type { TimeSlot } from '@/lib/shared/time-slot';
 import { toUtcDateRange, resolveTimezone, normalizeSlots } from '@/lib/shared/time-slot';
+import { formatFullName } from '@/lib/shared/settings';
 
 export const POST = withAuth(async (session, req: NextRequest) => {
   if (!rateLimit(`req:${session.user.id}`)) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
@@ -72,7 +73,7 @@ export const POST = withAuth(async (session, req: NextRequest) => {
   const customerId = await ensureCustomer(
     candidate.id,
     candidate.email,
-    `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim(),
+    formatFullName(candidate.firstName, candidate.lastName),
     candidate.stripeCustomerId,
   );
   const pi = await createCheckoutIntent(booking.id, { customerId, priceCents: pro.priceUSD });

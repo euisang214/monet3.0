@@ -2,6 +2,7 @@ import DashboardClient from "@/components/dashboard/DashboardClient";
 import { auth } from "@/auth";
 import { getProvidedFeedback, getPendingFeedback } from "@/lib/professional/feedback";
 import { format } from "date-fns";
+import { formatFullName } from "@/lib/shared/settings";
 
 export default async function FeedbackPage({
   searchParams,
@@ -25,8 +26,7 @@ export default async function FeedbackPage({
 
   const providedRows = provided.map((b) => {
     const candidate = b.candidate;
-    const name = `${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim() ||
-      candidate.email;
+    const name = formatFullName(candidate.firstName, candidate.lastName) || candidate.email;
     const edu = candidate.candidateProfile?.education?.[0];
     const education = edu ? `${edu.title} @ ${edu.school}` : "";
     return {
@@ -39,8 +39,7 @@ export default async function FeedbackPage({
 
   const pendingRows = pending.map((b) => {
     const candidate = b.candidate;
-    const name = `${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim() ||
-      candidate.email;
+    const name = formatFullName(candidate.firstName, candidate.lastName) || candidate.email;
     const edu = candidate.candidateProfile?.education?.[0];
     const education = edu ? `${edu.title} @ ${edu.school}` : "";
     return {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/core/db";
+import { formatFullName } from "@/lib/shared/settings";
 
 export async function GET(
   req: NextRequest,
@@ -19,7 +20,7 @@ export async function GET(
   }
   const payload: any = {
     identity: {
-      name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || undefined,
+      name: formatFullName(user.firstName, user.lastName) || undefined,
       email: user.email,
     },
     resumeUrl: profile.resumeUrl,

@@ -8,6 +8,7 @@ import {
 } from "@/lib/integrations/stripe";
 import { z } from 'zod';
 import { timezones } from '@/lib/utils/timezones';
+import { formatFullName } from '@/lib/shared/settings';
 
 export const POST = withAuth(async (session, req: NextRequest) => {
   const body = await req.json().catch(() => null);
@@ -133,7 +134,7 @@ export const POST = withAuth(async (session, req: NextRequest) => {
     await ensureCustomer(
       session.user.id,
       session.user.email || '',
-      `${firstName} ${lastName}`,
+      formatFullName(firstName, lastName),
     );
   } else {
     const schema = base.extend({
