@@ -209,12 +209,23 @@ export async function releaseEscrowToProfessional(
     data: { status: 'released' },
   });
 
-  await prisma.payout.create({
-    data: {
+  // Update existing pending payout (created by qcAndGatePayout) or create if missing
+  await prisma.payout.upsert({
+    where: { bookingId },
+    update: {
+      proStripeAccountId,
+      amountNet,
+      status: 'paid',
+      stripeTransferId: transfer.id,
+      paidAt: new Date(),
+    },
+    create: {
       bookingId,
       proStripeAccountId,
       amountNet,
       status: 'paid',
+      stripeTransferId: transfer.id,
+      paidAt: new Date(),
     },
   });
 
