@@ -3,7 +3,6 @@ import { prisma } from "@/lib/core/db";
 import { stripe, ensureCustomer } from "@/lib/integrations/stripe";
 import { withAuth } from '@/lib/core/api-helpers';
 import { formatFullName } from '@/lib/shared/settings';
-import { usdToCents } from '@/lib/utils/currency';
 
 export const POST = withAuth(async (session, req: NextRequest) => {
 
@@ -28,8 +27,9 @@ export const POST = withAuth(async (session, req: NextRequest) => {
     formatFullName(user.firstName, user.lastName),
   );
 
+  // priceUSD is already in cents (e.g., 10000 = $100.00), pass directly to Stripe
   const pi = await stripe.paymentIntents.create({
-    amount: usdToCents(pro.priceUSD),
+    amount: pro.priceUSD,
     currency: 'usd',
     automatic_payment_methods: { enabled: true },
     customer: customerId,

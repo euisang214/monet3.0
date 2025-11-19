@@ -33,9 +33,9 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
   );
   if (booking.priceUSD == null)
     return NextResponse.json({ error: 'price_missing' }, { status: 500 });
-  const priceUSD = booking.priceUSD;
-  // Pass priceUSD to avoid redundant database query
-  const pi = await createCheckoutIntent(booking.id, { customerId, priceUSD });
+  const priceCents = booking.priceUSD;
+  // Pass priceCents to avoid redundant database query (priceUSD is stored in cents)
+  const pi = await createCheckoutIntent(booking.id, { customerId, priceCents });
 
   // Note: Zoom meeting will be created when professional schedules the call
   // See: /api/professional/bookings/[id]/schedule

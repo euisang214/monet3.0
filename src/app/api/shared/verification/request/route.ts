@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/core/db";
 import { withAuth } from '@/lib/core/api-helpers';
 import { sendEmail } from '@/lib/integrations/email';
+import crypto from 'crypto';
 
 export const POST = withAuth(async (session, req: NextRequest) => {
   const { corporateEmail } = await req.json();
-  const token = Math.random().toString(36).slice(2,10);
+  // Use cryptographically secure token instead of Math.random()
+  const token = crypto.randomBytes(32).toString('hex');
   await prisma.verification.create({
     data: { userId: session.user.id, corporateEmail, token },
   });
