@@ -203,7 +203,7 @@ describe('API Routes - Candidate Bookings', () => {
 });
 
 describe('API Routes - Professional Bookings', () => {
-  describe('POST /api/professional/bookings/[id]/schedule', () => {
+  describe('POST /api/professional/bookings/[id]/confirm-and-schedule', () => {
     it('should accept booking and create Zoom meeting', async () => {
       const booking = createMockBooking({
         status: BookingStatus.requested,

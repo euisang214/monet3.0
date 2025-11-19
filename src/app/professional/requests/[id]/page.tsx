@@ -10,7 +10,7 @@ export default function RequestSchedule({ params }: { params: { id: string } }) 
   const router = useRouter();
 
   useEffect(() => {
-    fetch(`/api/professional/bookings/${params.id}/schedule`)
+    fetch(`/api/professional/bookings/${params.id}/confirm-and-schedule`)
       .then((res) => res.json())
       .then((data) => {
         const availability: TimeSlot[] = (data.availability || []).map((s: any) => ({
@@ -24,7 +24,7 @@ export default function RequestSchedule({ params }: { params: { id: string } }) 
 
   const handleConfirm = async (selected: TimeSlot[]) => {
     if (!selected[0]) return;
-    await fetch(`/api/professional/bookings/${params.id}/schedule`, {
+    await fetch(`/api/professional/bookings/${params.id}/confirm-and-schedule`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ startAt: toUtcDateRange(selected[0]).start.toISOString() }),

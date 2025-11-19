@@ -10,8 +10,6 @@ export type TimeSlot = {
   timezone: string;
 };
 
-export type Slot = TimeSlot;
-
 const ISO_LOCAL_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
 
 const DEFAULT_TIMEZONE = (() => {
@@ -105,9 +103,9 @@ export function startOfWeekInTimezone(date: Date, timezone: string, weekStartsOn
   return fromZonedTime(formatted, tz);
 }
 
-export function mergeSlots(slots: Slot[]): Slot[] {
+export function mergeSlots(slots: TimeSlot[]): TimeSlot[] {
   if (!slots.length) return [];
-  const grouped = new Map<string, Slot[]>();
+  const grouped = new Map<string, TimeSlot[]>();
   slots.forEach((slot) => {
     const timezone = ensureTimezone(slot.timezone);
     const list = grouped.get(timezone) ?? [];
@@ -115,7 +113,7 @@ export function mergeSlots(slots: Slot[]): Slot[] {
     grouped.set(timezone, list);
   });
 
-  const merged: Slot[] = [];
+  const merged: TimeSlot[] = [];
   grouped.forEach((group, timezone) => {
     const sorted = group
       .map((s) => toUtcDateRange(s))
@@ -139,8 +137,8 @@ export function mergeSlots(slots: Slot[]): Slot[] {
   return merged;
 }
 
-export function splitIntoSlots(ranges: Slot[], minutes = 30): Slot[] {
-  const result: Slot[] = [];
+export function splitIntoSlots(ranges: TimeSlot[], minutes = 30): TimeSlot[] {
+  const result: TimeSlot[] = [];
   ranges.forEach((range) => {
     const timezone = ensureTimezone(range.timezone);
     const { start, end } = toUtcDateRange(range);

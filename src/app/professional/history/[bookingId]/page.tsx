@@ -3,6 +3,7 @@ import HistoricalFeedback from "@/components/feedback/HistoricalFeedback";
 import { notFound, redirect } from "next/navigation";
 import { CallFeedback } from "@prisma/client";
 import { cookies } from "next/headers";
+import { formatFullName } from "@/lib/shared/settings";
 
 export default async function ProfessionalHistoryPage({
   params,
@@ -35,9 +36,7 @@ export default async function ProfessionalHistoryPage({
   const feedback: FeedbackResponse = await res.json();
 
   const candidate = feedback.booking.candidate;
-  const heading =
-    `${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim() ||
-    candidate.email;
+  const heading = formatFullName(candidate.firstName, candidate.lastName) || candidate.email;
 
   return (
     <section className="col" style={{ gap: 16 }}>

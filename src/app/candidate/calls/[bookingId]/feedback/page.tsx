@@ -3,6 +3,7 @@ import HistoricalFeedback from "@/components/feedback/HistoricalFeedback";
 import { notFound, redirect } from "next/navigation";
 import { CallFeedback } from "@prisma/client";
 import { cookies, headers } from "next/headers";
+import { formatFullName } from "@/lib/shared/settings";
 
 export default async function FeedbackPage({ params }: { params: { bookingId: string } }) {
   const session = await auth();
@@ -37,7 +38,7 @@ export default async function FeedbackPage({ params }: { params: { bookingId: st
   const feedback: FeedbackResponse = await res.json();
 
   const pro = feedback.booking.professional;
-  const name = `${pro.firstName ?? ""} ${pro.lastName ?? ""}`.trim();
+  const name = formatFullName(pro.firstName, pro.lastName);
   const profile = pro.professionalProfile;
   const titleEmployer = profile
     ? `${profile.title} @ ${profile.employer}`

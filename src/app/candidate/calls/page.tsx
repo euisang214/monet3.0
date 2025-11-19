@@ -9,6 +9,7 @@ import { prisma } from "@/lib/core/db";
 import { BookingStatus } from "@prisma/client";
 import type { CSSProperties } from "react";
 import { formatDateTime } from "@/lib/utils/date";
+import { formatFullName } from "@/lib/shared/settings";
 
 function statusStyle(status: BookingStatus): CSSProperties {
   switch (status) {
@@ -110,9 +111,7 @@ export default async function CallsPage({
   const totalPages = Math.ceil(total / perPage);
 
   const rows = bookings.map((b) => {
-    const name = [b.professional.firstName, b.professional.lastName]
-      .filter(Boolean)
-      .join(" ");
+    const name = formatFullName(b.professional.firstName, b.professional.lastName);
     const daysSince = Math.floor(
       (Date.now() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -131,7 +130,7 @@ export default async function CallsPage({
         </span>
       ),
       feedback: hasFeedback
-        ? { label: "View Feedback", href: `/candidate/history/${b.id}` }
+        ? { label: "View Feedback", href: `/candidate/calls/${b.id}/feedback` }
         : { label: "View Feedback", variant: "muted", disabled: true },
     };
   });

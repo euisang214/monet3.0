@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { Card } from "@/components/ui/ui";
 import { prisma } from "@/lib/core/db";
 import FeedbackForm from "./FeedbackForm";
+import { formatFullName } from "@/lib/shared/settings";
 
 export default async function ProvideFeedbackPage({
   params,
@@ -29,7 +30,7 @@ export default async function ProvideFeedbackPage({
   }
 
   const candidate = booking.candidate;
-  const name = `${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim();
+  const name = formatFullName(candidate.firstName, candidate.lastName);
   const school = candidate.candidateProfile?.education?.[0]?.school;
   const heading = [name || candidate.email, school && `@ ${school}`]
     .filter(Boolean)
