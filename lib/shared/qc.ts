@@ -19,7 +19,7 @@ export type BasicValidationResult = {
  * Centralized basic validation for feedback text and actions
  * Used across submission, pre-flight validation, and background QC
  */
-export function validateFeedbackBasics(text: string, actions: any[]): BasicValidationResult {
+export function validateFeedbackBasics(text: string, actions: string[]): BasicValidationResult {
   const errors: string[] = [];
   const wordCount = String(text || '').trim().split(/\s+/).filter(Boolean).length;
 
@@ -27,8 +27,10 @@ export function validateFeedbackBasics(text: string, actions: any[]): BasicValid
     errors.push(`Feedback is too short (${wordCount} words). Minimum 200 words required.`);
   }
 
-  if (!Array.isArray(actions) || actions.length !== 3) {
-    errors.push(`Exactly 3 action items required. You provided ${Array.isArray(actions) ? actions.length : 0}.`);
+  // Check for exactly 3 non-empty actions (Issue #4 & #12)
+  const validActions = Array.isArray(actions) ? actions.filter(a => a && a.trim().length > 0) : [];
+  if (validActions.length !== 3) {
+    errors.push(`Exactly 3 non-empty action items required. You provided ${validActions.length}.`);
   }
 
   return {
@@ -54,13 +56,45 @@ export function evaluateFeedback(text: string, actions: string[]): QCReport{
 export async function qcAndGatePayout(bookingId: string){
   const fb = await prisma.callFeedback.findUnique({ where: { bookingId } });
   if(!fb) return;
-  const pass = fb.wordCount >= 200 && fb.actions.length === 3 && fb.contentRating>0 && fb.deliveryRating>0 && fb.valueRating>0;
-  await prisma.callFeedback.update({
+
+  // Use same validation logic as submission (Issue #4)
+  const validation = validateFeedbackBasics(fb.text, fb.actions);
+  const starsValid = fb.starsCategory1>0 && fb.starsCategory2>0 && fb.starsCategory3>0;
+  const pass = validation.valid && starsValid;
+
+  await prisma.feedback.update({
     where: { bookingId }, data: { qcStatus: pass ? 'passed' : 'revise', qcReport: {} }
   });
-  // On pass, mark payout as ready
+
+  // On pass, create payout if not exists (Issue #6)
   if(pass){
-    await prisma.payout.updateMany({ where:{ bookingId }, data: { status: 'pending' } });
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { professional: true, payment: true },
+    });
+
+    if (booking?.professional?.stripeAccountId && booking?.payment) {
+      // Create payout record
+      const existingPayout = await prisma.payout.findUnique({ where: { bookingId } });
+      if (!existingPayout) {
+        const platformFee = booking.payment.platformFee;
+        const amountNet = booking.payment.amountGross - platformFee;
+        await prisma.payout.create({
+          data: {
+            bookingId,
+            proStripeAccountId: booking.professional.stripeAccountId,
+            amountNet,
+            status: 'pending',
+          },
+        });
+      } else {
+        // Update existing payout to pending
+        await prisma.payout.update({
+          where: { bookingId },
+          data: { status: 'pending' },
+        });
+      }
+    }
   } else {
     // On revise, enqueue nudge emails at +24h, +48h, +72h
     await enqueueNudges(bookingId);

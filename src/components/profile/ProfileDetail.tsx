@@ -36,7 +36,7 @@ export default function ProfileDetail({
           <div className="col" style={{ gap: 4 }}>
             {heading && <h2>{heading}</h2>}
             {profile.priceUSD !== undefined && (
-              <span>{`Price per Session: $${profile.priceUSD}`}</span>
+              <span>{`Price per Session: $${(profile.priceUSD / 100).toFixed(2)}`}</span>
             )}
             <div className="row" style={{ alignItems: 'center', gap: 8 }}>
               {profile.verified && <Badge>Verified Expert</Badge>}

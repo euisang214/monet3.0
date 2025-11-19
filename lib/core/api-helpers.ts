@@ -23,14 +23,7 @@ export async function requireRole(
 ): Promise<Session> {
   const session = await requireAuth();
 
-  // Special case for admin check
-  if (roles.includes('ADMIN')) {
-    if (session.user.email === 'admin@monet.local') {
-      return session;
-    }
-  }
-
-  // Check if user's role matches any of the required roles
+  // Check if user's role matches any of the required roles (Issue #7)
   if (roles.includes(session.user.role as any)) {
     return session;
   }

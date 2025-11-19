@@ -223,7 +223,7 @@ export default function CheckoutClient({
         })}
       </p>
       <p>Duration: 30 minutes</p>
-      <p>Price: ${booking.priceUSD?.toFixed(2)}</p>
+      <p>Price: ${((booking.priceUSD || 0) / 100).toFixed(2)}</p>
       <p className="text-muted">
         The professional will only be paid once they provide feedback after the call.
       </p>

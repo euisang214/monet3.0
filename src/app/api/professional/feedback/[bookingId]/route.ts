@@ -37,6 +37,20 @@ export const GET = withAuth(async (session, _req: NextRequest, { params }: { par
 });
 
 export const POST = withAuth(async (session, req: NextRequest, { params }:{params:{bookingId:string}}) => {
+  // First verify booking ownership (Issue #8)
+  const booking = await prisma.booking.findUnique({
+    where: { id: params.bookingId },
+    select: { professionalId: true },
+  });
+
+  if (!booking) {
+    return NextResponse.json({ error: 'booking_not_found' }, { status: 404 });
+  }
+
+  if (booking.professionalId !== session.user.id) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+
   const data = await req.json();
   const { contentRating, deliveryRating, valueRating, actions, text, extraCategoryRatings } = data;
 
@@ -52,6 +66,13 @@ export const POST = withAuth(async (session, req: NextRequest, { params }:{param
     update: { contentRating, deliveryRating, valueRating, actions, text, wordCount, extraCategoryRatings, submittedAt: new Date(), qcStatus: 'revise' },
     create: { bookingId: params.bookingId, contentRating, deliveryRating, valueRating, actions, text, wordCount, extraCategoryRatings, submittedAt: new Date(), qcStatus: 'revise' },
   });
+
+  // Update booking status to 'completed' (Issue #1)
+  await prisma.booking.update({
+    where: { id: params.bookingId },
+    data: { status: 'completed' },
+  });
+
   // Enqueue QC
   const { enqueueFeedbackQC } = await import('@/lib/queues');
   await enqueueFeedbackQC(params.bookingId);
