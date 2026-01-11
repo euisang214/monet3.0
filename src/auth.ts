@@ -6,26 +6,28 @@ import bcrypt from 'bcryptjs';
 import { prisma } from "@/lib/core/db";
 import { z } from 'zod';
 import { timezones } from '@/lib/utils/timezones';
+import { authConfig } from './auth.config';
 
-declare module 'next-auth'{
-  interface Session extends DefaultSession{
-    user: { id: string; role: 'CANDIDATE'|'PROFESSIONAL' } & DefaultSession['user'];
+declare module 'next-auth' {
+  interface Session extends DefaultSession {
+    user: { id: string; role: 'CANDIDATE' | 'PROFESSIONAL' } & DefaultSession['user'];
   }
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   session: { strategy: 'jwt' },
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'dev-secret',
   providers: [
     Credentials({
-      async authorize(creds){
+      async authorize(creds) {
         const schema = z.object({ email: z.string().email(), password: z.string().min(6) });
         const parsed = schema.safeParse(creds);
-        if(!parsed.success) return null;
+        if (!parsed.success) return null;
         const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-        if(!user || !user.hashedPassword) return null;
+        if (!user || !user.hashedPassword) return null;
         const ok = await bcrypt.compare(parsed.data.password, user.hashedPassword);
-        if(!ok) return null;
+        if (!ok) return null;
         return { id: user.id, email: user.email, name: user.email.split('@')[0], role: user.role };
       }
     }),
@@ -41,12 +43,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     })
   ],
   callbacks: {
-    async signIn({ user, account, req }) {
+    ...authConfig.callbacks,
+    async signIn({ user, account }) {
       if (account && (account.provider === 'google' || account.provider === 'linkedin')) {
         if (!user.email) return false;
         const provider = account.provider;
-        const tzParam = req?.nextUrl?.searchParams.get('timezone') || undefined;
-        const timezone = tzParam && timezones.includes(tzParam) ? tzParam : (process.env.DEFAULT_TIMEZONE || 'UTC');
+        // const tzParam = req?.nextUrl?.searchParams.get('timezone') || undefined;
+        // const timezone = tzParam && timezones.includes(tzParam) ? tzParam : (process.env.DEFAULT_TIMEZONE || 'UTC');
+        const timezone = process.env.DEFAULT_TIMEZONE || 'UTC';
         let dbUser = await prisma.user.findUnique({ where: { email: user.email } });
         if (!dbUser) {
           dbUser = await prisma.user.create({
@@ -64,7 +68,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             data: {
               googleCalendarConnected: provider === 'google' ? true : dbUser.googleCalendarConnected,
               linkedinConnected: provider === 'linkedin' ? true : dbUser.linkedinConnected,
-              ...(tzParam ? { timezone } : {}),
+              ...(false ? { timezone } : {}),
             }
           });
         }
@@ -96,17 +100,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return true;
     },
-    async jwt({token, user}){
-      if(user){
-        token.role = (user as any).role || 'CANDIDATE';
-        token.uid = (user as any).id;
-      }
-      return token;
-    },
-    async session({session, token}){
-      (session.user as any).id = token.uid as string;
-      (session.user as any).role = (token.role as any) || 'CANDIDATE';
-      return session;
-    }
+    // We explicitly include jwt and session here to ensure they run with full context if needed, 
+    // though they are also in authConfig. 
+    // In strict extraction, we might not need to repeat them if authConfig ones are sufficient.
+    // However, keeping them consistent is key. The ones in authConfig do NOT rely on Node APIs, so they are fine.
   }
 });

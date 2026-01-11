@@ -6,7 +6,7 @@ import {
 } from '@/lib/utils/filterOptions';
 import { listUsers } from "@/lib/shared/users";
 import { Role } from "@prisma/client";
-import DashboardClient from "../../../components/DashboardClient";
+import DashboardClient from "../../../components/dashboard/DashboardClient";
 
 export default async function CandidateDashboard({
   searchParams,
@@ -52,7 +52,7 @@ export default async function CandidateDashboard({
       active[key] = Array.isArray(value)
         ? (value as string[])
         : (value as string).split(",");
-  }
+    }
   }
 
   const [filterOptions, listResult] = await Promise.all([

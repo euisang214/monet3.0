@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import DashboardClient from "../../../components/DashboardClient";
+import DashboardClient from "../../../components/dashboard/DashboardClient";
 import {
   getFilterOptions,
   FilterConfig,
@@ -26,7 +26,7 @@ function statusStyle(status: BookingStatus): CSSProperties {
   }
 }
 
-function cleanStatus(str : String) {
+function cleanStatus(str: String) {
   return str
     .replace(`completed_pending_feedback`, "Pending Feedback")
     // Replace underscores with spaces
@@ -140,8 +140,8 @@ export default async function CallsPage({
       review: canReview
         ? { label: "Leave Review", href: `/candidate/calls/${b.id}/review` }
         : hasReview
-        ? { label: "Reviewed", variant: "muted", disabled: true }
-        : null,
+          ? { label: "Reviewed", variant: "muted", disabled: true }
+          : null,
       cancel: canCancel ? (
         <CancelButton bookingId={b.id} role="candidate" startAt={b.startAt} />
       ) : null,

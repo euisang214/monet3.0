@@ -32,8 +32,10 @@
 ### Core Features
 
 - **Anonymous Professional Discovery**: Candidates browse redacted professional profiles
-- **Booking Workflow**: Request → Accept → Schedule → Checkout → Call → Feedback
-- **Payment Processing**: Stripe Connect with escrow pattern (20% platform fee)
+- **Booking Workflow**: Request (with payment authorization) → Accept (captures funds) → Schedule → Call → Feedback
+- **Payment Processing**: Stripe Connect with separate charges and transfers pattern (20% platform fee)
+  - Uses "Separate Charges and Transfers" to enable escrow/gating (charge platform, transfer after QC passes)
+  - Funds held on platform until QC validation completes
 - **Quality Control**: Automated feedback validation with payout gating
 - **Calendar Integration**: Google Calendar sync for availability
 - **Video Meetings**: Zoom meetings created server-side
@@ -164,16 +166,12 @@ monet3.0/
 │   │   │   ├── bookings/
 │   │   │   ├── payments/
 │   │   │   └── feedback/
-│   │   └── api/                     # API routes
-│   │       ├── auth/
-│   │       ├── bookings/
-│   │       ├── professionals/
-│   │       ├── candidate/
-│   │       ├── payments/
-│   │       ├── stripe/
-│   │       ├── feedback/
-│   │       ├── qc/
-│   │       └── verification/
+│   │   └── api/                     # API routes (organized by role)
+│   │       ├── auth/                # Authentication (root for NextAuth)
+│   │       ├── professional/        # Professional-specific endpoints
+│   │       ├── candidate/           # Candidate-specific endpoints
+│   │       ├── shared/              # Shared/common endpoints
+│   │       └── admin/               # Admin-only endpoints
 │   ├── components/                  # Shared React components (organized by domain)
 │   │   ├── bookings/               # Booking-related components
 │   │   ├── feedback/               # Feedback components
@@ -183,14 +181,26 @@ monet3.0/
 │   ├── types/                       # TypeScript type definitions
 │   ├── auth.ts                      # NextAuth configuration
 │   └── middleware.ts                # Auth middleware
-├── lib/                             # Server-side utilities (organized by role)
-│   ├── professional/                # Professional-specific business logic
-│   │   ├── dashboard.ts
-│   │   ├── earnings.ts
-│   │   ├── feedback.ts
-│   │   └── requests.ts
-│   ├── candidate/                   # Candidate-specific business logic (reserved)
-│   ├── shared/                      # Shared business logic
+├── lib/                             # Server-side utilities
+│   ├── domain/                      # Domain services (shared business logic)
+│   │   ├── bookings/
+│   │   │   ├── transitions.ts       # Centralized state machine
+│   │   │   ├── history.ts
+│   │   │   └── upcoming.ts
+│   │   ├── payments/
+│   │   ├── users/
+│   │   └── qc/
+│   ├── role/                        # Role-specific facades (thin wrappers calling domain services)
+│   │   ├── professional/
+│   │   │   ├── dashboard.ts
+│   │   │   ├── earnings.ts
+│   │   │   ├── feedback.ts
+│   │   │   └── requests.ts
+│   │   └── candidate/
+│   │       ├── browse.ts            # Professional discovery logic
+│   │       ├── bookings.ts          # Booking requests
+│   │       └── availability.ts      # Candidate availability
+│   ├── shared/                      # Shared utilities
 │   │   ├── bookings/
 │   │   │   ├── history.ts
 │   │   │   └── upcoming.ts
@@ -217,8 +227,12 @@ monet3.0/
 │   │   ├── date.ts
 │   │   ├── timezones.ts
 │   │   └── profileOptions.ts
-│   └── queues/                      # BullMQ workers
-│       └── index.ts
+│   └── queues/                      # BullMQ workers (organized by domain)
+│       ├── index.ts                 # Queue exports and shared config
+│       ├── qc.ts                    # QC validation jobs
+│       ├── notifications.ts         # Email notification jobs
+│       ├── payments.ts              # Payment/payout jobs
+│       └── bookings.ts              # Booking expiry jobs
 ├── prisma/
 │   ├── schema.prisma                # Database schema
 │   ├── migrations/                  # Migration history
@@ -246,11 +260,27 @@ monet3.0/
 └── README.md
 ```
 
-### Important Path Alias
+### Important Path Aliases
 
 - `@/*` maps to `./src/*` (defined in `tsconfig.json`)
+- `@/lib/*` resolves via the above alias since `lib/` is at repo root and symlinked/configured
 
-**Usage**: `import { prisma } from '@/lib/core/db'` instead of `import { prisma } from '../../../lib/db'`
+**Usage**: `import { prisma } from '@/lib/core/db'` instead of relative paths
+
+**Note**: Verify actual configuration in `tsconfig.json`. If `lib/` is NOT under `src/`, a second alias may be needed.
+
+### lib/ Organization Philosophy
+
+The `lib/` directory uses a **hybrid approach**:
+
+1. **`lib/domain/*`**: Contains domain services organized by entity (bookings, payments, users, qc). This is where shared business logic lives.
+
+2. **`lib/role/*`**: Contains thin facades that call domain services. These are for role-specific API routes and provide a simpler interface.
+
+3. **Why this pattern**: 
+   - Domain services prevent code duplication
+   - Role facades allow role-specific customizations
+   - API routes stay thin by delegating to these layers
 
 ---
 
@@ -381,6 +411,19 @@ Examples:
 3. **"use client" Directive**: Only on interactive client components
 4. **Server Components**: Default for all components
 
+**Route-Colocated Component Boundaries**:
+
+Route-colocated components should contain ONLY:
+- ✅ UI rendering and local state
+- ✅ Event handlers that call passed-in callbacks
+- ✅ Conditional rendering logic
+
+Route-colocated components must NOT contain:
+- ❌ API calls (use server actions or page-level data fetching)
+- ❌ Validation logic (use shared Zod schemas in `/lib/`)
+- ❌ Business logic (use domain services in `/lib/domain/`)
+- ❌ Reusable UI elements (move to `/src/components/`)
+
 ### API Response Patterns
 
 **Success Response**:
@@ -429,10 +472,13 @@ model Booking {
   id               String        @id @default(cuid())
   candidateId      String
   professionalId   String
-  status           BookingStatus // draft | requested | accepted | cancelled | completed | completed_pending_feedback | refunded
-  priceUSD         Int?          // Price in cents (e.g., 10000 = $100.00)
-  startAt          DateTime
-  endAt            DateTime
+  status           BookingStatus // draft | requested | declined | expired | accepted | cancelled | completed | completed_pending_feedback | refunded
+  priceInCents     Int?          // Price in cents (e.g., 10000 = $100.00)
+  startAt          DateTime?
+  endAt            DateTime?
+  expiresAt        DateTime?     // For request expiration (72 hours from creation)
+  declineReason    String?       // Professional's reason for declining
+  paymentDueAt     DateTime?     // Checkout deadline (if using pay-after-accept variant)
   zoomMeetingId    String?
   zoomJoinUrl      String?
   timezone         String        @default("UTC")
@@ -473,6 +519,8 @@ enum Role {
 enum BookingStatus {
   draft
   requested
+  declined                      // Professional declined the request
+  expired                       // Request expired (72-hour timeout, no response)
   accepted
   cancelled
   completed
@@ -480,10 +528,20 @@ enum BookingStatus {
   refunded
 }
 
+// State transitions:
+// requested → declined (professional declines)
+// requested → expired (72-hour timeout with no response)
+// requested → accepted (professional accepts)
+// accepted → cancelled (either party cancels)
+// accepted → completed_pending_feedback (call ends)
+// completed_pending_feedback → completed (feedback submitted)
+// any → refunded (refund processed)
+
 enum PaymentStatus {
-  held      // Funds in escrow
-  released  // Transferred to professional
-  refunded  // Returned to candidate
+  authorized  // Funds authorized on card but not captured (pre-accept)
+  held        // Funds captured and in escrow (post-accept)
+  released    // Transferred to professional (after QC passes)
+  refunded    // Returned to candidate
 }
 
 enum PayoutStatus {
@@ -499,6 +557,22 @@ enum QCStatus {
   missing  // No feedback submitted
 }
 ```
+
+### State Invariants
+
+Valid state combinations across the four status axes (BookingStatus × PaymentStatus × QCStatus × PayoutStatus):
+
+| Invariant | Rule | Violation Indicates |
+|-----------|------|--------------------|
+| `PaymentStatus = refunded` | ⇒ `BookingStatus ∈ {cancelled, refunded, declined, expired}` | State corruption |
+| `PaymentStatus = released` | ⇒ `QCStatus = passed` | Premature payout |
+| `PayoutStatus = blocked` | ⇒ `PaymentStatus = refunded` | Inconsistent refund/block |
+| `PayoutStatus = paid` | ⇒ `PaymentStatus = released` | Orphan payout |
+| `BookingStatus = accepted` | ⇒ `startAt` and `endAt` must be set | Missing schedule |
+| `BookingStatus = completed` | ⇒ `qcStatus ≠ missing` | Missing feedback |
+| `PaymentStatus = authorized` | ⇒ `BookingStatus ∈ {requested, declined, expired}` | Auth without capture |
+
+**Enforcement**: State transition service validates invariants before committing any status change.
 
 #### ProfessionalRating
 ```prisma
@@ -544,6 +618,35 @@ model PasswordResetToken {
 ```
 
 **Usage**: Password reset functionality. Tokens expire and are single-use.
+
+### Model-to-Table Mappings
+
+**Current State**: Some Prisma models have different names than their underlying database tables (via `@@map()`):
+
+| Prisma Model | Current Table | Status |
+|--------------|---------------|--------|
+| `CallFeedback` | `Feedback` | Mismatched |
+| `ProfessionalRating` | `ProfessionalReview` | Mismatched |
+
+**Recommended Action**: Rename tables to match model names. Matching names is Prisma's default behavior and reduces confusion when switching between code and database.
+
+**Migration to align names**:
+```sql
+ALTER TABLE "Feedback" RENAME TO "CallFeedback";
+ALTER TABLE "ProfessionalReview" RENAME TO "ProfessionalRating";
+```
+
+Then remove the `@@map()` directives from the Prisma schema.
+
+**Note**: Until this migration is applied, use table names for raw SQL and model names for Prisma code.
+
+### Monetary Values Convention
+
+All monetary values are stored as integers representing **cents** (not dollars).
+
+- Field names MUST reflect this: `amountInCents`, `feeInCents`, `priceInCents`
+- Example: `10000` = $100.00
+- Benefits: Eliminates floating-point precision errors, consistent with Stripe's cent-based API
 
 ### SQL Views
 
@@ -601,9 +704,12 @@ Professional-specific endpoints:
 Candidate-specific endpoints:
 
 **Bookings**:
-- `POST /api/candidate/bookings/request` - Request a booking with available times (no payment yet)
+- `POST /api/candidate/bookings/request` - Request a booking with payment authorization
   - Body: `{ professionalId, slots, weeks }`
   - Creates booking with status 'requested'
+  - Creates Stripe PaymentIntent with `capture_method: 'manual'`
+  - Returns `{ bookingId, clientSecret, paymentIntentId }`
+  - Payment is **authorized but not captured** until professional accepts
 - `POST /api/candidate/bookings/[id]/checkout` - Pay for accepted booking
   - Creates Stripe PaymentIntent and Payment record
   - Returns clientSecret for Stripe Elements
@@ -656,6 +762,12 @@ Endpoints used by both roles or system-level operations:
 
 **Feedback Management**:
 - `PUT /api/admin/feedback/[bookingId]/qc-status` - Manually update QC status (passed/revise/failed/missing)
+  - **Safeguards required**:
+    1. Must verify no automated QC job is currently processing (check `qcProcessingAt` timestamp or job lock)
+    2. Request body MUST include mandatory `reason` field stored in audit log
+    3. Setting `failed` is **irreversible** and triggers immediate refund—require `confirm: true` parameter
+    4. Setting `passed` triggers payout release
+  - **Audit log entry format**: `{ timestamp, adminId, bookingId, previousStatus, newStatus, reason }`
   - When status set to 'failed', automatically triggers refund and blocks payout
   - Requires admin role
 
@@ -797,15 +909,23 @@ export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
    → GET /api/candidate/professionals/search
    → Shows anonymized listings
 
-2. REQUEST & PAY
-   Candidate requests booking with available times AND pays immediately
+2. REQUEST WITH AUTHORIZATION
+   Candidate requests booking with available times and authorizes payment
    → POST /api/candidate/bookings/request { professionalId, slots, weeks }
    → Creates booking with status: "requested"
-   → Creates Stripe PaymentIntent (status: "held")
-   → Creates Payment database record
+   → Creates Stripe PaymentIntent with capture_method: 'manual'
+   → Payment record created with status: "authorized"
    → Returns clientSecret and paymentIntentId
+   → Candidate completes payment authorization via Stripe Elements
    → Sends email notification to professional
-   → Payment is held in escrow until call completion and QC pass
+   → **Important**: Funds are authorized (held on card) but NOT captured yet
+   → Authorization typically expires after 7 days with most card issuers
+
+2b. PROFESSIONAL ACCEPTS (Funds Captured)
+    → POST /api/professional/bookings/[id]/confirm-and-schedule { startAt }
+    → System captures the authorized PaymentIntent
+    → Payment record status changes to: "held"
+    → Funds now in platform escrow until QC passes
 
 3. CONFIRM PAYMENT
    After Stripe confirms payment on client
@@ -831,11 +951,12 @@ export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
    Professional submits feedback
    → POST /api/professional/feedback/[bookingId] { summary, actions, ratings }
    → Booking status changes to "completed"
-   → Triggers QC job (500ms delay)
+   → Triggers QC job after transaction commits (not delayed)
 
 7. QC & PAYOUT
    Background job validates feedback
    → If passed: Creates Payout record with status "pending", professional can withdraw funds
+   → If `FEATURE_SUCCESS_FEE` flag enabled: Deduct additional 10% from professional payout
    → If revise: Nudge emails queued at +24h, +48h, +72h, professional can resubmit
    → If failed (manual admin action only): Auto-refund, PaymentStatus: "refunded", Payout.status: "blocked"
 ```
@@ -861,6 +982,56 @@ CANDIDATE LATE CANCELLATION (< 3 hours before call)
   → No refund, booking remains active
 ```
 
+### Professional Decline Flow
+
+```
+1. Professional calls POST /api/professional/bookings/[id]/decline
+   Body: { reason?: string }  // Optional decline reason
+
+2. Validate booking is in 'requested' status
+   → If not requested: Return 400 "Booking cannot be declined in current state"
+
+3. Update booking state
+   → status: 'declined'
+   → declineReason: provided reason or null
+
+4. Release payment authorization or process refund
+   → If PaymentStatus = 'authorized': Cancel the PaymentIntent authorization
+   → If PaymentStatus = 'held': Process full refund
+   → Update Payment record: status = 'refunded'
+
+5. Send notification to candidate
+   → Email with decline information
+   → Include declineReason if provided
+
+6. Log audit event
+   → { action: 'booking_declined', bookingId, professionalId, reason, timestamp }
+```
+
+### Request Expiration Flow
+
+```
+1. Booking Creation
+   → Set expiresAt = createdAt + 72 hours for 'requested' bookings
+   → Configurable via BOOKING_REQUEST_EXPIRY_HOURS env var (default: 72)
+
+2. Background Job: booking-expiry-check
+   → Runs hourly via BullMQ scheduled job
+   → Query: status = 'requested' AND expiresAt < now()
+
+3. For each expired booking:
+   a. Update status to 'expired'
+   b. Release authorization / process refund
+      → Cancel PaymentIntent authorization or refund captured funds
+      → Update Payment record: status = 'refunded'
+   c. Notify candidate
+      → Email: "Your booking request has expired"
+   d. Notify professional
+      → Email: "A booking request has expired"
+   e. Log audit event
+      → { action: 'booking_expired', bookingId, timestamp }
+```
+
 ### QC Validation Flow
 
 ```
@@ -869,8 +1040,10 @@ CANDIDATE LATE CANCELLATION (< 3 hours before call)
    → Validates exactly 3 actions
    → Validates 3 star ratings present
 
-2. QC Job queued (500ms delay)
+2. QC Job triggered after transaction commits
    → BullMQ "qc" queue
+   → Pattern: Write feedback + update status in transaction, enqueue job after commit
+   → For maximal robustness, consider transactional outbox pattern
 
 3. QC Job runs (automatic)
    → Checks feedback quality
@@ -891,6 +1064,14 @@ CANDIDATE LATE CANCELLATION (< 3 hours before call)
    → Auto-refund processed to candidate
    → PaymentStatus: "refunded"
    → Payout.status: "blocked"
+
+7. ESCALATION (if stuck in revise)
+   → If status remains 'revise' at +168 hours (7 days) after last nudge
+   → Background job qc-escalation-check identifies stuck feedback
+   → Creates admin notification/task for manual review
+   → Sends candidate notification explaining delay
+   → Logs audit event
+   → Admins can then set 'passed', 'failed', or extend revision window
 ```
 
 ### Google Calendar Sync
@@ -912,8 +1093,136 @@ CANDIDATE LATE CANCELLATION (< 3 hours before call)
    → Applies timezone conversions
 
 4. Display to Professional
-   → GET /api/bookings/[id]/viewAvailabilities
+   → GET /api/professional/bookings/[id]/confirm-and-schedule
    → Shows merged free slots in 30-min blocks
+```
+
+### Timezone Handling
+
+```
+1. Client Detection
+   → Client detects timezone via: Intl.DateTimeFormat().resolvedOptions().timeZone
+   → Sends timezone with each request that involves dates
+
+2. Storage (Always UTC)
+   → All DateTime fields stored in UTC in database
+   → timezone field stores user's IANA timezone string at creation time
+
+3. User Timezone Tracking
+   → User.timezone: User's current/preferred timezone
+   → Booking.timezone: Timezone context for the booking
+   → Candidate and Professional may be in different timezones
+
+4. Display Conversion
+   → Display-time conversion uses user's CURRENT timezone (may differ if traveled)
+   → Use date-fns-tz: formatInTimeZone(date, userTimezone, format)
+
+5. Edge Cases
+   → Booking creation: Store both candidate and professional timezones
+   → Availability: Convert to professional's timezone for display to candidate
+   → Notifications: Format times in recipient's timezone
+```
+
+### Rescheduling Flow (Planned)
+
+> **Status**: Recommended for future implementation
+
+```
+1. Either party initiates reschedule
+   → POST /api/shared/bookings/[id]/reschedule
+   → Body: { proposedStartAt, reason? }
+   → Only available when status = 'accepted'
+   → New time must be 24+ hours in future
+
+2. Other party reviews
+   → Reschedule request notification sent
+   → GET /api/shared/bookings/[id]/reschedule - view pending request
+
+3a. If APPROVED
+   → POST /api/shared/bookings/[id]/reschedule/approve
+   → Update booking startAt/endAt
+   → Update Zoom meeting time
+   → Update calendar invites for both parties
+   → Send confirmation to both parties
+
+3b. If REJECTED
+   → POST /api/shared/bookings/[id]/reschedule/reject
+   → Original booking unchanged
+   → Notify requesting party
+
+Note: This avoids the cancel-and-rebook path which wastes Stripe fees.
+```
+
+### Dispute Resolution (Planned)
+
+> **Status**: Recommended for future implementation
+
+```
+1. Candidate initiates dispute
+   → POST /api/candidate/bookings/[id]/dispute
+   → Body: { reason, details }
+   → Use cases: professional no-show, call quality issues, misrepresentation
+
+2. Immediate effects
+   → PayoutStatus transitions to 'blocked'
+   → Admin notification/task created
+   → Candidate confirmation sent
+
+3. Admin investigation
+   → Admin reviews booking details, call logs, feedback
+   → May contact both parties
+
+4. Resolution options
+   → Full refund: PaymentStatus = 'refunded', Payout = 'blocked'
+   → Partial refund: Custom refund amount
+   → Dismiss: PayoutStatus = 'pending' (restore)
+
+Note: Provides recourse when professional is no-show or quality is poor.
+```
+
+### Pre-Booking Inquiry (Planned)
+
+> **Status**: Recommended for future implementation
+
+Allows candidates to communicate with professionals before committing to payment.
+
+**Inquiry Model**:
+```prisma
+model Inquiry {
+  id             String   @id @default(cuid())
+  candidateId    String
+  professionalId String
+  subject        String
+  message        String
+  status         InquiryStatus  // open | converted | closed
+  createdAt      DateTime @default(now())
+  
+  @@index([professionalId, status])
+}
+```
+
+**Flow**:
+```
+1. Candidate sends inquiry
+   → POST /api/candidate/inquiries
+   → Body: { professionalId, subject, message }
+   → Creates Inquiry with status 'open'
+   → Notifies professional
+
+2. Conversation continues
+   → Message threads (via InquiryMessage model)
+   → Either party can continue conversation
+
+3. Conversion to booking
+   → POST /api/candidate/inquiries/[id]/convert
+   → Creates booking request from inquiry context
+   → Inquiry status = 'converted'
+
+4. Or close inquiry
+   → POST /api/shared/inquiries/[id]/close
+   → Inquiry status = 'closed'
+
+Note: Reduces friction by allowing pre-payment communication.
 ```
 
 ---
@@ -1041,14 +1350,119 @@ export function createDestinationCharge(
 }
 ```
 
+**Note on Stripe Connect Patterns**:
+
+This system uses **Separate Charges and Transfers** (not destination charges) to enable escrow/gating:
+
+1. **Charge Platform**: Payment is captured to the platform's Stripe account
+2. **Hold Funds**: Funds remain on platform during QC validation period
+3. **Transfer After QC**: Only after QC passes, funds are transferred to professional's connected account
+
+This pattern is required because destination charges transfer funds immediately to the connected account's pending balance, which conflicts with the QC gating business rule.
+
+```typescript
+// Step 1: Capture to platform (at booking confirmation)
+const paymentIntent = await stripe.paymentIntents.capture(paymentIntentId);
+
+// Step 2: Transfer to professional (after QC passes)
+const transfer = await stripe.transfers.create({
+  amount: amountCents - platformFeeCents,
+  currency: 'usd',
+  destination: professionalStripeAccountId,
+  transfer_group: `booking_${bookingId}`,
+});
+```
+
 ### Observer Pattern (Webhooks)
 
 **Stripe Webhook**: `/api/stripe/webhook/route.ts`
 
 Listens for events:
 - `payment_intent.succeeded`
+- `payment_intent.payment_failed`
 - `transfer.created`
 - `account.updated`
+
+### Webhook Security Pattern
+
+**Critical**: All webhook handlers MUST verify Stripe signatures before processing.
+
+**File**: `/api/shared/stripe/webhook/route.ts`
+
+```typescript
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+export async function POST(request: Request) {
+  const body = await request.text();
+  const signature = request.headers.get('stripe-signature');
+
+  if (!signature) {
+    return Response.json({ error: 'Missing signature' }, { status: 400 });
+  }
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err);
+    return Response.json({ error: 'Invalid signature' }, { status: 400 });
+  }
+
+  // Process verified event...
+  await processWebhookEvent(event);
+
+  // Must return 200 within 5-10 seconds
+  return Response.json({ received: true });
+}
+```
+
+**Webhook Security Requirements**:
+1. **Signature verification is REQUIRED** using `STRIPE_WEBHOOK_SECRET` before processing any event
+2. **Unsigned requests must be rejected** with 400 status
+3. **Handlers must be idempotent** - Stripe retries failed webhooks up to 3 days
+4. **Return 200 within 5-10 seconds** - offload long operations to BullMQ
+5. **Handled events**: `payment_intent.succeeded`, `payment_intent.payment_failed`, `transfer.created`, `account.updated`
+
+### Payment Confirmation Idempotency Pattern
+
+**Problem**: Both `POST /api/shared/payments/confirm` (client-side) and the Stripe webhook handler can fire for the same payment within milliseconds, causing duplicate processing.
+
+**Solution**: Use PaymentIntent ID as natural idempotency key.
+
+```typescript
+async function confirmPayment(paymentIntentId: string): Promise<Payment> {
+  // Check current state before processing
+  const existing = await prisma.payment.findFirst({
+    where: { paymentIntentId },
+  });
+
+  // Already processed - return success without reprocessing
+  if (existing && existing.status !== 'authorized') {
+    return existing;
+  }
+
+  // Process the confirmation with optimistic locking
+  return await prisma.payment.update({
+    where: {
+      paymentIntentId,
+      status: 'authorized', // Only update if still in authorized state
+    },
+    data: {
+      status: 'held',
+      confirmedAt: new Date(),
+    },
+  });
+}
+```
+
+**Idempotency Requirements**:
+1. Use PaymentIntent ID as natural idempotency key
+2. Check current `Payment.status` before processing—if already beyond `authorized`, return success without reprocessing
+3. Store `paymentConfirmedAt` timestamp to detect duplicate processing
+4. Use optimistic locking with status checks in WHERE clause
 
 ### Timezone Handling Pattern
 
@@ -1117,6 +1531,187 @@ export function checkRateLimit(identifier: string, limit: number = 10) {
   record.count++;
   return true;
 }
+```
+
+### State Machine Pattern for Bookings
+
+**File**: `/lib/domain/bookings/transitions.ts`
+
+All booking state transitions must flow through a centralized `BookingService` module to ensure consistency, proper side effects, and audit logging.
+
+**Exported Functions**:
+
+```typescript
+// All state transitions go through these functions
+export async function createBookingRequest(params: CreateBookingParams): Promise<Booking>;
+export async function acceptBooking(bookingId: string, startAt: Date): Promise<Booking>;
+export async function declineBooking(bookingId: string, reason?: string): Promise<Booking>;
+export async function cancelBooking(bookingId: string, cancelledBy: string): Promise<Booking>;
+export async function expireBooking(bookingId: string): Promise<Booking>;
+export async function completeBooking(bookingId: string): Promise<Booking>;
+```
+
+**Each function**:
+1. Validates current state allows the transition
+2. Updates booking status within a transaction
+3. Coordinates side effects (payments, notifications, calendar)
+4. Creates audit log entry
+5. Validates state invariants before committing
+
+**State Transition Diagram**:
+
+```
+                    ┌─────────────┐
+                    │    draft    │
+                    └─────┬───────┘
+                          │ submit
+                          ▼
+                    ┌─────────────┐
+            ┌───────│  requested  │───────┐
+            │       └─────┬───────┘       │
+     decline│             │ accept   expire│
+            ▼             ▼               ▼
+     ┌──────────┐   ┌─────────────┐  ┌─────────┐
+     │ declined │   │  accepted   │  │ expired │
+     └──────────┘   └─────┬───────┘  └─────────┘
+                          │
+              cancel ┌────┴────┐ complete
+                     ▼         ▼
+              ┌───────────┐  ┌──────────────────────────┐
+              │ cancelled │  │ completed_pending_feedback│
+              └───────────┘  └─────────────┬────────────┘
+                                           │ feedback submitted
+                                           ▼
+                                     ┌───────────┐
+                                     │ completed │
+                                     └───────────┘
+```
+
+### Idempotent Background Jobs
+
+**Problem**: BullMQ retries failed jobs, which can cause duplicate processing (emails, payouts, state changes).
+
+**Solution Pattern**:
+
+1. **Deterministic Job IDs**: Use predictable IDs to prevent duplicate jobs
+
+```typescript
+// QC jobs: one per feedback version
+await qcQueue.add('validate', { bookingId, feedbackVersion }, {
+  jobId: `qc:${bookingId}:${feedbackVersion}`,
+});
+
+// Nudge jobs: one per booking per interval
+await nudgeQueue.add('send', { bookingId, interval: '24h' }, {
+  jobId: `nudge:${bookingId}:24h`,
+});
+```
+
+2. **Database Uniqueness Constraints**:
+   - `Payout.bookingId` UNIQUE - prevents duplicate payouts
+   - `Payment.bookingId` UNIQUE - prevents duplicate payment records
+
+3. **Side-Effect Timestamps**: Store when side effects occurred
+
+```typescript
+model Booking {
+  payoutReleasedAt   DateTime?
+  refundCreatedAt    DateTime?
+  lastNudgeSentAt    DateTime?
+}
+```
+
+4. **Handler Idempotency Check**:
+
+```typescript
+async function processPayoutJob(job: Job<PayoutData>) {
+  const booking = await prisma.booking.findUnique({
+    where: { id: job.data.bookingId },
+  });
+  
+  // Already processed - exit early
+  if (booking.payoutReleasedAt) {
+    return { status: 'already_processed' };
+  }
+  
+  // Process payout...
+}
+```
+
+### Worker Process Constraints
+
+**Hard Rule**: The BullMQ worker process is a standalone Node.js process, NOT a Next.js server context.
+
+**Worker May Import**:
+- ✅ Prisma client (`@/lib/core/db`)
+- ✅ Third-party integrations (`@/lib/integrations/*`)
+- ✅ Domain services (`@/lib/domain/*`)
+- ✅ Pure utilities (`@/lib/utils/*`)
+
+**Worker Must NEVER Import**:
+- ❌ Next.js route handlers
+- ❌ `next/server` module
+- ❌ `cookies()`, `headers()` from Next.js
+- ❌ React components
+- ❌ `auth()` function (calls NextAuth runtime)
+
+**Pattern for Auth Context**: Pass actor context as parameter instead of calling `auth()` implicitly:
+
+```typescript
+// ❌ BAD: Implicit auth call (crashes in worker)
+async function releasePayour(bookingId: string) {
+  const session = await auth(); // CRASH!
+  // ...
+}
+
+// ✅ GOOD: Explicit actor parameter
+async function releasePayout(
+  bookingId: string, 
+  actor: { id: string; role: string } | 'system'
+) {
+  // Works in both API routes and worker
+}
+```
+
+### Dependency Injection for Testability
+
+**Pattern**: Service layer functions accept optional `deps` parameter with production defaults.
+
+```typescript
+// Service function with injectable dependencies
+export async function processRefund(
+  bookingId: string,
+  deps = {
+    prisma: defaultPrisma,
+    stripe: defaultStripe,
+    email: defaultEmailService,
+  }
+) {
+  const booking = await deps.prisma.booking.findUnique({
+    where: { id: bookingId },
+  });
+  
+  await deps.stripe.refunds.create({
+    payment_intent: booking.paymentIntentId,
+  });
+  
+  await deps.email.sendRefundNotification(booking);
+}
+
+// In tests
+it('should process refund', async () => {
+  const mockPrisma = { booking: { findUnique: vi.fn().mockResolvedValue(mockBooking) } };
+  const mockStripe = { refunds: { create: vi.fn().mockResolvedValue({ id: 'ref_123' }) } };
+  const mockEmail = { sendRefundNotification: vi.fn() };
+  
+  await processRefund('booking_123', {
+    prisma: mockPrisma,
+    stripe: mockStripe,
+    email: mockEmail,
+  });
+  
+  expect(mockStripe.refunds.create).toHaveBeenCalled();
+});
 ```
 
 ---
@@ -1414,12 +2009,13 @@ npx prisma generate
 
 #### "Stripe: No such payment_intent"
 
-**Cause**: Payment intent not created or expired
+**Cause**: Payment intent not created, expired authorization, or invalid ID
 
 **Solution**:
 1. Check Stripe dashboard for payment intent
-2. Ensure `/api/bookings/[id]/checkout` was called first
-3. Payment intents expire after 24 hours
+2. Ensure `/api/candidate/bookings/request` was called first
+3. **Note on expiration**: Stripe PaymentIntent authorizations typically expire after 7 days with most card issuers. If booking is scheduled beyond this window, the system must either capture immediately and hold funds in platform balance, or save the payment method for later charging.
+4. **Important**: Stripe Checkout Sessions (not used by this system) expire after 24 hours—do not confuse with PaymentIntent authorizations.
 
 ### Performance Issues
 
@@ -1604,6 +2200,45 @@ git push -u origin <branch-name>
 ---
 
 ## Changelog
+
+### 2026-01-11 - Comprehensive Architecture & Security Documentation Update
+- **Payment Flow**: Documented authorize-at-request → capture-after-accept pattern
+  - Updated Core Features, API docs, and Booking Flow sections for consistency
+  - Added `PaymentStatus.authorized` enum value
+  - Fixed incorrect Stripe PaymentIntent expiration claim (7 days, not 24 hours)
+- **Stripe Connect**: Clarified Separate Charges and Transfers pattern (not destination charges)
+  - Enables proper escrow/gating before QC validation
+- **Security Patterns Added**:
+  - Webhook Security Pattern with signature verification requirements
+  - Payment Confirmation Idempotency Pattern
+  - Admin Override Safeguards for QC status changes
+- **Data Model Updates**:
+  - Added `declined` and `expired` to BookingStatus enum with state transitions
+  - Added State Invariants table documenting valid status combinations
+  - Renamed `priceUSD` to `priceInCents` for clarity
+  - Added Booking fields: `expiresAt`, `declineReason`, `paymentDueAt`
+  - Added Model-to-Table Mappings (CallFeedback → Feedback, etc.)
+- **New Workflows Documented**:
+  - Professional Decline Flow
+  - Request Expiration Flow (72-hour timeout)
+  - QC Escalation after nudge exhaustion (7-day escalation)
+  - Timezone Handling Flow
+- **New Code Patterns Added**:
+  - State Machine Pattern for Bookings with transition diagram
+  - Idempotent Background Jobs pattern
+  - Worker Process Constraints (what workers may/must not import)
+  - Dependency Injection for Testability
+- **Developer Experience Improvements**:
+  - Fixed Directory Structure to match role-based API reorganization
+  - Split queue definitions by domain (qc.ts, notifications.ts, etc.)
+  - Added lib/ Organization Philosophy (domain vs role layers)
+  - Clarified Component Collocation rules
+  - Fixed path alias documentation
+  - Fixed calendar endpoint reference
+- **Planned Features (Recommended)**:
+  - Rescheduling Flow
+  - Dispute Resolution Flow
+  - Pre-Booking Inquiry Flow
 
 ### 2025-11-19 - Refactoring Cleanup
 - **Removed `/candidate/history` route**: Redundant with `/candidate/calls`

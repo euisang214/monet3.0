@@ -246,6 +246,8 @@ model Payout {
   amountNet          Int
   status             PayoutStatus
   reason             String?
+  stripeTransferId   String?
+  paidAt             DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   timezone           String       @default("UTC")
