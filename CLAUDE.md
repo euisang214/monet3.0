@@ -1,8 +1,14 @@
 # CLAUDE.md - Monet 3.0 Codebase Guide for AI Assistants
 
-> **Last Updated**: 2025-11-17
 > **Version**: 0.1.0
+
 > **Purpose**: Comprehensive guide for AI assistants working on the Monet marketplace platform
+
+> [!IMPORTANT]
+> **Two-Process Development Required**
+> 
+> Always run BOTH processes: `npm run dev` (Next.js) AND `npm run dev:queue` (BullMQ worker).
+> Background jobs (QC, emails, payouts) won't run without the worker process.
 
 ---
 
@@ -46,7 +52,6 @@
 
 - **Call Duration**: 30 minutes (configurable via `CALL_DURATION_MINUTES`)
 - **Platform Fee**: 20% of booking price
-- **Success Fee**: Optional 10% fee (feature flag)
 - **Cancellation Policy**: 3-hour window before scheduled call
 - **QC Requirements**:
   - Minimum 200 words
@@ -70,21 +75,27 @@
 
 ### Backend
 - **Runtime**: Node.js with TypeScript
-- **ORM**: Prisma 6.16.2 + Prisma Accelerate extension
-- **Database**: PostgreSQL with SQL views
-- **Authentication**: NextAuth v5.0.0-beta.20 (JWT strategy)
-- **Job Queue**: BullMQ 5.7.6 + Redis (ioredis 5.4.1)
-- **Payment Processing**: Stripe 14.21.0 (Connect destination charges)
+- **ORM**: Prisma 6 + Prisma Accelerate extension
+- **Database**: Supabase (PostgreSQL) with SQL views
+- **Authentication**: NextAuth v5 (JWT strategy)
+- **LLM**: Claude API (Anthropic) for automated QC validation
+- **Job Queue**: BullMQ + Redis (ioredis)
+- **Payment Processing**: Stripe (Connect with Separate Charges and Transfers)
 - **Video**: Zoom Server-to-Server OAuth
-- **Email**: Nodemailer 6.9.14 + AWS SES
+- **Email**: Nodemailer + AWS SES
 - **File Storage**: AWS S3
-- **Validation**: Zod 3.23.8
+- **Validation**: Zod
+
+### Deployment
+- **Platform**: Vercel (Next.js optimized)
+- **Database**: Supabase (managed PostgreSQL)
+- **Redis**: Upstash or Railway (for BullMQ)
 
 ### DevOps & Testing
 - **Testing**: Vitest 3.2.4 (unit + E2E)
 - **Package Manager**: npm
 - **Build Tool**: tsx 4.19.2 for TypeScript execution
-- **Container**: Docker Compose (Postgres + Redis)
+- **Local Dev**: Docker Compose (Postgres + Redis)
 
 ---
 
@@ -267,7 +278,7 @@ monet3.0/
 
 **Usage**: `import { prisma } from '@/lib/core/db'` instead of relative paths
 
-**Note**: Verify actual configuration in `tsconfig.json`. If `lib/` is NOT under `src/`, a second alias may be needed.
+**Configuration**: `lib/` is at repo root (not under `src/`). The path alias `@/lib/*` maps to `./lib/*` via a second alias in `tsconfig.json`.
 
 ### lib/ Organization Philosophy
 
@@ -382,28 +393,6 @@ The queue worker handles:
 - **Async/Await**: Preferred over `.then()` chains
 - **Error Handling**: Always catch and handle errors appropriately
 
-### Commit Message Conventions
-
-Based on recent commits, the project follows this pattern:
-
-```
-<verb> <subject>
-```
-
-Examples:
-- "Persist Google Calendar sync results via availability records"
-- "Show generic error message in status popup"
-- "Fix availability type re-exports"
-- "Refactor professional booking availability view endpoint"
-
-**Verbs used**:
-- Fix: Bug fixes
-- Add: New features
-- Update/Refine: Improvements
-- Remove: Deletions
-- Refactor: Code restructuring
-- Polish: UI/UX improvements
-
 ### Component Organization
 
 1. **Route Collocation**: Forms and components in same directory as pages
@@ -447,6 +436,27 @@ return Response.json({ error: 'error_code' }, { status: 400 })
 
 ## Database Schema
 
+### Schema Inventory
+
+| Model | Purpose | Status |
+|-------|---------|--------|
+| User | Core user account | ✅ Defined |
+| Booking | Consultation booking record | ✅ Defined |
+| Payment | Stripe payment tracking | ✅ Defined |
+| Payout | Professional payout tracking | ✅ Defined |
+| CallFeedback | Post-call feedback from professional | ✅ Defined |
+| ProfessionalProfile | Professional listing data | ✅ Defined |
+| CandidateProfile | Candidate resume and interests | ✅ Defined |
+| ProfessionalRating | Candidate review of professional | ✅ Defined |
+| OAuthAccount | OAuth provider tokens | ✅ Defined |
+| Availability | User availability slots | ✅ Defined |
+| Verification | Email verification tokens | ✅ Defined |
+| PasswordResetToken | Password reset tokens | ✅ Defined |
+| AuditLog | State transition audit trail | ✅ Defined |
+| Dispute | Booking disputes | ✅ Defined |
+
+---
+
 ### Core Models
 
 #### User
@@ -472,8 +482,8 @@ model Booking {
   id               String        @id @default(cuid())
   candidateId      String
   professionalId   String
-  status           BookingStatus // draft | requested | declined | expired | accepted | cancelled | completed | completed_pending_feedback | refunded
-  priceInCents     Int?          // Price in cents (e.g., 10000 = $100.00)
+  status           BookingStatus // draft | requested | declined | expired | accepted | cancelled | completed | completed_pending_feedback | refunded | reschedule_pending
+  priceCents       Int?          // Price in cents (e.g., 10000 = $100.00)
   startAt          DateTime?
   endAt            DateTime?
   expiresAt        DateTime?     // For request expiration (72 hours from creation)
@@ -482,9 +492,77 @@ model Booking {
   zoomMeetingId    String?
   zoomJoinUrl      String?
   timezone         String        @default("UTC")
+  
+  // Join tracking
+  candidateJoinedAt    DateTime?
+  professionalJoinedAt DateTime?
+  attendanceOutcome    AttendanceOutcome?  // Set by no-show detection job
+  
+  // Late cancellation tracking
+  candidateLateCancellation Boolean @default(false)  // True if payout released without QC (candidate no-show/late cancel)
+  
   // ... relations
 }
 ```
+
+#### Payment
+```prisma
+model Payment {
+  id                  String        @id @default(cuid())
+  bookingId           String        @unique
+  
+  // Amounts (all in cents)
+  amountGross         Int           // Total amount charged
+  platformFee         Int           // Platform fee in cents
+  refundedAmountCents Int           @default(0) // Amount refunded (0 = none, partial, or full)
+  
+  // Stripe identifiers
+  stripePaymentIntentId String      @unique // Stripe PaymentIntent ID
+  stripeRefundId        String?     // Refund ID if refunded
+  
+  // Lifecycle status
+  status              PaymentStatus // held | released | partially_refunded | refunded
+  
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  timezone            String        @default("UTC")
+  
+  booking             Booking       @relation(...)
+  
+  @@unique([stripePaymentIntentId])
+  @@index([status])
+}
+```
+
+**Usage**: Tracks payment state through the booking lifecycle. `refundedAmountCents` enables partial refunds - if less than `amountGross`, status is `partially_refunded`; if equal, status is `refunded`.
+
+#### Payout
+```prisma
+model Payout {
+  id                 String       @id @default(cuid())
+  bookingId          String       @unique
+  proStripeAccountId String       // Professional's Stripe Connect account
+  
+  // Amount (in cents)
+  amountNet          Int          // Net amount after fees
+  
+  // Status
+  status             PayoutStatus // pending | paid | blocked
+  reason             String?      // Reason if blocked
+  
+  // Stripe tracking
+  stripeTransferId   String?      // Populated after transfer executes
+  paidAt             DateTime?    // When transfer completed
+  
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  timezone           String       @default("UTC")
+  
+  booking            Booking      @relation(...)
+}
+```
+
+**Usage**: Tracks professional payouts after QC validation. Created when QC passes with status `pending`, updated to `paid` after Stripe transfer completes.
 
 #### CallFeedback
 ```prisma
@@ -507,6 +585,231 @@ model CallFeedback {
 
 **Note**: Model renamed from `Feedback` to `CallFeedback` for clarity. This is the feedback that professionals provide to candidates after calls.
 
+---
+
+### Profile Models
+
+#### ProfessionalProfile
+```prisma
+model ProfessionalProfile {
+  userId            String       @id
+  employer          String       // Current company
+  title             String       // Job title
+  bio               String       // Professional bio
+  priceCents        Int          // Hourly rate in cents (e.g., 10000 = $100.00)
+  availabilityPrefs Json         @default("{}")
+  verifiedAt        DateTime?    // Corporate email verification timestamp
+  corporateEmail    String       // Work email for verification
+  timezone          String       @default("UTC")
+  
+  // Profile details
+  experience        Experience[]
+  education         Education[]
+  interests         String[]
+  activities        Experience[]
+  
+  user              User         @relation(...)
+  
+  @@index([employer])
+  @@index([priceCents])
+}
+```
+
+**Usage**: Professional listing data displayed on browse/search pages. Linked to User via userId as primary key.
+
+#### CandidateProfile
+```prisma
+model CandidateProfile {
+  userId     String       @id
+  resumeUrl  String?      // S3 URL to uploaded resume
+  interests  String[]
+  activities Experience[]
+  experience Experience[]
+  education  Education[]
+  
+  user       User         @relation(...)
+}
+```
+
+#### Experience
+```prisma
+model Experience {
+  id             String               @id @default(cuid())
+  
+  // Institution details
+  company        String               // Company/organization name
+  location       String?              // City, State/Country
+  
+  // Tenure
+  startDate      DateTime
+  endDate        DateTime?            // null = currently employed
+  isCurrent      Boolean              @default(false)
+  
+  // Primary position (final/current role if promoted)
+  title          String               // Job title
+  description    String?              // Role description
+  
+  // Position history (for promotions/role changes within same company)
+  // JSON array: [{ title: string, startDate: string, endDate: string }]
+  positionHistory Json                @default("[]")
+  
+  // Relations (polymorphic - belongs to either Professional or Candidate)
+  professional   ProfessionalProfile? @relation("ProfessionalExperience", fields: [professionalId], references: [userId], onDelete: Cascade)
+  professionalId String?
+  candidate      CandidateProfile?    @relation("CandidateExperience", fields: [candidateId], references: [userId], onDelete: Cascade)
+  candidateId    String?
+  
+  @@index([professionalId])
+  @@index([candidateId])
+}
+```
+
+**Usage**: Work experience entries. `positionHistory` tracks role changes during a single company tenure (e.g., promoted from Analyst to Senior Analyst). If no promotions, leave as empty array `[]`.
+
+**Example positionHistory:**
+```json
+[
+  { "title": "Analyst", "startDate": "2020-01-15", "endDate": "2021-06-01" },
+  { "title": "Senior Analyst", "startDate": "2021-06-01", "endDate": null }
+]
+```
+
+#### Education
+```prisma
+model Education {
+  id             String               @id @default(cuid())
+  
+  // Institution details
+  school         String               // University/school name
+  location       String?              // City, State/Country
+  
+  // Tenure
+  startDate      DateTime
+  endDate        DateTime?            // null = currently enrolled
+  isCurrent      Boolean              @default(false)
+  
+  // Degree/program details
+  degree         String               // e.g., "Bachelor of Science", "MBA"
+  fieldOfStudy   String               // e.g., "Computer Science", "Finance"
+  gpa            Float?               // Optional GPA
+  honors         String?              // e.g., "Magna Cum Laude"
+  
+  // Activities during education
+  activities     String[]             // Clubs, sports, organizations
+  
+  // Relations (polymorphic)
+  professional   ProfessionalProfile? @relation("ProfessionalEducation", fields: [professionalId], references: [userId], onDelete: Cascade)
+  professionalId String?
+  candidate      CandidateProfile?    @relation("CandidateEducation", fields: [candidateId], references: [userId], onDelete: Cascade)
+  candidateId    String?
+  
+  @@index([professionalId])
+  @@index([candidateId])
+}
+```
+
+**Usage**: Education entries with degree, field of study, and optional GPA/honors. `activities` captures extracurricular involvement during that tenure.
+
+---
+
+### OAuth & Authentication Models
+
+#### OAuthAccount
+```prisma
+model OAuthAccount {
+  id                String    @id @default(cuid())
+  userId            String
+  provider          String    // "google" | "linkedin"
+  providerAccountId String
+  
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  scope             String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  timezone          String    @default("UTC")
+  
+  user              User      @relation(...)
+  
+  @@unique([provider, providerAccountId])
+}
+```
+
+**Usage**: Custom OAuth token storage (not using NextAuth Prisma Adapter default). Required because project uses JWT strategy but needs to persist tokens for Google Calendar API access. Tokens are upserted on each OAuth sign-in.
+
+---
+
+### Scheduling Models
+
+#### Availability
+```prisma
+model Availability {
+  id       String   @id @default(cuid())
+  userId   String
+  start    DateTime // Slot start time (UTC)
+  end      DateTime // Slot end time (UTC)
+  busy     Boolean  @default(false) // true = blocked, false = available
+  timezone String   @default("UTC")
+  
+  user     User     @relation(...)
+  
+  @@index([userId, start])
+}
+```
+
+**Usage**: Stores user availability slots. Synced from Google Calendar busy times and manual preferences. Used in booking scheduling flow.
+
+---
+
+### Audit & Logging Models
+
+#### AuditLog
+```prisma
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?  // null for system actions
+  entity      String   // "Booking", "Payment", "Payout", "Feedback"
+  entityId    String
+  action      String   // "booking_declined", "qc_status_override", etc.
+  metadata    Json     @default("{}") // previousState, newState, reason, etc.
+  createdAt   DateTime @default(now())
+  timezone    String   @default("UTC")
+  
+  actor       User?    @relation(...)
+}
+```
+
+**Usage**: Audit trail for state transitions and admin actions. Required for compliance and debugging. All state machine transitions should log here.
+
+#### Dispute
+```prisma
+model Dispute {
+  id           String        @id @default(cuid())
+  bookingId    String        @unique
+  initiatorId  String        // User who initiated the dispute
+  reason       DisputeReason // no_show, quality, misrepresentation, other
+  description  String        // Detailed description
+  status       DisputeStatus // open, under_review, resolved
+  resolution   String?       // Admin resolution notes
+  resolvedAt   DateTime?
+  resolvedById String?       // Admin who resolved
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  timezone     String        @default("UTC")
+  
+  booking      Booking       @relation(fields: [bookingId], references: [id])
+  initiator    User          @relation("DisputeInitiator", fields: [initiatorId], references: [id])
+  resolvedBy   User?         @relation("DisputeResolver", fields: [resolvedById], references: [id])
+  
+  @@index([status])
+  @@index([bookingId])
+}
+```
+
+**Usage**: Tracks disputes raised by candidates (no-show, quality issues) or escalated from QC failures. Admin reviews and resolves by issuing refund, partial refund, or dismissing.
+
 ### Enums
 
 ```prisma
@@ -522,6 +825,9 @@ enum BookingStatus {
   declined                      // Professional declined the request
   expired                       // Request expired (72-hour timeout, no response)
   accepted
+  accepted_pending_integrations // Accepted but Zoom/calendar provisioning in progress
+  reschedule_pending            // Reschedule requested, awaiting time selection
+  dispute_pending               // Dispute raised, awaiting admin review
   cancelled
   completed
   completed_pending_feedback
@@ -532,17 +838,36 @@ enum BookingStatus {
 // requested → declined (professional declines)
 // requested → expired (72-hour timeout with no response)
 // requested → accepted (professional accepts)
+// accepted → accepted_pending_integrations (Zoom/calendar provisioning started)
+// accepted_pending_integrations → accepted (provisioning complete or failed with manual fallback)
+// accepted → reschedule_pending (either party requests reschedule)
+// reschedule_pending → accepted (new time confirmed or reschedule rejected)
 // accepted → cancelled (either party cancels)
+// accepted → dispute_pending (candidate disputes or QC fails)
+// dispute_pending → refunded (admin issues refund)
+// dispute_pending → completed (admin dismisses dispute)
 // accepted → completed_pending_feedback (call ends)
 // completed_pending_feedback → completed (feedback submitted)
 // any → refunded (refund processed)
 
 enum PaymentStatus {
-  authorized  // Funds authorized on card but not captured (pre-accept)
-  held        // Funds captured and in escrow (post-accept)
-  released    // Transferred to professional (after QC passes)
-  refunded    // Returned to candidate
+  authorized          // Funds authorized on card but not captured (pre-accept)
+  cancelled           // Authorization cancelled (professional declined, no capture occurred)
+  capture_failed      // Capture attempted but failed (expired auth, declined card)
+  held                // Funds captured and in escrow (post-accept)
+  released            // Transferred to professional (after QC passes)
+  partially_refunded  // Some funds returned to candidate (refundedAmountCents < amountGross)
+  refunded            // All funds returned to candidate (refundedAmountCents = amountGross)
 }
+
+// Payment state transitions:
+// authorized → cancelled (professional declines before capture)
+// authorized → capture_failed (capture attempted but failed)
+// authorized → held (capture succeeds after professional accepts)
+// capture_failed → authorized (candidate updates payment, re-auth)
+// held → released (QC passes, transfer to professional)
+// held → partially_refunded (partial refund issued)
+// held → refunded (full refund issued)
 
 enum PayoutStatus {
   pending  // Awaiting QC pass
@@ -552,9 +877,28 @@ enum PayoutStatus {
 
 enum QCStatus {
   passed   // Meets requirements
-  revise   // Needs improvement
-  failed   // Does not meet standards
+  revise   // Needs improvement (LLM never fails, only revise)
   missing  // No feedback submitted
+}
+
+enum DisputeReason {
+  no_show           // Professional did not attend
+  quality           // Call quality issues
+  misrepresentation // Profile misrepresentation
+  other             // Other reason (see description)
+}
+
+enum DisputeStatus {
+  open              // Newly created, awaiting admin review
+  under_review      // Admin is investigating
+  resolved          // Resolution applied
+}
+
+enum AttendanceOutcome {
+  both_joined          // Both parties attended
+  candidate_no_show    // Candidate did not join
+  professional_no_show // Professional did not join
+  both_no_show         // Neither party joined
 }
 ```
 
@@ -563,14 +907,16 @@ enum QCStatus {
 Valid state combinations across the four status axes (BookingStatus × PaymentStatus × QCStatus × PayoutStatus):
 
 | Invariant | Rule | Violation Indicates |
-|-----------|------|--------------------|
+|-----------|------|---------------------|
 | `PaymentStatus = refunded` | ⇒ `BookingStatus ∈ {cancelled, refunded, declined, expired}` | State corruption |
-| `PaymentStatus = released` | ⇒ `QCStatus = passed` | Premature payout |
-| `PayoutStatus = blocked` | ⇒ `PaymentStatus = refunded` | Inconsistent refund/block |
+| `PaymentStatus = released` | ⇒ `QCStatus = passed OR candidateLateCancellation = true` | Premature payout |
+| `PayoutStatus = blocked` | ⇒ `PaymentStatus ∈ {held, refunded}` | Inconsistent states |
 | `PayoutStatus = paid` | ⇒ `PaymentStatus = released` | Orphan payout |
 | `BookingStatus = accepted` | ⇒ `startAt` and `endAt` must be set | Missing schedule |
-| `BookingStatus = completed` | ⇒ `qcStatus ≠ missing` | Missing feedback |
+| `BookingStatus = completed` | ⇒ `qcStatus = passed` | Missing or incomplete feedback |
 | `PaymentStatus = authorized` | ⇒ `BookingStatus ∈ {requested, declined, expired}` | Auth without capture |
+
+**Note on `blocked` + `held`**: During `dispute_pending`, funds remain `held` in escrow while admin reviews. Only after resolution does PaymentStatus transition to `refunded` (if dispute upheld) or `released` (if dismissed).
 
 **Enforcement**: State transition service validates invariants before committing any status change.
 
@@ -621,32 +967,7 @@ model PasswordResetToken {
 
 ### Model-to-Table Mappings
 
-**Current State**: Some Prisma models have different names than their underlying database tables (via `@@map()`):
-
-| Prisma Model | Current Table | Status |
-|--------------|---------------|--------|
-| `CallFeedback` | `Feedback` | Mismatched |
-| `ProfessionalRating` | `ProfessionalReview` | Mismatched |
-
-**Recommended Action**: Rename tables to match model names. Matching names is Prisma's default behavior and reduces confusion when switching between code and database.
-
-**Migration to align names**:
-```sql
-ALTER TABLE "Feedback" RENAME TO "CallFeedback";
-ALTER TABLE "ProfessionalReview" RENAME TO "ProfessionalRating";
-```
-
-Then remove the `@@map()` directives from the Prisma schema.
-
-**Note**: Until this migration is applied, use table names for raw SQL and model names for Prisma code.
-
-### Monetary Values Convention
-
-All monetary values are stored as integers representing **cents** (not dollars).
-
-- Field names MUST reflect this: `amountInCents`, `feeInCents`, `priceInCents`
-- Example: `10000` = $100.00
-- Benefits: Eliminates floating-point precision errors, consistent with Stripe's cent-based API
+Name tables to match model names. Matching names is Prisma's default behavior and reduces confusion when switching between code and database.
 
 ### SQL Views
 
@@ -666,7 +987,7 @@ All monetary values are stored as integers representing **cents** (not dollars).
 
 ### Structure
 
-All API routes are in `/src/app/api/` and follow Next.js App Router conventions. **APIs are now organized by user role** for better clarity and maintainability.
+All API routes are in `/src/app/api/` and follow Next.js App Router conventions. **APIs are organized by user role** for better clarity and maintainability.
 
 ### Authentication (`/api/auth/*`)
 
@@ -683,10 +1004,28 @@ Professional-specific endpoints:
 
 **Bookings**:
 - `GET /api/professional/bookings/[id]/confirm-and-schedule` - View candidate's available times
-- `POST /api/professional/bookings/[id]/confirm-and-schedule` - Accept booking and schedule by picking a time
-  - Creates Zoom meeting, sends calendar invites, changes status to 'accepted'
+- `POST /api/professional/bookings/[id]/confirm-and-schedule` - Accept booking and schedule
+  - **Step 1**: Captures payment via Stripe, updates status to `accepted_pending_integrations`
+  - **Step 2**: Returns success to professional immediately
+  - **Step 3**: BullMQ job handles Zoom meeting creation + calendar invites + email
+  - **Step 4**: On job success: status → `accepted`
+  - **Step 5**: On job failure: try again, and upon repeated failure, admin notified, manual Zoom link entry available
   - By selecting a time, the professional confirms/accepts the booking
 - `POST /api/professional/bookings/[id]/decline` - Decline booking request
+
+**Rescheduling**:
+- `POST /api/professional/bookings/[id]/reschedule/request` - Request reschedule (triggers candidate availability sync)
+  - Body: `{ reason?: string }`
+  - Booking status → `reschedule_pending`
+- `GET /api/professional/bookings/[id]/reschedule` - View candidate's availability for reschedule
+- `POST /api/professional/bookings/[id]/reschedule/confirm` - Confirm new time (as initiator or responder)
+  - Body: `{ startAt: DateTime }`
+  - Cancels old Zoom, creates new one, sends updated invites
+  - Booking status → `accepted`
+- `POST /api/professional/bookings/[id]/reschedule/reject` - Reject reschedule request
+  - Booking status reverts to `accepted` with original time
+
+> **Implementation Note**: Booking confirmation and rescheduling share helper functions for Zoom creation, calendar invites, and notifications. They use separate endpoints because: (1) first booking captures payment, rescheduling doesn't; (2) status transitions differ; (3) rescheduling deletes the old Zoom first.
 
 **Feedback**:
 - `POST /api/professional/feedback/[bookingId]` - Submit feedback after call
@@ -694,9 +1033,6 @@ Professional-specific endpoints:
 - `POST /api/professional/feedback/validate` - Validate feedback (QC check)
 
 **Settings & Account**:
-- `GET /api/professional/settings` - Get professional settings
-- `PUT /api/professional/settings` - Update professional settings
-- `DELETE /api/professional/settings` - Delete professional account
 - `POST /api/professional/onboarding` - Stripe Connect onboarding
 
 ### Candidate Portal (`/api/candidate/*`)
@@ -705,14 +1041,12 @@ Candidate-specific endpoints:
 
 **Bookings**:
 - `POST /api/candidate/bookings/request` - Request a booking with payment authorization
-  - Body: `{ professionalId, slots, weeks }`
+  - Body: `{ professionalId, weeks }`
+  - Note: Available time slots are derived from the candidate's Availability table (synced from Google Calendar)
   - Creates booking with status 'requested'
   - Creates Stripe PaymentIntent with `capture_method: 'manual'`
-  - Returns `{ bookingId, clientSecret, paymentIntentId }`
+  - Returns `{ bookingId, clientSecret, stripePaymentIntentId }`
   - Payment is **authorized but not captured** until professional accepts
-- `POST /api/candidate/bookings/[id]/checkout` - Pay for accepted booking
-  - Creates Stripe PaymentIntent and Payment record
-  - Returns clientSecret for Stripe Elements
 
 **Professional Discovery**:
 - `GET /api/candidate/professionals/search` - Search/browse professionals (anonymized)
@@ -725,9 +1059,24 @@ Candidate-specific endpoints:
 - `POST /api/candidate/availability` - Set availability preferences
 - `GET /api/candidate/busy` - Get busy times from Google Calendar
   - Fetches 30 days of busy times, merges with manual availability
-- `GET /api/candidate/settings` - Get candidate settings
-- `PUT /api/candidate/settings` - Update candidate settings (includes resume upload to S3)
-- `DELETE /api/candidate/settings` - Delete candidate account
+
+**Reviews**:
+- `POST /api/candidate/reviews` - Submit review of professional after completed booking
+  - Body: `{ bookingId, rating (1-5), text (min 50 chars), timezone }`
+  - Only accessible after booking completed, prevents duplicate reviews
+
+**Rescheduling**:
+- `POST /api/candidate/bookings/[id]/reschedule/request` - Request reschedule
+  - Body: `{ slots: TimeSlot[], reason?: string }`
+  - Only when status = `accepted`
+  - Booking status → `reschedule_pending`
+
+**Disputes**:
+- `POST /api/candidate/bookings/[id]/dispute` - Initiate dispute
+  - Body: `{ reason: DisputeReason, description: string }`
+  - Use cases: professional no-show, call quality issues, misrepresentation
+  - Creates Dispute record, booking status → `dispute_pending`
+  - Payout blocked until admin resolution
 
 ### Shared/Common Endpoints (`/api/shared/*`)
 
@@ -736,40 +1085,46 @@ Endpoints used by both roles or system-level operations:
 **Bookings**:
 - `POST /api/shared/bookings/[id]/cancel` - Cancel booking (either party, respects 3hr window)
 
+**Settings** (role-agnostic, uses session to determine profile type):
+- `GET /api/shared/settings` - Get user settings (routes to CandidateProfile or ProfessionalProfile based on role)
+- `PUT /api/shared/settings` - Update user settings
+- `DELETE /api/shared/settings` - Delete user account
+
 **Payments & Stripe**:
-- `POST /api/shared/payments/confirm` - Confirm payment after Stripe checkout
-  - Body: `{ paymentIntentId }`
-  - Validates payment succeeded
-- `POST /api/shared/payments/payout` - Release payment to professional (admin only)
-- `POST /api/shared/payments/refund` - Refund payment to candidate (admin only)
 - `GET /api/shared/stripe/account` - Get Stripe account info
 - `POST /api/shared/stripe/webhook` - Stripe webhook handler
+  - Verifies Stripe signature, then calls `confirmPayment()` from `/lib/integrations/stripe/confirm.ts` directly
+  - No internal HTTP calls — service function imported and invoked in-process
 
 **Verification**:
 - `POST /api/shared/verification/request` - Request email verification
 - `POST /api/shared/verification/confirm` - Confirm email verification
 - `GET /api/shared/verification/status` - Check verification status
 
-**QC & Reviews**:
+**QC**:
 - `POST /api/shared/qc/[bookingId]/recheck` - Recheck QC status (triggers new QC validation)
-- `POST /api/shared/reviews` - Submit candidate review of professional
-  - Body: `{ bookingId, rating (1-5), text (min 50 chars), timezone }`
-  - Only accessible after booking completed
-  - Prevents duplicate reviews
-- `GET /api/shared/reviews` - Get reviews (used for displaying professional reviews)
+- `GET /api/shared/reviews` - Get reviews for a professional
 
 ### Admin Portal (`/api/admin/*`)
 
 **Feedback Management**:
-- `PUT /api/admin/feedback/[bookingId]/qc-status` - Manually update QC status (passed/revise/failed/missing)
-  - **Safeguards required**:
-    1. Must verify no automated QC job is currently processing (check `qcProcessingAt` timestamp or job lock)
-    2. Request body MUST include mandatory `reason` field stored in audit log
-    3. Setting `failed` is **irreversible** and triggers immediate refund—require `confirm: true` parameter
-    4. Setting `passed` triggers payout release
-  - **Audit log entry format**: `{ timestamp, adminId, bookingId, previousStatus, newStatus, reason }`
-  - When status set to 'failed', automatically triggers refund and blocks payout
-  - Requires admin role
+- `GET /api/admin/feedback/export` - Export all feedback records (CSV)
+- Note: QC is fully automated via Claude API. No manual override endpoint.
+
+**Dispute Management**:
+- `GET /api/admin/disputes` - List all disputes (filterable by status)
+- `GET /api/admin/disputes/[id]` - View dispute details with booking info
+- `PUT /api/admin/disputes/[id]/resolve` - Resolve dispute
+  - Body: `{ resolution: string, action: 'full_refund' | 'partial_refund' | 'dismiss', refundAmountCents?: number }`
+  - Updates Dispute.status → `resolved`, applies refund/payout action
+
+**Payments**:
+- `POST /api/admin/payments/payout` - Release payment to professional
+- `POST /api/admin/payments/refund` - Refund payment to candidate
+
+**Bookings**:
+- `PUT /api/admin/bookings/[id]/zoom-link` - Manually set Zoom link (fallback for failed provisioning)
+  - Body: `{ zoomJoinUrl: string, zoomMeetingId?: string }`
 
 **CSV Export Endpoints**:
 - `GET /api/admin/users/export` - Export users
@@ -888,7 +1243,7 @@ export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
 });
 ```
 
-**Admin Access**: Hard-coded check for `admin@monet.local` email
+**Admin Access**: Determined by `User.role = 'ADMIN'`. Initial admin user created via seed script.
 
 ### OAuth Account Management
 
@@ -910,56 +1265,99 @@ export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
    → Shows anonymized listings
 
 2. REQUEST WITH AUTHORIZATION
-   Candidate requests booking with available times and authorizes payment
-   → POST /api/candidate/bookings/request { professionalId, slots, weeks }
+   Candidate requests booking and authorizes payment
+   → POST /api/candidate/bookings/request { professionalId, weeks }
+   → Candidate's availability is pulled from Availability table (Google Calendar synced)
    → Creates booking with status: "requested"
    → Creates Stripe PaymentIntent with capture_method: 'manual'
    → Payment record created with status: "authorized"
    → Returns clientSecret and paymentIntentId
-   → Candidate completes payment authorization via Stripe Elements
+   → Candidate completes payment authorization via Stripe Elements (3DS if required)
    → Sends email notification to professional
    → **Important**: Funds are authorized (held on card) but NOT captured yet
    → Authorization typically expires after 7 days with most card issuers
 
-2b. PROFESSIONAL ACCEPTS (Funds Captured)
-    → POST /api/professional/bookings/[id]/confirm-and-schedule { startAt }
-    → System captures the authorized PaymentIntent
-    → Payment record status changes to: "held"
-    → Funds now in platform escrow until QC passes
-
-3. CONFIRM PAYMENT
-   After Stripe confirms payment on client
-   → POST /api/shared/payments/confirm { paymentIntentId }
-   → Validates payment succeeded
-   → Payment record status remains "held" until after call
-
-4. ACCEPT & SCHEDULE
-   Professional views candidate's available times and picks one
+3. PROFESSIONAL ACCEPTS (Funds Captured)
+   Professional views candidate's available times and selects one
    → GET /api/professional/bookings/[id]/confirm-and-schedule (view candidate availability)
    → POST /api/professional/bookings/[id]/confirm-and-schedule { startAt }
+   → Server calls stripe.paymentIntents.capture(paymentIntentId)
+   → Payment record status changes: "authorized" → "held"
+   → Funds now in platform escrow until QC passes
    → Creates Zoom meeting
    → Sends calendar invites to both parties
-   → Status changes to "accepted"
-   → By selecting a time, the professional confirms/accepts the booking
+   → Booking status changes to "accepted"
+   → If capture fails (expired authorization): Return error 400, booking remains "requested"
 
-5. CALL
+4. CALL
    Candidate and Professional join Zoom
-   → Join tracking via database
-   → Status changes to "completed_pending_feedback" after both join
+   → Join tracking via database (candidateJoinedAt, professionalJoinedAt)
+   → Status changes to "completed_pending_feedback" when call ends
 
-6. FEEDBACK
+5. FEEDBACK
    Professional submits feedback
    → POST /api/professional/feedback/[bookingId] { summary, actions, ratings }
    → Booking status changes to "completed"
    → Triggers QC job after transaction commits (not delayed)
 
-7. QC & PAYOUT
+6. QC & PAYOUT
    Background job validates feedback
-   → If passed: Creates Payout record with status "pending", professional can withdraw funds
-   → If `FEATURE_SUCCESS_FEE` flag enabled: Deduct additional 10% from professional payout
+   → If passed: Creates Payout record with status "pending", triggers transfer to professional
    → If revise: Nudge emails queued at +24h, +48h, +72h, professional can resubmit
-   → If failed (manual admin action only): Auto-refund, PaymentStatus: "refunded", Payout.status: "blocked"
+   → If no revision after 7 days: 50% refund to candidate (net of Stripe fees), 50% to professional
+   → See QC Validation Flow for details
 ```
+
+### Payment Sequence Diagram
+
+The following diagram shows the authorize-then-capture payment flow:
+
+```mermaid
+sequenceDiagram
+    participant C as Candidate
+    participant S as Next.js Server
+    participant Stripe as Stripe API
+    participant W as Webhook Handler
+
+    C->>S: POST /bookings/request
+    S->>Stripe: create PaymentIntent (manual capture)
+    Stripe-->>S: PI requires_payment_method
+    S-->>C: { clientSecret, bookingId }
+    
+    C->>Stripe: confirmCardPayment (3DS if needed)
+    Stripe-->>C: PI requires_capture
+    
+    Note over C,W: Professional accepts (~7 day window)
+    
+    rect rgb(240, 248, 255)
+        Note right of S: Professional accepts
+        S->>Stripe: capture PaymentIntent
+        Stripe-->>S: PI succeeded
+        S-->>S: Payment.status = "held"
+        Stripe->>W: payment_intent.succeeded
+        W-->>W: Idempotent update (already held)
+    end
+```
+
+### Authorization Expiration Handling
+
+Stripe PaymentIntent authorizations expire after ~7 days (card issuer dependent).
+
+**Scenario: Professional accepts after authorization expired**
+- Server attempts `stripe.paymentIntents.capture()` → Stripe returns error
+- Return 400 to professional: "Payment authorization expired"
+- Booking remains in "requested" status
+- Notify candidate to re-authorize payment
+- Optional improvement: Add `authorizationExpiresAt` field to Payment model
+
+**Scenario: Booking scheduled >7 days after request**
+- Capture immediately at acceptance, hold in platform escrow
+- Alternative: Save payment method, charge closer to call date (requires SCA exemption strategy)
+
+**Scenario: Authorization expires before 72-hour request expiry**
+- Expiry job should check Payment status before processing
+- If authorization expired, update Payment status accordingly
+- Candidate receives notification to re-authorize or let request expire
 
 ### Cancellation Flow
 
@@ -980,6 +1378,41 @@ CANDIDATE LATE CANCELLATION (< 3 hours before call)
   → POST /api/shared/bookings/[id]/cancel
   → Returns error 400: "Cannot cancel within 3 hours of scheduled call time"
   → No refund, booking remains active
+
+  **If candidate forces late cancellation** (e.g. no-show):
+  → No refund issued (per policy)
+  → Professional was available and committed their time
+  → Payout triggered immediately, bypassing QC (no call = no feedback required)
+  → Platform fee still deducted from payout
+  → Rationale: Professional blocked their calendar; cancellation is candidate's forfeiture
+```
+
+### No-Show Detection Flow
+
+```
+1. Background job runs 15 minutes after scheduled start time
+   → Query: status = 'accepted' AND startAt < (now - 15 minutes)
+
+2. For each booking, check join timestamps:
+   → If both null: attendanceOutcome = 'both_no_show'
+   → If candidateJoinedAt null: attendanceOutcome = 'candidate_no_show'  
+   → If professionalJoinedAt null: attendanceOutcome = 'professional_no_show'
+   → If both present: attendanceOutcome = 'both_joined'
+
+3. Handle professional no-show:
+   → Auto-create Dispute with reason = 'no_show'
+   → BookingStatus transitions to 'dispute_pending'
+   → Notify candidate and admin
+   → No payout until admin resolution
+
+4. Handle candidate no-show:
+   → Treat as late cancellation (professional gets paid)
+   → Bypass QC, trigger payout immediately
+   → Notify professional
+
+5. Handle both no-show:
+   → Create admin task for manual review
+   → Funds remain held until resolution
 ```
 
 ### Professional Decline Flow
@@ -1032,6 +1465,42 @@ CANDIDATE LATE CANCELLATION (< 3 hours before call)
       → { action: 'booking_expired', bookingId, timestamp }
 ```
 
+### Error Handling and Edge Cases
+
+**Capture Fails After Professional Accepts**
+- Server attempts `stripe.paymentIntents.capture(paymentIntentId)`
+- Stripe returns error (e.g., `payment_intent_unexpected_state`, `card_declined`)
+- API returns 400 error to professional with message
+- PaymentStatus transitions to `capture_failed`
+- Notify candidate: "Please update your payment method"
+- Professional's time slot released (they can accept other bookings)
+- Candidate can:
+  → Update payment method and re-authorize (PaymentStatus returns to `authorized`)
+  → Let booking expire after timeout (configurable, default 24h)
+- If timeout reached: Booking transitions to `expired`
+
+**Zoom Meeting Creation Fails**
+- Payment already captured (funds held in escrow)
+- Booking status remains `accepted_pending_integrations`
+- BullMQ job retries Zoom creation (3 attempts, exponential backoff: 1min, 5min, 15min)
+- If all retries fail:
+  - Admin notification created with booking details
+  - Admin can manually enter Zoom link via `PUT /api/admin/bookings/[id]/zoom-link`
+  - Professional and candidate notified of delay
+  - Once link entered: status → `accepted`, calendar invites sent
+
+**Google Calendar Invite Fails**
+- Non-blocking: booking proceeds
+- Logged as warning
+- User sees "Calendar sync failed" in booking details
+- Manual calendar entry guidance provided
+
+**Race Condition: Accept vs 72-Hour Expiry**
+- Use optimistic locking on Booking.status
+- Accept transaction: `WHERE status = 'requested'`
+- Expiry job: `WHERE status = 'requested' AND expiresAt < now()`
+- First to commit wins; other fails gracefully
+
 ### QC Validation Flow
 
 ```
@@ -1042,36 +1511,27 @@ CANDIDATE LATE CANCELLATION (< 3 hours before call)
 
 2. QC Job triggered after transaction commits
    → BullMQ "qc" queue
-   → Pattern: Write feedback + update status in transaction, enqueue job after commit
-   → For maximal robustness, consider transactional outbox pattern
+   → Job ID: `qc:${bookingId}:${feedbackVersion}` (idempotent)
 
-3. QC Job runs (automatic)
-   → Checks feedback quality
-   → Sets qcStatus: "passed" | "revise"
-   → Note: Automatic QC never sets "failed"
+3. LLM Validation (Claude API)
+   → Calls Claude API with feedback text and validation prompt
+   → Prompt template: [TO BE FILLED IN]
+   → LLM returns: `passed` | `revise` (never fails)
 
 4. If PASSED
    → Payout.status = "pending"
-   → Professional can withdraw funds
+   → BullMQ payout job triggered immediately
+   → Stripe transfer to professional's connected account
 
 5. If REVISE
    → Nudge emails enqueued at +24h, +48h, +72h
    → Professional can resubmit feedback
    → Each resubmission triggers new QC check
-
-6. If FAILED (manual admin action only)
-   → Admin sets qcStatus to "failed" via PUT /api/admin/feedback/[bookingId]/qc-status
-   → Auto-refund processed to candidate
-   → PaymentStatus: "refunded"
-   → Payout.status: "blocked"
-
-7. ESCALATION (if stuck in revise)
-   → If status remains 'revise' at +168 hours (7 days) after last nudge
-   → Background job qc-escalation-check identifies stuck feedback
-   → Creates admin notification/task for manual review
-   → Sends candidate notification explaining delay
-   → Logs audit event
-   → Admins can then set 'passed', 'failed', or extend revision window
+   → If no revision after +168h (7 days):
+     → Auto-issue 50% refund to candidate (net of Stripe fees)
+     → Remaining 50% released to professional (net of Stripe fees)
+     → Booking marked as `completed` with partial refund flag
+     → Logs audit event
 ```
 
 ### Google Calendar Sync
@@ -1123,47 +1583,75 @@ CANDIDATE LATE CANCELLATION (< 3 hours before call)
    → Notifications: Format times in recipient's timezone
 ```
 
-### Rescheduling Flow (Planned)
+### Rescheduling Flow
 
-> **Status**: Recommended for future implementation
+> **Pattern**: Mirror the existing booking flow — proposer offers time slots, responder picks one  
+> **Database**: Add `reschedule_pending` status to `BookingStatus` enum
 
 ```
-1. Either party initiates reschedule
-   → POST /api/shared/bookings/[id]/reschedule
-   → Body: { proposedStartAt, reason? }
+CANDIDATE INITIATES RESCHEDULE
+1. Candidate requests reschedule
+   → POST /api/candidate/bookings/[id]/reschedule/request
+   → Body: { slots: TimeSlot[], reason?: string }
    → Only available when status = 'accepted'
-   → New time must be 24+ hours in future
+   → Booking.status transitions to 'reschedule_pending'
+   → Notification sent to professional
 
-2. Other party reviews
-   → Reschedule request notification sent
-   → GET /api/shared/bookings/[id]/reschedule - view pending request
+2. Professional reviews and selects new time
+   → GET /api/professional/bookings/[id]/reschedule (view proposed slots)
+   → POST /api/professional/bookings/[id]/reschedule/confirm { startAt }
+   → Updates booking startAt/endAt
+   → Cancels previous Zoom meeting, creates new one
+   → Sends new calendar invites to both parties
+   → Booking.status transitions back to 'accepted'
 
-3a. If APPROVED
-   → POST /api/shared/bookings/[id]/reschedule/approve
-   → Update booking startAt/endAt
-   → Update Zoom meeting time
-   → Update calendar invites for both parties
-   → Send confirmation to both parties
+3. If REJECTED
+   → POST /api/professional/bookings/[id]/reschedule/reject
+   → Booking.status transitions back to 'accepted'
+   → Original booking time unchanged
+   → Notify candidate of rejection
 
-3b. If REJECTED
-   → POST /api/shared/bookings/[id]/reschedule/reject
-   → Original booking unchanged
-   → Notify requesting party
+---
 
-Note: This avoids the cancel-and-rebook path which wastes Stripe fees.
+PROFESSIONAL INITIATES RESCHEDULE
+1. Professional requests reschedule
+   → POST /api/professional/bookings/[id]/reschedule/request
+   → Body: { reason?: string }
+   → Triggers resync of candidate's Google Calendar availability
+   → Booking.status transitions to 'reschedule_pending'
+   → Notification sent to candidate
+
+2. Professional views candidate's availability and picks new time
+   → Similar to initial booking accept flow:
+   → GET /api/professional/bookings/[id]/reschedule (view candidate's Availability)
+   → POST /api/professional/bookings/[id]/reschedule/confirm { startAt }
+   → Cancels previous Zoom meeting, creates new one
+   → Sends new calendar invites
+   → Booking.status transitions back to 'accepted'
+
+---
+
+EDGE CASES
+- If rescheduled time is outside authorization window: Re-charge may be needed
+- If other party doesn't respond: Revert to 'accepted' after timeout (configurable)
+- Reschedule count: Track via AuditLog queries if needed (no dedicated field)
 ```
 
-### Dispute Resolution (Planned)
+**Note**: Avoids cancel-and-rebook path which wastes Stripe fees. Zoom meetings are cancelled and recreated rather than updated.
 
-> **Status**: Recommended for future implementation
+### Dispute Resolution
+
+> **Trigger**: Candidate-initiated or QC failure escalation
 
 ```
-1. Candidate initiates dispute
+1. Dispute initiated
    → POST /api/candidate/bookings/[id]/dispute
    → Body: { reason, details }
    → Use cases: professional no-show, call quality issues, misrepresentation
+   → OR: Triggered automatically when admin marks QC as 'failed'
 
 2. Immediate effects
+   → BookingStatus transitions to 'dispute_pending'
    → PayoutStatus transitions to 'blocked'
    → Admin notification/task created
    → Candidate confirmation sent
@@ -1171,112 +1659,113 @@ Note: This avoids the cancel-and-rebook path which wastes Stripe fees.
 3. Admin investigation
    → Admin reviews booking details, call logs, feedback
    → May contact both parties
+   → Access via admin dashboard
 
 4. Resolution options
-   → Full refund: PaymentStatus = 'refunded', Payout = 'blocked'
-   → Partial refund: Custom refund amount
-   → Dismiss: PayoutStatus = 'pending' (restore)
+   → Full refund: PaymentStatus = 'refunded', Payout.status = 'blocked'
+   → Partial refund: Custom refund amount, Payout.status = 'blocked'
+   → Dismiss (release payout): PayoutStatus = 'pending' → 'paid'
 
 Note: Provides recourse when professional is no-show or quality is poor.
-```
-
-### Pre-Booking Inquiry (Planned)
-
-> **Status**: Recommended for future implementation
-
-Allows candidates to communicate with professionals before committing to payment.
-
-**Inquiry Model**:
-```prisma
-model Inquiry {
-  id             String   @id @default(cuid())
-  candidateId    String
-  professionalId String
-  subject        String
-  message        String
-  status         InquiryStatus  // open | converted | closed
-  createdAt      DateTime @default(now())
-  
-  @@index([professionalId, status])
-}
-```
-
-**Flow**:
-```
-1. Candidate sends inquiry
-   → POST /api/candidate/inquiries
-   → Body: { professionalId, subject, message }
-   → Creates Inquiry with status 'open'
-   → Notifies professional
-
-2. Conversation continues
-   → Message threads (via InquiryMessage model)
-   → Either party can continue conversation
-
-3. Conversion to booking
-   → POST /api/candidate/inquiries/[id]/convert
-   → Creates booking request from inquiry context
-   → Inquiry status = 'converted'
-
-4. Or close inquiry
-   → POST /api/shared/inquiries/[id]/close
-   → Inquiry status = 'closed'
-
-Note: Reduces friction by allowing pre-payment communication.
+Does NOT auto-refund on QC failure to prevent "theft of service".
 ```
 
 ---
 
 ## Testing
 
-### Test Framework
+### Testing Philosophy
 
-- **Vitest 3.2.4** for both unit and E2E tests
+> **For small/lean teams**: Focus on high-value tests that catch real bugs. Don't over-test rapidly changing features.
 
-### Test Files
-
+```mermaid
+graph TB
+    subgraph "Testing Pyramid"
+        E2E["🌐 E2E Tests<br/>Few, slow, high confidence<br/>Critical user journeys only"]
+        INT["⚡ Integration Tests<br/>API routes + database<br/>Core business logic"]
+        UNIT["🔧 Unit Tests<br/>Many, fast<br/>Pure functions & utilities"]
+    end
+    
+    E2E --> INT --> UNIT
+    
+    style E2E fill:#ff6b6b,color:white
+    style INT fill:#feca57,color:black
+    style UNIT fill:#5f27cd,color:white
 ```
-tests/
-├── availability.test.ts      # Availability slot logic
-├── cancellations.test.ts     # Cancellation policy edge cases
-├── qc-gating.test.ts         # QC validation and payout gating
-├── zoom.test.ts              # Zoom integration
-└── e2e/
-    └── flow.test.ts          # Full booking flow E2E
-```
+
+### Pragmatic Test Strategy
+
+| What to Test | When to Test | Skip If... |
+|--------------|--------------|------------|
+| Payment flows | **Always** | Never skip |
+| State transitions | **Always** | Never skip |
+| QC validation | **Always** | Never skip |
+| API routes | When stable | Feature in flux |
+| UI components | Critical only | Rapidly iterating |
+
+### Test Stack (Simple)
+
+- **Vitest** - Unit + integration tests
+- **Playwright** - E2E tests (add later when flows stabilize)
 
 ### Running Tests
 
 ```bash
-# All tests
-npm run test
-
-# E2E tests only
-npm run test:e2e
-
-# Watch mode (during development)
-npx vitest
+npm run test        # All tests
+npm run test:watch  # Watch mode (recommended during dev)
+npm run test:e2e    # E2E tests
 ```
 
-### Test Coverage Areas
+### Test File Organization
 
-- ✅ Cancellation policy (3-hour window)
-- ✅ QC validation rules
-- ✅ Payout gating logic
-- ✅ Availability slot management
-- ✅ Timezone conversions
-- ✅ Zoom meeting creation
-- ✅ Full booking flow (request → checkout → confirm)
+```
+tests/
+├── payments.test.ts       # Payment capture, refund, payout
+├── bookings.test.ts       # State transitions, cancellations
+├── qc.test.ts             # QC validation, payout gating
+├── availability.test.ts   # Slot logic, timezone handling
+├── mocks/
+│   └── stripe.ts          # Stripe API mock
+└── e2e/
+    └── booking-flow.test.ts  # Full happy path (add when stable)
+```
 
-### Mocking External Services
+### What MUST Be Tested (Non-Negotiable)
 
-Tests mock:
-- Stripe API calls
-- Zoom API calls
-- Google Calendar API
-- Email sending (Nodemailer)
+> [!CAUTION]
+> These handle money and state - bugs here are costly.
 
----
+1. **Payment capture/refund** - Every code path
+2. **Booking state transitions** - All valid transitions
+3. **QC validation** - Payout gating logic
+4. **Cancellation policy** - 3-hour window enforcement
+
+### Simple Mocking Pattern
+
+```typescript
+// tests/mocks/stripe.ts
+import { vi } from 'vitest';
+
+export const mockStripe = {
+  paymentIntents: {
+    create: vi.fn().mockResolvedValue({ id: 'pi_test', client_secret: 'secret' }),
+    capture: vi.fn().mockResolvedValue({ id: 'pi_test', status: 'succeeded' }),
+  },
+  refunds: {
+    create: vi.fn().mockResolvedValue({ id: 'ref_test' }),
+  },
+};
+
+// Usage: vi.mock('@/lib/integrations/stripe', () => ({ stripe: mockStripe }));
+```
+
+### When to Add More Tests
+
+- ✅ Feature is stable and unlikely to change
+- ✅ Bug was found in production → add regression test
+- ✅ Complex logic that's hard to manually verify
+- ❌ UI that's still being designed
+- ❌ Features behind feature flags that may be removed
 
 ## Code Patterns
 
@@ -1433,10 +1922,10 @@ export async function POST(request: Request) {
 **Solution**: Use PaymentIntent ID as natural idempotency key.
 
 ```typescript
-async function confirmPayment(paymentIntentId: string): Promise<Payment> {
+async function confirmPayment(stripePaymentIntentId: string): Promise<Payment> {
   // Check current state before processing
   const existing = await prisma.payment.findFirst({
-    where: { paymentIntentId },
+    where: { stripePaymentIntentId },
   });
 
   // Already processed - return success without reprocessing
@@ -1493,7 +1982,6 @@ export function convertToUserTimezone(date: Date, timezone: string) {
 ```typescript
 export const flags = {
   FEATURE_LINKEDIN_ENHANCED: process.env.FEATURE_LINKEDIN_ENHANCED === 'true',
-  FEATURE_SUCCESS_FEE: process.env.FEATURE_SUCCESS_FEE !== 'false',
   FEATURE_QC_LLM: process.env.FEATURE_QC_LLM !== 'false',
 };
 ```
@@ -1503,8 +1991,8 @@ export const flags = {
 ```typescript
 import { flags } from '@/lib/core/flags';
 
-if (flags.FEATURE_SUCCESS_FEE) {
-  // Apply success fee logic
+if (flags.FEATURE_LINKEDIN_ENHANCED) {
+  // Enhanced LinkedIn features
 }
 ```
 
@@ -1940,9 +2428,6 @@ AWS_S3_BUCKET="your-bucket-name"
 # LinkedIn Enhanced Features (default: false)
 FEATURE_LINKEDIN_ENHANCED=false
 
-# Success Fee Module (default: true)
-FEATURE_SUCCESS_FEE=true
-
 # LLM-based QC (default: true)
 FEATURE_QC_LLM=true
 ```
@@ -2201,104 +2686,16 @@ git push -u origin <branch-name>
 
 ## Changelog
 
-### 2026-01-11 - Comprehensive Architecture & Security Documentation Update
-- **Payment Flow**: Documented authorize-at-request → capture-after-accept pattern
-  - Updated Core Features, API docs, and Booking Flow sections for consistency
-  - Added `PaymentStatus.authorized` enum value
-  - Fixed incorrect Stripe PaymentIntent expiration claim (7 days, not 24 hours)
-- **Stripe Connect**: Clarified Separate Charges and Transfers pattern (not destination charges)
-  - Enables proper escrow/gating before QC validation
-- **Security Patterns Added**:
-  - Webhook Security Pattern with signature verification requirements
-  - Payment Confirmation Idempotency Pattern
-  - Admin Override Safeguards for QC status changes
-- **Data Model Updates**:
-  - Added `declined` and `expired` to BookingStatus enum with state transitions
-  - Added State Invariants table documenting valid status combinations
-  - Renamed `priceUSD` to `priceInCents` for clarity
-  - Added Booking fields: `expiresAt`, `declineReason`, `paymentDueAt`
-  - Added Model-to-Table Mappings (CallFeedback → Feedback, etc.)
-- **New Workflows Documented**:
-  - Professional Decline Flow
-  - Request Expiration Flow (72-hour timeout)
-  - QC Escalation after nudge exhaustion (7-day escalation)
-  - Timezone Handling Flow
-- **New Code Patterns Added**:
-  - State Machine Pattern for Bookings with transition diagram
-  - Idempotent Background Jobs pattern
-  - Worker Process Constraints (what workers may/must not import)
-  - Dependency Injection for Testability
-- **Developer Experience Improvements**:
-  - Fixed Directory Structure to match role-based API reorganization
-  - Split queue definitions by domain (qc.ts, notifications.ts, etc.)
-  - Added lib/ Organization Philosophy (domain vs role layers)
-  - Clarified Component Collocation rules
-  - Fixed path alias documentation
-  - Fixed calendar endpoint reference
-- **Planned Features (Recommended)**:
-  - Rescheduling Flow
-  - Dispute Resolution Flow
-  - Pre-Booking Inquiry Flow
+| Date | Summary |
+|------|---------|
+| 2026-01-17 | Schema fixes (attendanceOutcome, candidateLateCancellation, PaymentStatus.cancelled/capture_failed), QC flow update to LLM-only (Claude API), success fee removal, async confirm-and-schedule pattern, webhook loopback fix |
+| 2026-01-16 | Documentation accuracy fixes, Dispute model, attendance tracking, comprehensive schema documentation |
+| 2026-01-11 | Payment flow (authorize→capture), Stripe Connect clarification, security patterns, state invariants, new workflows |
+| 2025-11-19 | Refactoring cleanup, renamed `/schedule` to `/confirm-and-schedule`, removed `Slot` type alias |
+| 2025-11-18 | Money handling: cents (Int) instead of dollars (Float), renamed `priceUSD` to `priceCents` |
+| 2025-11-17 | API routes reorganization by role, folder structure reorganization, initial version |
 
-### 2025-11-19 - Refactoring Cleanup
-- **Removed `/candidate/history` route**: Redundant with `/candidate/calls`
-  - Moved feedback view page to `/candidate/calls/[bookingId]/feedback`
-  - Updated all links to use the new path
-- **Renamed `/schedule` endpoint to `/confirm-and-schedule`**: Clearer naming
-  - `GET /api/professional/bookings/[id]/confirm-and-schedule` - View candidate's available times
-  - `POST /api/professional/bookings/[id]/confirm-and-schedule` - Accept booking and schedule
-  - Updated frontend code and tests
-- **Removed `Slot` type alias**: Now use only `TimeSlot` everywhere
-  - Updated `mergeSlots()` and `splitIntoSlots()` function signatures
-  - Updated all test files
-- **Applied `formatFullName()` helper consistently**: Across all files that format user names
-  - Updated 8+ files to use the helper from `@/lib/shared/settings`
-
-### 2025-11-18 - Money Handling: Cents (Int) Instead of Dollars (Float)
-- **BREAKING CHANGE**: All money fields now use cents (Int) instead of dollars (Float)
-- Updated `ProfessionalProfile.priceUSD`, `Booking.priceUSD`, and `ListingCardView.priceUSD` from Float to Int
-- Schema change: `priceUSD Int // Price in cents (e.g., 10000 = $100.00)`
-- Removed *100 multiplication in Stripe integration since prices are already in cents
-- Updated seed data: prices now stored as cents (e.g., 10000 instead of 100.0)
-- Updated all UI components to convert cents to dollars for display (divide by 100)
-- Updated onboarding form to convert user input (dollars) to cents (multiply by 100)
-- **Benefits**: Eliminates floating-point precision errors, consistent with Stripe's cent-based API
-- **Migration required**: Run `npx prisma migrate dev` to update database schema
-
-### 2025-11-17 - API Routes Reorganization
-- Reorganized `/src/app/api` directory by user role:
-  - `api/professional/` - Professional-specific endpoints (bookings actions, feedback submission, Stripe onboarding)
-  - `api/candidate/` - Candidate-specific endpoints (booking requests, professional discovery, checkout)
-  - `api/shared/` - Shared/common endpoints (payments, Stripe, verification, QC, reviews)
-  - `api/auth/` - Authentication endpoints (kept at root for NextAuth compatibility)
-  - `api/admin/` - Admin endpoints (unchanged)
-- Moved 25+ API route files to new organized structure
-- Updated all frontend fetch() calls to new API paths
-- Updated all relative imports in API routes to use @/lib aliases
-- Improved API discoverability and role-based access clarity
-
-### 2025-11-17 - Folder Structure Reorganization
-- Reorganized `/lib` directory by role and responsibility:
-  - `lib/professional/` - Professional-specific business logic
-  - `lib/candidate/` - Candidate-specific business logic (reserved for future use)
-  - `lib/shared/` - Shared business logic (bookings, availability, QC, audit)
-  - `lib/integrations/` - Third-party service integrations (Stripe, Zoom, Google Calendar, Email, S3)
-  - `lib/core/` - Core infrastructure (db, api-helpers, flags, rate-limit, admin-export)
-  - `lib/utils/` - Pure utilities (date, timezones, profileOptions)
-- Reorganized `/src/components` by domain:
-  - `components/bookings/` - Booking-related components
-  - `components/feedback/` - Feedback components
-  - `components/profile/` - Profile components
-  - `components/dashboard/` - Dashboard components
-  - `components/ui/` - Shared UI primitives
-- Updated all import paths across the codebase
-- Improved code discoverability and maintainability
-
-### 2025-11-17 - Initial Version
-- Created comprehensive CLAUDE.md
-- Documented all major systems and patterns
-- Added troubleshooting guides
-- Included code examples and conventions
+For detailed changes, see git history.
 
 ---
 
