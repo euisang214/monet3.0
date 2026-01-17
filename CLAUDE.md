@@ -52,7 +52,7 @@
 
 - **Call Duration**: 30 minutes (configurable via `CALL_DURATION_MINUTES`)
 - **Platform Fee**: 20% of booking price
-- **Cancellation Policy**: 3-hour window before scheduled call
+- **Cancellation Policy**: 6-hour window before scheduled call
 - **QC Requirements**:
   - Minimum 200 words
   - Exactly 3 action items
@@ -486,7 +486,7 @@ model Booking {
   priceCents       Int?          // Price in cents (e.g., 10000 = $100.00)
   startAt          DateTime?
   endAt            DateTime?
-  expiresAt        DateTime?     // For request expiration (72 hours from creation)
+  expiresAt        DateTime?     // For request expiration (120 hours from creation)
   declineReason    String?       // Professional's reason for declining
   paymentDueAt     DateTime?     // Checkout deadline (if using pay-after-accept variant)
   zoomMeetingId    String?
@@ -823,7 +823,7 @@ enum BookingStatus {
   draft
   requested
   declined                      // Professional declined the request
-  expired                       // Request expired (72-hour timeout, no response)
+  expired                       // Request expired (120-hour timeout, no response)
   accepted
   accepted_pending_integrations // Accepted but Zoom/calendar provisioning in progress
   reschedule_pending            // Reschedule requested, awaiting time selection
@@ -836,7 +836,7 @@ enum BookingStatus {
 
 // State transitions:
 // requested → declined (professional declines)
-// requested → expired (72-hour timeout with no response)
+// requested → expired (120-hour timeout with no response)
 // requested → accepted (professional accepts)
 // accepted → accepted_pending_integrations (Zoom/calendar provisioning started)
 // accepted_pending_integrations → accepted (provisioning complete or failed with manual fallback)
@@ -1083,7 +1083,7 @@ Candidate-specific endpoints:
 Endpoints used by both roles or system-level operations:
 
 **Bookings**:
-- `POST /api/shared/bookings/[id]/cancel` - Cancel booking (either party, respects 3hr window)
+- `POST /api/shared/bookings/[id]/cancel` - Cancel booking (either party, respects 6hr window)
 
 **Settings** (role-agnostic, uses session to determine profile type):
 - `GET /api/shared/settings` - Get user settings (routes to CandidateProfile or ProfessionalProfile based on role)
@@ -1303,7 +1303,7 @@ export const GET = withRole(['ADMIN', 'PROFESSIONAL'], async (session, req) => {
 6. QC & PAYOUT
    Background job validates feedback
    → If passed: Creates Payout record with status "pending", triggers transfer to professional
-   → If revise: Nudge emails queued at +24h, +48h, +72h, professional can resubmit
+   → If revise: Nudge emails queued at +24h, +48h, +120h, professional can resubmit
    → If no revision after 7 days: 50% refund to candidate (net of Stripe fees), 50% to professional
    → See QC Validation Flow for details
 ```
@@ -1348,13 +1348,11 @@ Stripe PaymentIntent authorizations expire after ~7 days (card issuer dependent)
 - Return 400 to professional: "Payment authorization expired"
 - Booking remains in "requested" status
 - Notify candidate to re-authorize payment
-- Optional improvement: Add `authorizationExpiresAt` field to Payment model
 
 **Scenario: Booking scheduled >7 days after request**
 - Capture immediately at acceptance, hold in platform escrow
-- Alternative: Save payment method, charge closer to call date (requires SCA exemption strategy)
 
-**Scenario: Authorization expires before 72-hour request expiry**
+**Scenario: Authorization expires before 120-hour request expiry**
 - Expiry job should check Payment status before processing
 - If authorization expired, update Payment status accordingly
 - Candidate receives notification to re-authorize or let request expire
@@ -1368,15 +1366,15 @@ PROFESSIONAL CANCELLATION (anytime)
   → Status: "cancelled"
   → PaymentStatus: "refunded"
 
-CANDIDATE CANCELLATION (>= 3 hours before call)
+CANDIDATE CANCELLATION (>= 6 hours before call)
   → POST /api/shared/bookings/[id]/cancel
   → Full refund processed immediately
   → Status: "cancelled"
   → PaymentStatus: "refunded"
 
-CANDIDATE LATE CANCELLATION (< 3 hours before call)
+CANDIDATE LATE CANCELLATION (< 6 hours before call)
   → POST /api/shared/bookings/[id]/cancel
-  → Returns error 400: "Cannot cancel within 3 hours of scheduled call time"
+  → Returns error 400: "Cannot cancel within 6 hours of scheduled call time"
   → No refund, booking remains active
 
   **If candidate forces late cancellation** (e.g. no-show):
@@ -1445,8 +1443,8 @@ CANDIDATE LATE CANCELLATION (< 3 hours before call)
 
 ```
 1. Booking Creation
-   → Set expiresAt = createdAt + 72 hours for 'requested' bookings
-   → Configurable via BOOKING_REQUEST_EXPIRY_HOURS env var (default: 72)
+   → Set expiresAt = createdAt + 120 hours for 'requested' bookings
+   → Configurable via BOOKING_REQUEST_EXPIRY_HOURS env var (default: 120)
 
 2. Background Job: booking-expiry-check
    → Runs hourly via BullMQ scheduled job
@@ -1495,7 +1493,7 @@ CANDIDATE LATE CANCELLATION (< 3 hours before call)
 - User sees "Calendar sync failed" in booking details
 - Manual calendar entry guidance provided
 
-**Race Condition: Accept vs 72-Hour Expiry**
+**Race Condition: Accept vs 120-Hour Expiry**
 - Use optimistic locking on Booking.status
 - Accept transaction: `WHERE status = 'requested'`
 - Expiry job: `WHERE status = 'requested' AND expiresAt < now()`
@@ -1524,7 +1522,7 @@ CANDIDATE LATE CANCELLATION (< 3 hours before call)
    → Stripe transfer to professional's connected account
 
 5. If REVISE
-   → Nudge emails enqueued at +24h, +48h, +72h
+   → Nudge emails enqueued at +24h, +48h, +96h
    → Professional can resubmit feedback
    → Each resubmission triggers new QC check
    → If no revision after +168h (7 days):
@@ -1607,9 +1605,11 @@ CANDIDATE INITIATES RESCHEDULE
 
 3. If REJECTED
    → POST /api/professional/bookings/[id]/reschedule/reject
-   → Booking.status transitions back to 'accepted'
-   → Original booking time unchanged
-   → Notify candidate of rejection
+   → Booking.status transitions to 'cancelled'
+   → Refund follows standard cancellation policy:
+     - If >= 6 hours before original call time: Full refund
+     - If < 6 hours before original call time: No refund, professional receives payout
+   → Notify candidate of rejection and cancellation
 
 ---
 
@@ -1738,7 +1738,7 @@ tests/
 1. **Payment capture/refund** - Every code path
 2. **Booking state transitions** - All valid transitions
 3. **QC validation** - Payout gating logic
-4. **Cancellation policy** - 3-hour window enforcement
+4. **Cancellation policy** - 6-hour window enforcement
 
 ### Simple Mocking Pattern
 
