@@ -67,7 +67,8 @@
 - **Framework**: Next.js 14.2.31 (App Router with RSC)
 - **Language**: TypeScript 5.6.3 (strict mode)
 - **UI Library**: React 18.2.0
-- **Styling**: Custom CSS with design tokens + React Bootstrap 2.10.10
+- **UI Authoring**: Webflow (visual design) + DevLink CLI (component export)
+- **Styling**: DevLink exported CSS Modules + scoped custom CSS
 - **Icons**: Lucide React 0.424.0
 - **Calendar UI**: Toast UI Calendar 2.0.1
 - **Date Handling**: date-fns 3.6.0, date-fns-tz 3.2.0
@@ -130,6 +131,16 @@ Browser → API Routes → Service Layer → Prisma → PostgreSQL
 Background Jobs → BullMQ → Redis → Service Layer → Prisma
 ```
 
+### Webflow + DevLink UI Layer
+
+- **Webflow** owns visual structure and styling as exported React components
+- **DevLink CLI** syncs components into `src/devlink/` (committed, not built at deploy)
+- **Next.js** owns routing, auth gating, data fetching, and API routes
+- **Pattern**: Server Component fetches data → Client wrapper renders DevLink component + binds runtime props
+
+> [!NOTE]
+> DevLink components are client-only. Any file importing from `@/devlink/*` must use `'use client'`.
+
 ### Three User Portals
 
 1. **Candidate Portal** (`/candidate/*`)
@@ -158,7 +169,9 @@ Background Jobs → BullMQ → Redis → Service Layer → Prisma
 ```
 monet3.0/
 ├── src/
+│   ├── devlink/                     # GENERATED: DevLink components + global.css + DevLinkProvider (DO NOT EDIT)
 │   ├── app/                          # Next.js App Router
+│   │   ├── DevLinkClientProvider.tsx # Client wrapper for DevLinkProvider
 │   │   ├── (public)/                # Public routes (landing, pricing, etc.)
 │   │   ├── candidate/               # Candidate portal
 │   │   │   ├── dashboard/
@@ -188,6 +201,7 @@ monet3.0/
 │   │   ├── feedback/               # Feedback components
 │   │   ├── profile/                # Profile components
 │   │   ├── dashboard/              # Dashboard components
+│   │   ├── c/          # Table-style UI for listing items (professionals or booking requests)
 │   │   └── ui/                     # Shared UI primitives
 │   ├── types/                       # TypeScript type definitions
 │   ├── auth.ts                      # NextAuth configuration
@@ -265,11 +279,14 @@ monet3.0/
 ├── public/                          # Static assets
 │   └── brand/                       # Logo and branding
 ├── package.json
+├── webflow.json                     # DevLink CLI configuration
 ├── tsconfig.json
 ├── .env.example
 ├── docker-compose.yml
 └── README.md
 ```
+
+> **Note**: Most list views have corresponding `[id]` routes for detail pages (e.g., `professional/requests/[id]`).
 
 ### Important Path Aliases
 
@@ -299,36 +316,47 @@ The `lib/` directory uses a **hybrid approach**:
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - PostgreSQL 14+
 - Redis 6+
 - npm
+- (UI syncing devs only) Webflow workspace with DevLink access enabled
 
 ### Quick Start
 
 ```bash
-# 1. Install dependencies
 npm install
+cp .env.example .env
+# Edit .env with your DB/Stripe/etc values
 
-# 2. Start Docker services (optional - if using local DB/Redis)
+# Start Docker services (optional - if using local DB/Redis)
 docker compose up -d
 
-# 3. Set up environment variables
-cp .env.example .env
-# Edit .env with your values
-
-# 4. Run database migrations
 npx prisma migrate dev
-
-# 5. Seed the database
 npm run seed
-
-# 6. Start development server
-npm run dev
-
-# 7. In a separate terminal, start background worker
-npm run dev:queue
+npm run dev        # Terminal 1
+npm run dev:queue  # Terminal 2
 ```
+
+#### UI Syncer Development (Webflow Access Required)
+
+For developers updating DevLink components from Webflow:
+
+```bash
+# One-time auth (note: --force required because .env already exists)
+webflow auth login --force
+# This adds WEBFLOW_SITE_ID and WEBFLOW_SITE_API_TOKEN to .env
+
+# Sync components from Webflow
+npm run devlink:sync
+
+# Commit the updated src/devlink/ files
+git add src/devlink/
+git commit -m "Sync DevLink components"
+```
+
+> [!NOTE]
+> The `--force` flag is required because this repo already uses `.env` for DB/Stripe/etc. Without it, the Webflow CLI will fail to modify the existing `.env` file.
 
 ### Seeded Test Users
 
@@ -352,6 +380,7 @@ After running `npm run seed`, these users are available:
 ```bash
 npm run dev          # Start Next.js dev server (port 3000)
 npm run dev:queue    # Start BullMQ background worker
+npm run devlink:sync # Sync DevLink components from Webflow
 npm run build        # Production build
 npm run start        # Production server
 npm run seed         # Run database seed
@@ -397,8 +426,8 @@ The queue worker handles:
 
 1. **Route Collocation**: Forms and components in same directory as pages
 2. **Shared Components**: `/src/components` for reusable UI
-3. **"use client" Directive**: Only on interactive client components
-4. **Server Components**: Default for all components
+3. **"use client" Directive**: Required for any file importing from `@/devlink/*` and interactive client components
+4. **Server Components**: Default for all components unless importing DevLink or using interactive client components
 
 **Route-Colocated Component Boundaries**:
 
@@ -412,6 +441,13 @@ Route-colocated components must NOT contain:
 - ❌ Validation logic (use shared Zod schemas in `/lib/`)
 - ❌ Business logic (use domain services in `/lib/domain/`)
 - ❌ Reusable UI elements (move to `/src/components/`)
+
+### DevLink Conventions
+
+1. **Client Component Requirement**: Any file importing from `@/devlink/*` MUST include `'use client'` directive
+2. **No Manual Edits**: Never edit files in `src/devlink/` — wrap components externally if customization is needed
+3. **CSS Strategy**: Use CSS Modules for scoped overrides; avoid global CSS except DevLink's `global.css`
+4. **Wrapper Pattern**: DevLink components handle presentation; wrapper components handle data and callbacks
 
 ### API Response Patterns
 
@@ -1787,6 +1823,28 @@ if (process.env.NODE_ENV !== 'production')
 
 **Why**: Prevents multiple Prisma instances during hot reload in development
 
+### DevLink Component Wrapping Pattern
+
+Wrap DevLink components in client components to bind runtime props:
+
+```typescript
+// src/components/BookingCard.tsx
+'use client';
+import { DevLinkBookingCard } from '@/devlink';
+
+export function BookingCard({ booking, onCancel }: Props) {
+  return (
+    <DevLinkBookingCard
+      title={booking.title}
+      price={`$${booking.priceCents / 100}`}
+      onCancelClick={onCancel}
+    />
+  );
+}
+```
+
+**Why**: DevLink components are presentation-only. Wrappers connect them to Next.js data and actions.
+
 ### Service Layer Pattern
 
 Business logic is isolated in `/lib/*` utilities, not in API routes.
@@ -2251,21 +2309,19 @@ it('should process refund', async () => {
 
 ### Adding a New Page
 
-1. Create page file: `/src/app/your-route/page.tsx`
-2. Add layout if needed: `/src/app/your-route/layout.tsx`
-3. Implement as Server Component by default
-4. Add "use client" only if interactive
-5. Fetch data in Server Component:
-   ```typescript
-   import { auth } from '@/auth';
-   import { prisma } from '@/lib/core/db';
+1. **Design in Webflow**: Create component representing page layout
+2. **Expose dynamic regions**: Use component props and slots for variable content
+3. **Sync**: `npm run devlink:sync`
+4. **Create Next.js route**: `/src/app/your-route/page.tsx` (Server Component)
+5. **Create client wrapper**: Import DevLink component, bind runtime props
+6. **Connect data**: Fetch in Server Component, pass to client wrapper
 
-   export default async function YourPage() {
-     const session = await auth();
-     const data = await prisma.yourModel.findMany();
-     return <div>...</div>;
-   }
-   ```
+Example structure:
+```
+/src/app/booking/[id]/
+├── page.tsx              # Server: fetches data, renders BookingPageClient
+└── BookingPageClient.tsx # Client: imports DevLink component, binds props
+```
 
 ### Adding a Background Job
 
@@ -2541,6 +2597,28 @@ npm run build
 # Look for errors or warnings
 ```
 
+### Webflow / DevLink Issues
+
+#### "DevLink components error in Server Component context"
+
+**Cause**: DevLink components are client-only
+
+**Solution**: Move DevLink usage into a Client Component wrapper with `'use client'`
+
+#### "CSS conflicts or unexpected base styles"
+
+**Cause**: Conflicting global resets
+
+**Solution**:
+1. Remove any Bootstrap or Tailwind CSS imports
+2. Only import DevLink's `global.css` once in root layout
+
+#### "Webflow interactions not working"
+
+**Cause**: Missing provider
+
+**Solution**: Ensure `DevLinkProvider` wraps the app via `DevLinkClientProvider.tsx`
+
 ---
 
 ## Important Files Reference
@@ -2575,6 +2653,11 @@ npm run build
 ### Testing
 - `/tests/*.test.ts` - Unit tests
 - `/tests/e2e/*.test.ts` - E2E tests
+
+### Webflow / DevLink
+- `/src/devlink/` - Generated DevLink components (DO NOT EDIT)
+- `/src/app/DevLinkClientProvider.tsx` - Client wrapper for DevLinkProvider
+- `/webflow.json` - DevLink CLI configuration
 
 ---
 
@@ -2662,6 +2745,8 @@ git push -u origin <branch-name>
 - [ ] Tests are updated/added
 - [ ] Feature flags are used for optional features
 - [ ] Secrets are in environment variables (not hardcoded)
+- [ ] DevLink files (`src/devlink/`) are never edited manually
+- [ ] Files importing `@/devlink/*` include `'use client'`
 
 ### Security Checklist
 
@@ -2688,6 +2773,7 @@ git push -u origin <branch-name>
 
 | Date | Summary |
 |------|---------|
+| 2026-01-19 | Webflow + DevLink integration: replaced React Bootstrap with DevLink as UI layer, added DevLink conventions and patterns |
 | 2026-01-17 | Schema fixes (attendanceOutcome, candidateLateCancellation, PaymentStatus.cancelled/capture_failed), QC flow update to LLM-only (Claude API), success fee removal, async confirm-and-schedule pattern, webhook loopback fix |
 | 2026-01-16 | Documentation accuracy fixes, Dispute model, attendance tracking, comprehensive schema documentation |
 | 2026-01-11 | Payment flow (authorize→capture), Stripe Connect clarification, security patterns, state invariants, new workflows |
